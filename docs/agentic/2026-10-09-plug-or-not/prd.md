@@ -6,7 +6,7 @@
 **References:** User journey page "Worth-It Charging Journey" (https://claude.ai/artifact/QH6WeJ3mzufmZHDaAQ62VW); NDW open data (https://opendata.ndw.nu/): `charging_point_locations_ocpi.json.gz`, `charging_point_tariffs_ocpi.json.gz`; prior art: GE patent CN102529851A
 **Plugin version:** 0.5.3
 **Agent Sessions:** claude-code: 5d4e9523-19b6-4b26-8e51-d031314dc40e
-**Self-review:** CAP_REACHED — round-2 findings fixed, not re-reviewed. Findings: (1) "FR-013 can be read two ways, and only one gives the scenario numbers": fixed by stating speed × stay is billed energy and loss applies to the battery-room cap. (2) "Walking distance needs a capability no FR or dependency covers": fixed by relabelling it straight-line distance.
+**Self-review:** Review loop after user comments: CAP_REACHED — round-2 findings fixed, not re-reviewed. Finding: "Story 2, Scenario 5 has no battery level and no expected figure"; fixed by adding a 20% battery and the expected €6.80 total. (First loop also ended at CAP_REACHED; its round-2 findings on FR-013 wording and straight-line distance were fixed.)
 
 ---
 
@@ -109,8 +109,9 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 
 **Scenario 5: Edge Case — time-of-day prices**
 - **Given** the nearest charger is E-Flux Het Voorburg 6, Culemborg, with €0.5717/kWh from 16:00 to 22:00 and €0.5417/kWh at other times, plus €0.41/h
-- **When** a driver parks there at 15:30 with a stay of 2 hours
+- **When** a driver with a battery at 20% parks there at 15:30 with a stay of 2 hours
 - **Then** the cost applies the off-peak price from 15:30 to 16:00 and the peak price from 16:00 to 17:30
+- **And** the entry shows 7.2 kWh added and a total cost of €6.80: €0.89 start fee + 1.8 kWh × €0.5417 + 5.4 kWh × €0.5717 + 2 h × €0.41, with 21% VAT on the tariff parts
 
 #### Edge Cases
 
