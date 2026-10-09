@@ -188,7 +188,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 - **Given** the example settings from Story 1, a battery at 10%, and the charger Opcharge Zernikestraat 17, Eindhoven (€0.43/kWh, €0.50 per session, €0.50/h once the battery is full)
 - **When** the driver views the results
 - **Then** the entry shows "Worth it if you stay 1h30 to 7h30"
-- **And** for Vattenfall Marconilaan 183, Eindhoven (€0.2691/kWh only), it shows "Worth it if you stay at least 35 min"
+- **And** for Vattenfall Marconilaan 183, Eindhoven (€0.2691/kWh only), it shows "Worth it if you stay at least 40 min"
 
 **Scenario 2: Error Path**
 - **Given** a charger whose tariff can't be interpreted
@@ -205,7 +205,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 | Edge Case | Scenario | Expected Behavior |
 |-----------|----------|-------------------|
 | Pending | Results are loading | The window appears together with the rest of the entry, never on its own afterwards |
-| Stay outside the window | Stay 45 min, window starts at 1h05 | Verdict "Not worth it for this stay", with "Worth it if you stay at least 1h05" |
+| Stay outside the window | Stay 45 min, window starts at 1h10 | Verdict "Not worth it for this stay", with "Worth it if you stay at least 1h10" |
 | Window reaches 24 hours | No time or parking fees | Shown as "at least X" with no upper limit |
 | Window starting at the minimum | Even a 15-minute stay is worth it | Shown as "Worth it for any stay" (up to the upper limit, if there is one) |
 | Battery level changes the window | Driver changes battery from 10% to 70% | Windows are recalculated. Less room means fewer kWh, so lower edges move later or the window disappears |
@@ -288,7 +288,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 - **FR-013**: System MUST calculate the energy added as the lower of: charging speed (the lower of the car's and the charger's maximum) × stay, or the room left in the battery from the current battery level. The energy billed and the energy that reaches the battery are treated as the same.
 - **FR-014**: System MUST calculate the petrol cost for the same distance the added energy covers, using the driver's electric consumption, petrol consumption and petrol price. The distance is the energy added divided by the electric consumption.
 - **FR-015**: System MUST show for each location: operator, address, straight-line distance, a short price summary, verdict, saving or extra cost (€), cost per km next to petrol cost per km, kWh added, and the worth-it window.
-- **FR-016**: System MUST show the worth-it window as the shortest and longest stay, between 15 minutes and 24 hours in 5-minute steps, for which charging is cheaper than petrol. It must show "at least X" when there's no upper limit, and "Never worth it" when no such stay exists.
+- **FR-016**: System MUST show the worth-it window as the shortest and longest stay, between 15 minutes and 24 hours (15 minutes, then 10-minute steps from 20 minutes; changed from 5-minute steps by solution design, 2026-10-09), for which charging is cheaper than petrol. It must show "at least X" when there's no upper limit, and "Never worth it" when no such stay exists.
 - **FR-017**: System MUST offer the event types Quick errand (30 min), Shopping (1h30), Café or restaurant (2h), Sports or leisure (2h), Meeting (2h30), Workday (8h) and Overnight (12h), each setting the stay to its typical duration.
 - **FR-018**: System MUST let the driver adjust the stay between 15 minutes and 24 hours in 15-minute steps, and update all results without reloading.
 - **FR-019**: System MUST show the date and time of the tariff data used.
@@ -369,6 +369,6 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 | D-16 | No charging loss | Chargers bill energy before AC charging losses, but the real loss per car is unknown | No loss; fixed 10%; editable default | No loss modelled | User: the loss is unknown, so leave it out | internal | FR-002 (withdrawn), FR-013 | Savings are slightly optimistic (typically 8–12% of the energy cost); the accuracy metric will show whether this matters |
 | D-17 | Unknown tariffs listed last (assumed) | Some chargers have no or unreadable tariffs | Hide; list last as "Price unknown" | List last as "Price unknown" | Hiding would make the nearest-10 list look incomplete | internal (assumed, please confirm) | FR-020 | Fewer than 10 comparable chargers may be shown |
 | D-18 | Default stays per event type | FR-017 needs concrete durations | Fixed values; driver-defined values | Quick errand 30 min, Shopping 1h30, Café or restaurant 2h, Sports or leisure 2h, Meeting 2h30, Workday 8h, Overnight 12h | Common-sense durations; Shopping and Café or restaurant set by the user in review | internal | FR-017 | Easy to change later |
-| D-19 | Stay range and steps (assumed) | Window and stay need limits | Fixed limits; unlimited | Stay 15 min–24 h in 15-minute steps; window in 5-minute steps | Covers a quick stop to a full day; 5-minute window steps read naturally | internal (assumed, please confirm) | FR-016, FR-018 | Stays over 24 h aren't supported |
+| D-19 | Stay range and steps (assumed) | Window and stay need limits | Fixed limits; unlimited | Stay 15 min–24 h in 15-minute steps; window in 10-minute steps (changed from 5-minute steps by solution design, 2026-10-09) | Covers a quick stop to a full day; 10-minute window steps read naturally (user, design review) | internal (assumed, please confirm) | FR-016, FR-018 | Stays over 24 h aren't supported |
 | D-20 | Setting ranges (assumed) | FR-004 needs testable limits | Fixed ranges; no validation | Ranges listed in FR-004 | Cover all current plug-in hybrids and Dutch price levels with margin, while catching typos | internal (assumed, please confirm) | FR-004 | Unusual cars outside the ranges can't be entered |
 | D-21 | Coverage: search anywhere, results in the Netherlands | User asked for EU/US, not just the Netherlands; NDW covers Dutch chargers only | Address search EU/US with NL results; full EU/US coverage; NL only with EU/US later | Address search works in the EU and the US; charger results stay Netherlands-only in v0.1 | A proof of concept needs one well-covered country; other countries lack a free feed like NDW | internal | FR-007, FR-008, FR-021 | EU/US charger coverage moves to "later". **Address search withdrawn for v0.1** (solution design D-3, 2026-10-09) |

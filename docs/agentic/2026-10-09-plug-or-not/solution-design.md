@@ -72,7 +72,7 @@ flowchart LR
 - [ ] G5-AC4 — Trust guard: a tariff the engine can't fully interpret is "unknown", never priced with a part missing. That covers unsupported restriction types (`min_kwh`, `max_kwh`, `min_current`, `max_current`, `min_power`, `max_power`, `reservation`), no elements, a currency other than EUR, and a tariff whose `start_date_time`/`end_date_time` doesn't cover the whole 24-hour simulation from the session start (none of the tariffs in use carry an end date in the 2026-10-09 feed) · `verify: Vitest — one fixture per unknown cause, each asserting "unknown" and no cost`
 
 **G6: Verdict, saving, worth-it window and ranking** (realizes FR-010, FR-015, FR-016, FR-020)
-- [ ] G6-AC1 — The window is the shortest and longest stay, from 15 min to 24 h in 5-minute steps, for which the saving, rounded to cents, is at least €0.01 (D-19). Opcharge Zernikestraat shows "Worth it if you stay 1h30 to 7h30", Vattenfall Marconilaan "Worth it if you stay at least 35 min" and E-Flux Laboratoriumstraat "Never worth it: always more expensive than petrol for your car". A window starting at 15 min reads "Worth it for any stay", or "Worth it for any stay up to X" when it has an upper edge. A window with gaps adds "(not for every stay in between)" · `verify: Vitest with the PRD S4 tariffs`
+- [ ] G6-AC1 — The window is the shortest and longest stay, from 15 min to 24 h — 15 min, then every 10 minutes from 20 min (D-20) — for which the saving, rounded to cents, is at least €0.01 (D-19). Opcharge Zernikestraat shows "Worth it if you stay 1h30 to 7h30", Vattenfall Marconilaan "Worth it if you stay at least 40 min" and E-Flux Laboratoriumstraat "Never worth it: always more expensive than petrol for your car". A window starting at 15 min reads "Worth it for any stay", or "Worth it for any stay up to X" when it has an upper edge. A window with gaps adds "(not for every stay in between)" · `verify: Vitest with the PRD S4 tariffs`
 - [ ] G6-AC2 — The verdict is "Worth it" when the saving at the chosen stay, rounded to cents, is at least €0.01 (D-19), "Not worth it for this stay" when it isn't but a window exists, "Never worth it" when there is no window, and "Price unknown" (no verdict, no window) for unknown tariffs · `verify: Vitest table test over the four cases`
 - [ ] G6-AC3 — Entries are ordered by saving, biggest first, ties to the nearer location, and unknown entries last by distance · `verify: Vitest on the ranking`
 - [ ] G6-AC4 — A full battery (100%) shows "Your battery is full, so there's nothing to charge here." and lists no savings · `verify: Vitest on the results builder`
@@ -119,7 +119,7 @@ Because every stay starts at the same moment, the cost of a stay of *T* minutes 
 
 - petrol cost(T) = kWh(T) ÷ electric kWh/km ÷ petrol km/L × petrol €/L
 - saving(T) = petrol cost(T) − charge cost(T)
-- window = the smallest and largest *T* in {15, 20, …, 1440} whose saving, rounded to cents, is at least €0.01 (D-19). If some stays between those edges aren't worth it (possible with time-of-day or duration rules), the window sentence adds "(not for every stay in between)", and the verdict always comes from the chosen stay itself
+- window = the smallest and largest *T* in {15, 20, 30, 40, …, 1440} (D-20) whose saving, rounded to cents, is at least €0.01 (D-19). If some stays between those edges aren't worth it (possible with time-of-day or duration rules), the window sentence adds "(not for every stay in between)", and the verdict always comes from the chosen stay itself
 - verdict, cost per km and the ranking at the chosen stay follow directly
 
 `min_duration` and `max_duration` restrictions are read against elapsed time in the session, which is how the feed uses them: for example, "the parking rate applies after 18,000 s".
@@ -156,7 +156,7 @@ flowchart TD
 - **`src/services/data.ts`** — manifest and tile fetch with all-or-nothing failure, haversine distance, ring search for the nearest 10, and entry expansion.
 - **`src/app.ts`** — the controller: app state, the request flow, and the cached cost curves for live stay changes.
 - **`src/ui/setup.ts`, `src/ui/parked.ts`, `src/ui/results.ts`** — the three views, all user-facing messages, and the event-type picker and stay stepper.
-- **`src/ui/format.ts`** — euros, kWh, metres, durations ("1h30", "35 min"), the window sentence, and the price summary built from the tariff's elements (G6-AC6).
+- **`src/ui/format.ts`** — euros, kWh, metres, durations ("1h30", "40 min"), the window sentence, and the price summary built from the tariff's elements (G6-AC6).
 - **`src/main.ts`** — wires the views to the controller on load.
 - **Tests** — `*.test.ts` next to each engine and service file. `test/fixtures/prd-tariffs.ts` holds the PRD's named tariffs, and `test/fixtures/feeds/` a small locations and tariffs feed for the script.
 
@@ -166,7 +166,7 @@ flowchart TD
 2. **Choose a spot.** "Use my location" → browser location (10 s timeout), or "lat, lon" typed in the coordinates box. The spot is checked against the Netherlands border before any data loads. The spot stays in memory only.
 3. **Load data.** `data` fetches `manifest.json`, then rings of tiles, until the nearest-10 guarantee holds. Any failed fetch fails the whole request.
 4. **Compute.** For each entry (10 locations expand to 10 or more entries), the engine builds a cost curve from "now", the battery level and the settings: 1,440 minutes × at most about 20 entries, a few milliseconds.
-5. **Render.** `compare` reads each curve at the chosen stay for the verdict, saving, cost per km and kWh. It reads the 5-minute grid for the window, then ranks. The results view renders the list and the data timestamp.
+5. **Render.** `compare` reads each curve at the chosen stay for the verdict, saving, cost per km and kWh. It reads the 10-minute grid for the window, then ranks. The results view renders the list and the data timestamp.
 6. **Stay change.** Back to step 5 only. **Battery change.** Back to step 4. **New spot.** Back to step 3.
 
 ## Error handling
@@ -208,6 +208,7 @@ The PRD's error tables are covered by the acceptance criteria in G1, G3, G4, G6 
 | D-17 | Unit tests plus manual device checks | Choose the test depth for a PoC | Unit only; unit plus Playwright end to end; unit plus manual | Vitest for engine, services and controller; manual device checks | The risk sits in the calculation, which unit tests cover fully | auto (PoC scope) | all `verify:` hints | UI regressions are found by hand |
 | D-18 | Fallback power 3.7 kW | A few AC connectors publish no power, voltage or amperage | Show "Price unknown"; assume the car's speed; assume 3.7 kW | min(car kW, 3.7 kW) | Fewer kWh can't turn a losing session into "Worth it" (saving = kWh × margin − fixed fees), so a low guess is guardrail-safe; "Price unknown" would go beyond FR-020 | auto (feed profile: 4 locations; PRD guardrail) | G2-AC2, G5-AC2 | Those 4 locations may look slightly worse than they are |
 | D-19 | Worth-it judged on the cent-rounded saving | An unrounded saving of €0.003 would show "Worth it" next to "€0.00" | Unrounded > 0; rounded to cents ≥ €0.01 | Saving rounded to whole cents must be at least €0.01, for both the verdict and the window | What's shown and what's judged always agree; every PRD window still reproduces (Opcharge 1h30: €0.01; 7h30: €0.01) | auto (PRD guardrail) | G6-AC1, G6-AC2 | Break-even sessions read "Not worth it" |
+| D-20 | Window in 10-minute steps | PRD FR-016 and PRD D-19 set 5-minute window steps | 5-minute; 10-minute; 15-minute (same as the stay stepper) | 15 min (the minimum stay), then multiples of 10 minutes from 20 min to 24 h | User asked for 10-minute steps in design review; multiples of 10 read naturally ("1h30", "40 min"), and keeping 15 min as the first point means "Worth it for any stay" still starts at the minimum stay | user | G6-AC1 | Marconilaan becomes "at least 40 min" (was 35) and the PRD S4 edge-case 1h05 becomes 1h10; Opcharge 1h30 to 7h30 is unchanged |
 
 ## Deviations from PRD 🔍
 
@@ -216,6 +217,7 @@ The PRD's error tables are covered by the acceptance criteria in G1, G3, G4, G6 
 | NFR "Tariff data no older than 24 hours" | change | approved | yes — PRD §Non-Functional Requirements edited 2026-10-09 | D-1: v0.1 uses a one-time snapshot refreshed by hand before demos and accuracy sessions. The data date stays on screen (FR-019) |
 | FR-007, Story 5 | change | approved | yes — PRD §User Stories table, §Story 2 edge cases, §Story 5, §FR-007, §Release Slicing, §Dependencies, §Out of Scope, §Decisions D-9 and D-21 edited 2026-10-09 | D-3: no address search in v0.1. D-4 adds a coordinates box in its place |
 | FR-021, S2 error table "Outside coverage" | change | approved | yes — PRD §FR-021, §Story 2 error table edited 2026-10-09 | Follows from D-3: no "no address match" message. The location-denied message points to the coordinates box instead of address search |
+| FR-016, PRD D-19 | change | approved | yes — PRD §FR-016, §Story 4 scenario 1, §Story 4 edge cases, §Decisions D-19 edited 2026-10-09 | D-20: the worth-it window uses 10-minute steps (after the 15-minute minimum) instead of 5-minute steps, at the user's request in design review. Marconilaan reads "at least 40 min", and the edge case's window starts at 1h10 |
 
 ## Key facts & assumptions
 
