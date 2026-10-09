@@ -6,6 +6,7 @@
 **References:** User journey page "Worth-It Charging Journey" (https://claude.ai/artifact/QH6WeJ3mzufmZHDaAQ62VW); NDW open data (https://opendata.ndw.nu/): `charging_point_locations_ocpi.json.gz`, `charging_point_tariffs_ocpi.json.gz`; prior art: GE patent CN102529851A
 **Plugin version:** 0.5.3
 **Agent Sessions:** claude-code: 5d4e9523-19b6-4b26-8e51-d031314dc40e
+**Self-review:** CAP_REACHED — round-2 findings fixed, not re-reviewed. Findings: (1) "FR-013 can be read two ways, and only one gives the scenario numbers": fixed by stating speed × stay is billed energy and loss applies to the battery-room cap. (2) "Walking distance needs a capability no FR or dependency covers": fixed by relabelling it straight-line distance.
 
 ---
 
@@ -86,7 +87,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 - **And** the nearest charger, Vattenfall Parkstraat 21 (74 m), has a tariff of €0.2691/kWh excluding VAT with no other fees, and the Allego charger at Kerkstraat 6 (266 m) charges €2.479/h excluding VAT with no kWh price
 - **When** they allow location, enter a current battery level of 20%, and request the answer
 - **Then** they see the 10 nearest public charging locations with an AC charging point, ordered by saving, biggest first
-- **And** each entry shows: operator, address, walking distance in metres, price summary, a verdict ("Worth it", "Not worth it for this stay" or "Never worth it"), the saving or extra cost in euros, the cost per km next to the petrol cost per km, the kWh added, and the worth-it window (Story 4)
+- **And** each entry shows: operator, address, straight-line distance in metres, price summary, a verdict ("Worth it", "Not worth it for this stay" or "Never worth it"), the saving or extra cost in euros, the cost per km next to the petrol cost per km, the kWh added, and the worth-it window (Story 4)
 - **And** Vattenfall Parkstraat 21 shows "Worth it" with 2.7 kWh added, a total cost of €1.77 and a saving of €0.19, and the Allego charger at Kerkstraat 6 shows "Never worth it"
 - **And** the screen states the date and time of the tariff data used
 
@@ -272,13 +273,13 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 - **FR-006**: System MUST use the phone's or laptop's location when the driver allows it.
 - **FR-007**: System MUST let the driver search for an address or place in the Netherlands, with up to 5 suggestions, when location is denied, unavailable or approximate, or whenever the driver chooses to.
 - **FR-008**: System MUST list the 10 nearest public charging locations that have at least one AC charging point, based on straight-line distance from the chosen spot.
-- **FR-009**: System MUST show walking distance in metres for each listed location.
+- **FR-009**: System MUST show the straight-line distance in metres from the chosen spot for each listed location.
 - **FR-010**: System MUST order the list by saving compared with petrol, biggest first; ties go to the nearer location; locations with an unknown price come last.
 - **FR-011**: System MUST calculate the cost of a session from the operator's published tariff, including energy, time, parking-after-full and per-session components, applied over the actual stay starting now, including time-of-day price changes. 21% VAT is added to every tariff component, and time-based components are charged per minute. Prices shown include VAT.
 - **FR-012**: System MUST add the charge card's start fee and markup per kWh to every session cost. Card fees are entered as shown on the card's price list, including VAT, so no VAT is added to them.
-- **FR-013**: System MUST calculate the energy added as the lower of: charging speed (the lower of the car's and the charger's maximum) × stay, or the room left in the battery from the current battery level, with the charging loss added on top of the energy that reaches the battery (energy billed = energy into the battery × (1 + loss)).
+- **FR-013**: System MUST calculate the energy billed as the lower of: charging speed (the lower of the car's and the charger's maximum) × stay, or the room left in the battery from the current battery level × (1 + charging loss). The energy that reaches the battery is the energy billed ÷ (1 + charging loss).
 - **FR-014**: System MUST calculate the petrol cost for the same distance the added energy covers, using the driver's electric consumption, petrol consumption and petrol price. The distance is the energy that reaches the battery divided by the electric consumption.
-- **FR-015**: System MUST show for each location: operator, address, walking distance, a short price summary, verdict, saving or extra cost (€), cost per km next to petrol cost per km, kWh added, and the worth-it window.
+- **FR-015**: System MUST show for each location: operator, address, straight-line distance, a short price summary, verdict, saving or extra cost (€), cost per km next to petrol cost per km, kWh added, and the worth-it window.
 - **FR-016**: System MUST show the worth-it window as the shortest and longest stay, between 15 minutes and 24 hours in 5-minute steps, for which charging is cheaper than petrol. It must show "at least X" when there's no upper limit, and "Never worth it" when no such stay exists.
 - **FR-017**: System MUST offer the event types Quick errand (30 min), Shopping (45 min), Café or restaurant (1h30), Sports or leisure (2h), Meeting (2h30), Workday (8h) and Overnight (12h), each setting the stay to its typical duration.
 - **FR-018**: System MUST let the driver adjust the stay between 15 minutes and 24 hours in 15-minute steps, and update all results without reloading.
@@ -345,7 +346,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 | D-2 | Only "parked here now" | The journey page has two moments: planning ahead and parked here | Both; planning only; parked only | Parked here now only | User reverted an earlier choice for both: the battery level is known once parked | internal | FR-005–FR-008 | Planning ahead moves to fast-follow. No route or arrival battery prediction needed |
 | D-3 | Stay from event type | Stay length drives every result and is the one unknown | Type a duration; event type with adjustable typical stay; window only | Event type sets a typical stay, adjustable, and the window is always shown | Tests the "guess from event type" idea without integrations; the window covers a wrong guess | internal | FR-016–FR-018 | Default durations are assumptions to validate (see D-18) |
 | D-4 | Petrol price entered by hand | No official open fuel price feed exists in the Netherlands | Manual; national average; nearest station | Manual, remembered | Fits the manual-input approach; scraping price sites is fragile and legally doubtful | internal | FR-001 | The driver must update it when prices change |
-| D-5 | Nearest 10 chargers | How many chargers to list around the spot | Fixed 500 m; adjustable radius; nearest 10 | Always the nearest 10 | User choice: simple and never empty | internal | FR-008 | In rural areas the 10th may be far away; walking distance is shown |
+| D-5 | Nearest 10 chargers | How many chargers to list around the spot | Fixed 500 m; adjustable radius; nearest 10 | Always the nearest 10 | User choice: simple and never empty | internal | FR-008 | In rural areas the 10th may be far away; the distance is shown |
 | D-6 | Rank by saving | Nearest isn't cheapest (Klokgebouw example) | By distance; by saving; by distance with highlight | By saving, biggest first | The product's promise is "worth it or not" | internal | FR-010 | The nearest charger may appear lower in the list |
 | D-7 | Ignore live availability | NDW includes live point status | Ignore; label; hide occupied | Ignore in v0.1 | User choice | internal | none | A recommended charger may be occupied; availability labels move to fast-follow |
 | D-8 | Current battery entered by hand | Battery level decides the kWh that fit | Arrival %; current % minus trip; assume empty | Current % entered by the driver | Follows from D-2: the driver is already parked | internal | FR-005 | No route data needed |
