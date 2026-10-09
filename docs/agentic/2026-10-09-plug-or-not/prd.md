@@ -19,7 +19,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 ## Overview
 
 - **Purpose**: Let a plug-in hybrid driver who has just parked see, within seconds, which nearby public chargers are cheaper than petrol for their stay, how much they save, and for which stay lengths charging pays off.
-- **User Value**: Public charging prices combine energy, time, parking and start fees, and the result depends on the car's charging speed, the room left in the battery and the length of stay. Drivers can't calculate this on the spot and regularly pay more than petrol would have cost. Example: a 4h53 session in Culemborg cost €14.79 for 16.64 kWh, which is €0.89 per kWh. For that driver's car, electric driving only beats petrol below about €0.73 per kWh.
+- **User Value**: Public charging prices combine energy, time, parking and start fees, and the result depends on the car's charging speed, the room left in the battery and the length of stay. Drivers can't calculate this on the spot and regularly pay more than petrol would have cost. Example: a 4h53 session in Culemborg cost €14.79 for 16.64 kWh, which is €0.89 per kWh. For that driver's car, electric driving only beats petrol below about €0.80 per kWh.
 - **Scope**: A web page that runs in phone and laptop browsers, for the moment the driver is parked ("parked here now"), for public AC chargers in the Netherlands. The driver enters car, charge card, petrol price and current battery level by hand. Comparison is against petrol only.
 
 ## User Stories
@@ -64,7 +64,6 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 | Comma decimals | Driver types "2,399" instead of "2.399" | Accepted as 2.399 |
 | Browser storage unavailable | Private browsing, or storage blocked | The page works for this visit and shows a notice: "Your settings won't be remembered in this browser." |
 | Different device | Driver opens the page on a laptop after setting up on a phone | Setup is asked again. Settings live on each device separately |
-| Charging loss | Driver doesn't know their car's charging loss | A default of 10% is pre-filled under "Advanced" and can be changed (0–25%) |
 
 #### Error Handling
 
@@ -88,7 +87,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 - **When** they allow location, enter a current battery level of 20%, and request the answer
 - **Then** they see the 10 nearest public charging locations with an AC charging point, ordered by saving, biggest first
 - **And** each entry shows: operator, address, straight-line distance in metres, price summary, a verdict ("Worth it", "Not worth it for this stay" or "Never worth it"), the saving or extra cost in euros, the cost per km next to the petrol cost per km, the kWh added, and the worth-it window (Story 4)
-- **And** Vattenfall Parkstraat 21 shows "Worth it" with 2.7 kWh added, a total cost of €1.77 and a saving of €0.19, and the Allego charger at Kerkstraat 6 shows "Never worth it"
+- **And** Vattenfall Parkstraat 21 shows "Worth it" with 2.7 kWh added, a total cost of €1.77 and a saving of €0.39, and the Allego charger at Kerkstraat 6 shows "Never worth it"
 - **And** the screen states the date and time of the tariff data used
 
 **Scenario 2: Error Path**
@@ -120,11 +119,10 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 | Location with different tariffs per point | One location has AC points with different tariffs | Each distinct tariff appears as its own entry, with the same address and distance. The location still counts once towards the 10 |
 | Charger faster than the car | Charger supports 22 kW, the car 3.6 kW | The car's speed is used |
 | Car faster than the charger | Car 11 kW, charger 3.7 kW | The charger's maximum power is used |
-| Battery nearly full | Battery 90% of 15 kWh | kWh added stops at the room left in the battery (1.5 kWh plus charging loss); the start fee weighs heavily and the verdict reflects that |
+| Battery nearly full | Battery 90% of 15 kWh | kWh added stops at the room left in the battery (1.5 kWh); the start fee weighs heavily and the verdict reflects that |
 | Only DC fast chargers nearby | No AC charging points among nearby locations | DC-only locations are not listed. The 10 nearest locations with AC points are shown, however far |
 | Ties on saving | Two chargers save exactly the same | The nearer one comes first |
-| Stale data | Tariff data is more than 48 hours old | The answer is shown with a warning: "Prices may be out of date (last updated <date>)." |
-| Location outside the Netherlands | GPS places the driver in Belgium | "Plug or Not currently covers the Netherlands only." No list is shown |
+| Location outside the Netherlands | GPS or address search places the driver in Belgium | "Charger prices are available for the Netherlands only for now." No list is shown |
 
 #### Error Handling
 
@@ -132,7 +130,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 |-----------------|--------------|---------------|
 | Charger data can't be loaded | "Couldn't load charger prices. Check your connection and try again." | Shows a "Try again" button. No partial answer |
 | Battery level missing or invalid | "Enter your current battery level (0–100%)." | Highlights the field and blocks the request |
-| Outside coverage | "Plug or Not currently covers the Netherlands only." | Shows no list. Offers address search (Story 5) |
+| Outside coverage | "Charger prices are available for the Netherlands only for now." | Shows no list. Offers address search (Story 5) |
 | Settings missing | "Set up your car first so we can calculate your costs." | Opens the setup (Story 1) |
 
 ### Story 3: Tell the app how long I'll stay
@@ -155,7 +153,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 - **Then** the stay stops at the limit (15 min or 24 h) and a short note says the allowed range
 
 **Scenario 3: Edge Case — adjusting after picking an event type**
-- **Given** the driver picked "Shopping" (45 min)
+- **Given** the driver picked "Shopping" (1h30)
 - **When** they change the stay to 1h15
 - **Then** results update to 1h15 and the event type shows as "Shopping (adjusted)"
 
@@ -164,9 +162,9 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 | Edge Case | Scenario | Expected Behavior |
 |-----------|----------|-------------------|
 | Pending: updating | Driver changes the stay | Results update without reloading the page. No spinner for recalculating already-loaded chargers |
-| No event type picked | Driver opens the screen and doesn't pick | The stay defaults to "Shopping" (45 min) in v0.1 (remembering the last used type is fast-follow, FR-023) |
+| No event type picked | Driver opens the screen and doesn't pick | The stay defaults to "Shopping" (1h30) in v0.1 (remembering the last used type is fast-follow, FR-023) |
 | Overnight across midnight | Driver picks "Overnight" at 21:00 | A 12-hour stay ending at 09:00 the next day, with time-of-day prices applied across midnight |
-| Event type list | Driver opens the picker | Options and default stays: Quick errand 30 min, Shopping 45 min, Café or restaurant 1h30, Sports or leisure 2h, Meeting 2h30, Workday 8h, Overnight 12h |
+| Event type list | Driver opens the picker | Options and default stays: Quick errand 30 min, Shopping 1h30, Café or restaurant 2h, Sports or leisure 2h, Meeting 2h30, Workday 8h, Overnight 12h |
 
 #### Error Handling
 
@@ -186,8 +184,8 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 **Scenario 1: Happy Path**
 - **Given** the example settings from Story 1, a battery at 10%, and the charger Opcharge Zernikestraat 17, Eindhoven (€0.43/kWh, €0.50 per session, €0.50/h once the battery is full)
 - **When** the driver views the results
-- **Then** the entry shows "Worth it if you stay 2h05 to 6h40"
-- **And** for Vattenfall Marconilaan 183, Eindhoven (€0.2691/kWh only), it shows "Worth it if you stay at least 40 min"
+- **Then** the entry shows "Worth it if you stay 1h30 to 7h30"
+- **And** for Vattenfall Marconilaan 183, Eindhoven (€0.2691/kWh only), it shows "Worth it if you stay at least 35 min"
 
 **Scenario 2: Error Path**
 - **Given** a charger whose tariff can't be interpreted
@@ -219,7 +217,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 
 - **As a** driver whose phone can't share its location, or a presenter demoing on a laptop
 - **I want to** type an address or place and get the answer for that spot
-- **So that** the page works without GPS and for any place in the Netherlands
+- **So that** the page works without GPS and for any place I want to check
 
 #### Acceptance Scenarios
 
@@ -234,9 +232,14 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 - **When** the page asks for location
 - **Then** it shows "We couldn't get your location. Type an address or place instead." with the address field focused
 
-**Scenario 3: Edge Case — no match**
+**Scenario 3: Edge Case — place outside the Netherlands**
+- **Given** a driver types "Grand-Place Brussels" and picks the suggestion
+- **When** results are requested
+- **Then** the page shows "Charger prices are available for the Netherlands only for now." and no list
+
+**Scenario 4: Edge Case — no match**
 - **Given** a driver types an address
-- **When** no place in the Netherlands matches
+- **When** no place matches
 - **Then** the page shows "No place found for '<text>'. Check the spelling or try a nearby street." and no results
 
 #### Edge Cases
@@ -266,26 +269,26 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 ## Functional Requirements
 
 - **FR-001**: System MUST let the driver enter and save: usable battery size (kWh), charging speed on AC (kW), electric consumption (kWh/km), petrol consumption (km/L), petrol price (€/L), charge card start fee (€ per session) and charge card markup (€/kWh). Card fees default to €0.
-- **FR-002**: System MUST pre-fill a charging loss of 10%, which the driver can change between 0% and 25%.
+- **FR-002**: Withdrawn. Charging losses are not modelled in v0.1 (see D-16).
 - **FR-003**: System MUST remember saved settings on the same device and browser between visits, without an account.
-- **FR-004**: System MUST validate each setting against its allowed range and block saving until all are valid. Ranges: usable battery 1–40 kWh; charging speed 1–22 kW; electric consumption 0.10–0.40 kWh/km; petrol consumption 5–30 km/L; petrol price €0.50–€5.00/L; card start fee €0–€5; card markup €0–€1/kWh; charging loss 0–25%.
+- **FR-004**: System MUST validate each setting against its allowed range and block saving until all are valid. Ranges: usable battery 1–40 kWh; charging speed 1–22 kW; electric consumption 0.10–0.40 kWh/km; petrol consumption 5–30 km/L; petrol price €0.50–€5.00/L; card start fee €0–€5; card markup €0–€1/kWh.
 - **FR-005**: System MUST ask for the current battery level (0–100%) on the "parked here now" screen.
 - **FR-006**: System MUST use the phone's or laptop's location when the driver allows it.
-- **FR-007**: System MUST let the driver search for an address or place in the Netherlands, with up to 5 suggestions, when location is denied, unavailable or approximate, or whenever the driver chooses to.
-- **FR-008**: System MUST list the 10 nearest public charging locations that have at least one AC charging point, based on straight-line distance from the chosen spot.
+- **FR-007**: System MUST let the driver search for an address or place anywhere in the EU and the US, with up to 5 suggestions shown while typing, when location is denied, unavailable or approximate, or whenever the driver chooses to.
+- **FR-008**: System MUST, for a spot in the Netherlands, list the 10 nearest public charging locations that have at least one AC charging point, based on straight-line distance from the chosen spot.
 - **FR-009**: System MUST show the straight-line distance in metres from the chosen spot for each listed location.
 - **FR-010**: System MUST order the list by saving compared with petrol, biggest first; ties go to the nearer location; locations with an unknown price come last.
 - **FR-011**: System MUST calculate the cost of a session from the operator's published tariff, including energy, time, parking-after-full and per-session components, applied over the actual stay starting now, including time-of-day price changes. 21% VAT is added to every tariff component, and time-based components are charged per minute. Prices shown include VAT.
 - **FR-012**: System MUST add the charge card's start fee and markup per kWh to every session cost. Card fees are entered as shown on the card's price list, including VAT, so no VAT is added to them.
-- **FR-013**: System MUST calculate the energy billed as the lower of: charging speed (the lower of the car's and the charger's maximum) × stay, or the room left in the battery from the current battery level × (1 + charging loss). The energy that reaches the battery is the energy billed ÷ (1 + charging loss).
-- **FR-014**: System MUST calculate the petrol cost for the same distance the added energy covers, using the driver's electric consumption, petrol consumption and petrol price. The distance is the energy that reaches the battery divided by the electric consumption.
+- **FR-013**: System MUST calculate the energy added as the lower of: charging speed (the lower of the car's and the charger's maximum) × stay, or the room left in the battery from the current battery level. The energy billed and the energy that reaches the battery are treated as the same.
+- **FR-014**: System MUST calculate the petrol cost for the same distance the added energy covers, using the driver's electric consumption, petrol consumption and petrol price. The distance is the energy added divided by the electric consumption.
 - **FR-015**: System MUST show for each location: operator, address, straight-line distance, a short price summary, verdict, saving or extra cost (€), cost per km next to petrol cost per km, kWh added, and the worth-it window.
 - **FR-016**: System MUST show the worth-it window as the shortest and longest stay, between 15 minutes and 24 hours in 5-minute steps, for which charging is cheaper than petrol. It must show "at least X" when there's no upper limit, and "Never worth it" when no such stay exists.
-- **FR-017**: System MUST offer the event types Quick errand (30 min), Shopping (45 min), Café or restaurant (1h30), Sports or leisure (2h), Meeting (2h30), Workday (8h) and Overnight (12h), each setting the stay to its typical duration.
+- **FR-017**: System MUST offer the event types Quick errand (30 min), Shopping (1h30), Café or restaurant (2h), Sports or leisure (2h), Meeting (2h30), Workday (8h) and Overnight (12h), each setting the stay to its typical duration.
 - **FR-018**: System MUST let the driver adjust the stay between 15 minutes and 24 hours in 15-minute steps, and update all results without reloading.
-- **FR-019**: System MUST show the date and time of the tariff data used, and warn when it is more than 48 hours old.
+- **FR-019**: System MUST show the date and time of the tariff data used.
 - **FR-020**: System MUST show "Price unknown" with no verdict or window for locations whose tariff is missing or can't be interpreted.
-- **FR-021**: System MUST show plain-language messages for: data that can't be loaded, a full battery, location outside the Netherlands, location denied, and no address match (see the story error tables).
+- **FR-021**: System MUST show plain-language messages for: data that can't be loaded, a full battery, a spot outside the Netherlands, location denied, and no address match (see the story error tables).
 - **FR-022**: System MUST show a separate entry for each distinct AC tariff at a location; the location counts once towards the 10 nearest.
 - **FR-023**: System SHOULD remember the last used event type and use it as the default next time.
 
@@ -304,7 +307,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 |---------|--------------------------|------------------------|
 | v1 (v0.1 proof of concept) | S1–S5; FR-001–FR-022 | The smallest cut that answers "is it worth plugging in here?" end to end, with real NDW tariffs, for demos and the driver's own sessions |
 | fast-follow | FR-023; planning ahead for a destination (moment 1 from the journey page); live availability labels | Convenience and the second journey moment, both reusing the same calculation |
-| later | Stay estimate from calendar and own history; battery level from the Volvo API; charge card details from the card provider; Android Automotive in-car version; worth-it colouring in navigation; full electric cars (comparison against other chargers); vehicle integration (possible IP, discussed separately) | Each needs an outside integration or partner, which the proof of concept should validate first |
+| later | Stay estimate from calendar and own history; battery level from the Volvo API; charge card details from the card provider; Android Automotive in-car version; worth-it colouring in navigation; full electric cars (comparison against other chargers); charger coverage in the EU and the US; vehicle integration (possible IP, discussed separately) | Each needs an outside integration or partner, which the proof of concept should validate first |
 
 ## Non-Functional Requirements
 
@@ -319,7 +322,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 |------------|------|--------|
 | NDW open data: charging locations (OCPI) feed | Required | Available |
 | NDW open data: charging tariffs (OCPI) feed | Required | Available |
-| Address search service covering the Netherlands (e.g. PDOK Locatieserver) | Required | Available |
+| Address search service covering the EU and the US | Required | Available (provider to be chosen in solution design) |
 | Free public web hosting reachable by a link | Required | Available |
 | Browser location access | Optional | Available (driver permission needed) |
 
@@ -334,7 +337,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 - Automatic petrol prices
 - Hosting as a claude.ai artifact
 - Starting, stopping or paying for a charging session
-- Countries other than the Netherlands
+- Charger results outside the Netherlands (address search does work in the EU and the US)
 - Accounts, syncing settings between devices
 - Native apps and in-car versions
 
@@ -357,8 +360,9 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 | D-13 | AC chargers only (assumed) | Most plug-in hybrids, including Volvo's, can't use DC fast chargers | AC only; AC and DC | AC only | Listing DC chargers the car can't use would mislead | internal (assumed, please confirm) | FR-008 | Excludes the few plug-in hybrids that support DC |
 | D-14 | English user interface (assumed) | The audience is TomTom PMs and the driver | English; Dutch; both | English | Matches the PM audience | internal (assumed, please confirm) | none | Dutch can be added later |
 | D-15 | VAT added on top of feed prices (assumed) | The NDW feed often leaves VAT empty; real bills matched price + 21% VAT | Treat as excl. VAT; treat as incl. VAT | Treat feed prices as excluding VAT and add 21% | The E-Flux bill and the Vattenfall price text both matched this | internal (assumed, please confirm) | FR-011 | An operator publishing VAT-inclusive prices would be shown 21% too high; the accuracy metric checks this |
-| D-16 | 10% default charging loss (assumed) | Chargers bill energy before AC charging losses | No loss; fixed 10%; editable default | Editable, default 10% | Typical AC loss is 8–12% | internal (assumed, please confirm) | FR-002, FR-013 | Drivers rarely know their exact loss |
+| D-16 | No charging loss | Chargers bill energy before AC charging losses, but the real loss per car is unknown | No loss; fixed 10%; editable default | No loss modelled | User: the loss is unknown, so leave it out | internal | FR-002 (withdrawn), FR-013 | Savings are slightly optimistic (typically 8–12% of the energy cost); the accuracy metric will show whether this matters |
 | D-17 | Unknown tariffs listed last (assumed) | Some chargers have no or unreadable tariffs | Hide; list last as "Price unknown" | List last as "Price unknown" | Hiding would make the nearest-10 list look incomplete | internal (assumed, please confirm) | FR-020 | Fewer than 10 comparable chargers may be shown |
-| D-18 | Default stays per event type (assumed) | FR-017 needs concrete durations | Fixed values; driver-defined values | Quick errand 30 min, Shopping 45 min, Café or restaurant 1h30, Sports or leisure 2h, Meeting 2h30, Workday 8h, Overnight 12h | Common-sense durations to validate in use | internal (assumed, please confirm) | FR-017 | Easy to change later |
+| D-18 | Default stays per event type | FR-017 needs concrete durations | Fixed values; driver-defined values | Quick errand 30 min, Shopping 1h30, Café or restaurant 2h, Sports or leisure 2h, Meeting 2h30, Workday 8h, Overnight 12h | Common-sense durations; Shopping and Café or restaurant set by the user in review | internal | FR-017 | Easy to change later |
 | D-19 | Stay range and steps (assumed) | Window and stay need limits | Fixed limits; unlimited | Stay 15 min–24 h in 15-minute steps; window in 5-minute steps | Covers a quick stop to a full day; 5-minute window steps read naturally | internal (assumed, please confirm) | FR-016, FR-018 | Stays over 24 h aren't supported |
 | D-20 | Setting ranges (assumed) | FR-004 needs testable limits | Fixed ranges; no validation | Ranges listed in FR-004 | Cover all current plug-in hybrids and Dutch price levels with margin, while catching typos | internal (assumed, please confirm) | FR-004 | Unusual cars outside the ranges can't be entered |
+| D-21 | Coverage: search anywhere, results in the Netherlands | User asked for EU/US, not just the Netherlands; NDW covers Dutch chargers only | Address search EU/US with NL results; full EU/US coverage; NL only with EU/US later | Address search works in the EU and the US; charger results stay Netherlands-only in v0.1 | A proof of concept needs one well-covered country; other countries lack a free feed like NDW | internal | FR-007, FR-008, FR-021 | EU/US charger coverage moves to "later" |
