@@ -237,7 +237,7 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block}
   <aside class="notes" aria-label="Mockup notes">
     <h2>Mockup notes</h2>
     <div class="nbox" id="mNote"></div>
-    <p style="margin-top:14px;font-size:13px">Fake, hard-coded data. No real location, data loading or cost engine. Results figures are fixed for battery 20% and a 45-minute stay at the PRD settings.</p>
+    <p style="margin-top:14px;font-size:13px">Fake, hard-coded data. No real location, data loading or cost engine. Results figures are fixed for battery 10% and a 3-hour stay at the PRD settings.</p>
   </aside>
 </div>
 
@@ -278,17 +278,17 @@ const EVENTS = [
   {k:'night',   label:'Overnight',         min:720}
 ];
 const DATA_TIME = '9 Oct 2026, 08:12';
-// Fake results for battery 20%, stay 45 min, PRD example settings. Already ranked (FR-010).
+// Fake results for battery 10%, stay 3h, PRD example settings: 10.8 kWh = 43.2 km, petrol €8.64. Already ranked (FR-010).
 const ENTRIES = [
-  {v:'worth',  op:'Vattenfall',     loc:'parkstraat', addr:'Parkstraat 21, Nuenen',            m:74,   price:'€0.33/kWh', amt:'saves €0.39', kwh:'2.7', total:'€1.77', km:'€0.16', win:'Worth it if you stay at least 40 min'},
-  {v:'worth',  op:'Vattenfall',     loc:'park52', addr:'Park 52, Nuenen',                  m:980,  price:'€0.33/kWh', amt:'saves €0.39', kwh:'2.7', total:'€1.77', km:'€0.16', win:'Worth it if you stay at least 40 min'},
-  {v:'worth',  op:'Equans',         loc:'berg', addr:'Berg 14, Nuenen',                  m:412,  price:'€0.38/kWh', amt:'saves €0.24', kwh:'2.7', total:'€1.92', km:'€0.18', win:'Worth it if you stay at least 40 min'},
-  {v:'worth',  op:'Equans',         loc:'hoog', addr:'Hoogstraat 1, Nuenen',             m:1120, price:'€0.45/kWh', amt:'saves €0.05', kwh:'2.7', total:'€2.11', km:'€0.19', win:'Worth it if you stay at least 45 min'},
-  {v:'worth',  op:'Allego',         loc:'boord', addr:'Boordseweg 7, Nuenen',             m:1310, price:'€0.47/kWh', amt:'saves less than €0.01', kwh:'2.7', total:'€2.16', km:'€0.20', win:'Worth it if you stay at least 45 min'},
-  {v:'notstay',op:'Shell Recharge', loc:'gerwen', addr:'Gerwenseweg 32, Nuenen',           m:548,  price:'€0.57/kWh', amt:'costs €0.27 more', kwh:'2.7', total:'€2.43', km:'€0.22', win:'Worth it if you stay at least 1h10'},
-  {v:'notstay',op:'Opcharge',       loc:'vvg', addr:'Vincent van Goghstraat 10, Nuenen',m:693,  price:'€0.52/kWh · €0.61/h after full · €0.61 start', amt:'costs €0.74 more', kwh:'2.7', total:'€2.90', km:'€0.27', win:'Worth it if you stay 1h30 to 7h30'},
-  {v:'never',  op:'E-Flux',         loc:'europa', addr:'Europalaan 2, Nuenen',             m:811,  price:'€0.66/kWh · €0.50/h charging · price varies by time', amt:'costs €0.87 more', kwh:'2.7', total:'€3.03', km:'€0.28', win:'Never worth it: always more expensive than petrol for your car'},
-  {v:'never',  op:'Allego',         loc:'kerk', addr:'Kerkstraat 6, Nuenen',             m:266,  price:'€3.00/h charging', amt:'costs €0.98 more', kwh:'2.7', total:'€3.14', km:'€0.29', win:'Never worth it: always more expensive than petrol for your car'},
+  {v:'worth',  op:'Vattenfall',     loc:'parkstraat', addr:'Parkstraat 21, Nuenen',     m:74,   price:'€0.33/kWh', amt:'saves €4.23', kwh:'10.8', total:'€4.41', km:'€0.10', win:'Worth it if you stay at least 40 min'},
+  {v:'worth',  op:'Vattenfall',     loc:'park52', addr:'Park 52, Nuenen',               m:980,  price:'€0.33/kWh', amt:'saves €4.23', kwh:'10.8', total:'€4.41', km:'€0.10', win:'Worth it if you stay at least 40 min'},
+  {v:'worth',  op:'Equans',         loc:'berg', addr:'Berg 14, Nuenen',                 m:412,  price:'€0.38/kWh', amt:'saves €3.64', kwh:'10.8', total:'€4.99', km:'€0.12', win:'Worth it if you stay at least 40 min'},
+  {v:'worth',  op:'Equans',         loc:'hoog', addr:'Hoogstraat 1, Nuenen',            m:1120, price:'€0.45/kWh', amt:'saves €2.89', kwh:'10.8', total:'€5.75', km:'€0.13', win:'Worth it if you stay at least 45 min'},
+  {v:'worth',  op:'Allego',         loc:'boord', addr:'Boordseweg 7, Nuenen',           m:1310, price:'€0.47/kWh', amt:'saves €2.68', kwh:'10.8', total:'€5.95', km:'€0.14', win:'Worth it if you stay at least 45 min'},
+  {v:'worth',  op:'Opcharge',       loc:'vvg', addr:'Vincent van Goghstraat 10, Nuenen', m:693, price:'€0.52/kWh · €0.61/h after full · €0.61 start', amt:'saves €1.52', kwh:'10.8', total:'€7.11', km:'€0.16', win:'Worth it if you stay 1h30 to 7h30'},
+  {v:'notstay',op:'Shell Recharge', loc:'gerwen', addr:'Gerwenseweg 32, Nuenen',        m:548,  price:'€0.72/kWh', amt:'costs €0.03 more', kwh:'10.8', total:'€8.67', km:'€0.20', win:'Worth it if you stay at least 3h10'},
+  {v:'never',  op:'E-Flux',         loc:'europa', addr:'Europalaan 2, Nuenen',          m:811,  price:'€0.66/kWh · €0.50/h charging', amt:'costs €0.82 more', kwh:'10.8', total:'€9.46', km:'€0.22', win:'Never worth it: always more expensive than petrol for your car'},
+  {v:'never',  op:'Allego',         loc:'kerk', addr:'Kerkstraat 6, Nuenen',            m:266,  price:'€3.00/h charging', amt:'costs €1.25 more', kwh:'10.8', total:'€9.89', km:'€0.23', win:'Never worth it: always more expensive than petrol for your car'},
   {v:'unknown',op:'Equans',         loc:'berg', addr:'Berg 14, Nuenen',                  m:412,  reason:'No price published for this charger.'},
   {v:'unknown',op:'Last Mile Solutions', loc:'molen', addr:'Molenstraat 5, Nuenen',       m:902,  reason:"Charging power isn't published for this charger."}
 ];
@@ -314,33 +314,33 @@ const STATES = [
    note:'<p><b>PRD S1 scenario 3.</b> Opened from the settings button. Changing one value (e.g. petrol price to 2.459) leaves the rest untouched. <b>Cancel</b> returns without saving.</p>'},
   {id:'parked',         g:'2 · Parked here now', label:'Parked — default (Shopping, 1h30)', s:{screen:'parked'},
    note:'<p><b>FR-005, FR-017, FR-018, D-4.</b> No event picked yet, so the stay defaults to Shopping 1h30.</p><p><b>Use my location</b> and the coordinates <b>Go</b> both start the search (no separate button). Try 51.4436, 5.5519 (Nuenen), 50.8467, 4.3525 (Brussels), 100 as battery, or nonsense coordinates.</p>'},
-  {id:'parked-adjusted',g:'2 · Parked here now', label:'Parked — stay adjusted to 45 min, battery 20%', s:{screen:'parked', battery:'20', stay:45},
-   note:'<p><b>PRD S3 scenario 3 / G7-AC2.</b> After Shopping (1h30) the stay was stepped down to 45 min, so the label reads “Shopping (adjusted)”.</p>'},
-  {id:'parked-limit',   g:'2 · Parked here now', label:'Parked — stay at the 15 min limit', s:{screen:'parked', battery:'20', stay:15, limit:true},
+  {id:'parked-adjusted',g:'2 · Parked here now', label:'Parked — stay adjusted to 3h, battery 10%', s:{screen:'parked', battery:'10', ev:'cafe', stay:180},
+   note:'<p><b>PRD S3 scenario 3 / G7-AC2.</b> After Café or restaurant (2h) the stay was stepped up to 3h, so the label reads “Café or restaurant (adjusted)”.</p>'},
+  {id:'parked-limit',   g:'2 · Parked here now', label:'Parked — stay at the 15 min limit', s:{screen:'parked', battery:'10', stay:15, limit:true},
    note:'<p><b>PRD S3 scenario 2 / G7-AC3.</b> The stepper stops at 15 min (and 24h) and says the allowed range.</p>'},
   {id:'parked-battery', g:'2 · Parked here now', label:'Parked — battery level missing', s:{screen:'parked', battErr:true},
    note:'<p><b>G7-AC1.</b> The request is blocked and the battery field is highlighted.</p>'},
-  {id:'msg-denied',     g:'2 · Parked here now', label:'Message — location denied', s:{screen:'parked', battery:'20', banner:'denied', hl:true},
+  {id:'msg-denied',     g:'2 · Parked here now', label:'Message — location denied', s:{screen:'parked', battery:'10', banner:'denied', hl:true},
    note:'<p><b>G3-AC1.</b> Denied, unavailable or timed-out location. <b>Try again</b> retries the browser location; the coordinates box is highlighted below.</p>'},
-  {id:'msg-outside',    g:'2 · Parked here now', label:'Message — outside the Netherlands', s:{screen:'parked', battery:'20', banner:'outside', coords:'50.8467, 4.3525', hl:true},
+  {id:'msg-outside',    g:'2 · Parked here now', label:'Message — outside the Netherlands', s:{screen:'parked', battery:'10', banner:'outside', coords:'50.8467, 4.3525', hl:true},
    note:'<p><b>G3-AC4.</b> No list is shown; the coordinates box is offered below the message. Same for GPS and typed spots.</p>'},
-  {id:'msg-coords',     g:'2 · Parked here now', label:'Message — invalid coordinates', s:{screen:'parked', battery:'20', coords:'Parkstraat Nuenen', coordErr:true},
+  {id:'msg-coords',     g:'2 · Parked here now', label:'Message — invalid coordinates', s:{screen:'parked', battery:'10', coords:'Parkstraat Nuenen', coordErr:true},
    note:'<p><b>G3-AC3.</b> Only “lat, lon” in decimal degrees is accepted. No results are shown.</p>'},
   {id:'loading',        g:'3 · Loading', label:'Loading — finding chargers', s:{screen:'loading'},
    note:'<p><b>G7-AC5.</b> Shown while the spot, tiles and cost curves resolve. Entries then appear complete, window included — no skeleton cards with partial data.</p>'},
-  {id:'results',        g:'4 · Results', label:'Results — map, Nuenen, 20%, 45 min', s:{screen:'results', battery:'20', stay:45},
-   note:'<p><b>Map view.</b> Green pin = Worth it (✓). Red pin = Not worth it for this stay (clock) or Never worth it (✕). Grey dashed pin = Price unknown (?). The small number is the rank. The blue dot is the spot.</p><p>The sheet shows the best pick and the tariff data time (FR-019). Tap a pin for details.</p><p><b>PRD S2 scenario 1, FR-015, FR-019, G6.</b> 10 nearest locations → 11 entries: Berg 14 has a priced and a tariff-less connector (FR-022, entry rule c), so it appears twice.</p><p>Parkstraat 21 and Park 52 tie on saving; the nearer one comes first. Allego Boordseweg shows the D-19 “less than €0.01” label. Price unknown entries come last, by distance.</p><p>The stepper in the top bar changes the stay in place (G7-AC4); tapping the battery returns to “parked here now”.</p>'},
-  {id:'results-pin',    g:'4 · Results', label:'Results — pin tapped (Parkstraat 21)', s:{screen:'results', battery:'20', stay:45, sheet:'detail', loc:'parkstraat'},
+  {id:'results',        g:'4 · Results', label:'Results — map, Nuenen, 10%, 3h', s:{screen:'results', battery:'10', stay:180, ev:'cafe'},
+   note:'<p><b>Map view.</b> Green pin = Worth it (✓). Red pin = Not worth it for this stay (clock) or Never worth it (✕). Grey dashed pin = Price unknown (?). The small number is the rank. The blue dot is the spot.</p><p>The sheet shows the best pick and the tariff data time (FR-019). Tap a pin for details.</p><p><b>FR-015, FR-019, G6.</b> Battery 10%, stay 3h: every charger adds 10.8 kWh (43.2 km, €8.64 of petrol). Opcharge matches PRD S4 scenario 1 (window 1h30 to 7h30). Shell Recharge is just short: worth it from 3h10.</p><p> 10 nearest locations → 11 entries: Berg 14 has a priced and a tariff-less connector (FR-022, entry rule c), so it appears twice.</p><p>Parkstraat 21 and Park 52 tie on saving; the nearer one comes first. Price unknown entries come last, by distance.</p><p>The stepper in the top bar changes the stay in place (G7-AC4); tapping the battery returns to “parked here now”.</p>'},
+  {id:'results-pin',    g:'4 · Results', label:'Results — pin tapped (Parkstraat 21)', s:{screen:'results', battery:'10', stay:180, ev:'cafe', sheet:'detail', loc:'parkstraat'},
    note:'<p><b>FR-015.</b> Tapping a pin opens its full entry in the bottom sheet: verdict first, then saving, price summary, kWh, cost per km and the window.</p><p><b>‹ All chargers</b> opens the ranked list; <b>×</b> or tapping the map closes it.</p>'},
-  {id:'results-pin-two',g:'4 · Results', label:'Results — pin with two prices (Berg 14)', s:{screen:'results', battery:'20', stay:45, sheet:'detail', loc:'berg'},
+  {id:'results-pin-two',g:'4 · Results', label:'Results — pin with two prices (Berg 14)', s:{screen:'results', battery:'10', stay:180, ev:'cafe', sheet:'detail', loc:'berg'},
    note:'<p><b>FR-022.</b> One location, two entries (a priced connector and a tariff-less one). One pin, coloured by its best entry; the sheet shows both.</p>'},
-  {id:'results-list',   g:'4 · Results', label:'Results — ranked list sheet pulled up', s:{screen:'results', battery:'20', stay:45, sheet:'list'},
+  {id:'results-list',   g:'4 · Results', label:'Results — ranked list sheet pulled up', s:{screen:'results', battery:'10', stay:180, ev:'cafe', sheet:'list'},
    note:'<p><b>FR-010.</b> The ranked list stays one swipe (tap) away. Tapping an entry shows it on the map.</p>'},
-  {id:'results-approx', g:'4 · Results', label:'Message — location is approximate', s:{screen:'results', battery:'20', stay:45, approx:true},
+  {id:'results-approx', g:'4 · Results', label:'Message — location is approximate', s:{screen:'results', battery:'10', stay:180, ev:'cafe', approx:true},
    note:'<p><b>G3-AC2.</b> Accuracy worse than 1,000 m: results are still shown for the reported position, with a pointer to the coordinates box.</p>'},
-  {id:'msg-full',       g:'4 · Results', label:'Message — battery full', s:{screen:'results', battery:'100', stay:45, msg:'full'},
+  {id:'msg-full',       g:'4 · Results', label:'Message — battery full', s:{screen:'results', battery:'100', stay:180, ev:'cafe', msg:'full'},
    note:'<p><b>PRD S2 scenario 3 / G6-AC4.</b> Battery at 100%: no savings listed.</p>'},
-  {id:'msg-load',       g:'4 · Results', label:'Message — data couldn’t load', s:{screen:'results', battery:'20', stay:45, msg:'load'},
+  {id:'msg-load',       g:'4 · Results', label:'Message — data couldn’t load', s:{screen:'results', battery:'10', stay:180, ev:'cafe', msg:'load'},
    note:'<p><b>G4-AC3.</b> Any failed manifest or tile fetch: no partial list. <b>Try again</b> repeats the request.</p>'}
 ];
 
@@ -562,7 +562,7 @@ function vResults(){
     <div class="legend">${LEG('worth','Worth it')}${LEG('notstay','Not worth it')}${LEG('unknown','Price unknown')}</div>
     <div class="overlay">
       ${S.approx?`<div class="notice info" role="status">${I.info}<div><p>Your location is approximate</p><p style="font-weight:400"><button class="linkbtn" data-a="precise">Enter coordinates</button> for a precise spot.</p></div></div>`:''}
-      ${S.stay!==45?`<p class="mocknote">MOCKUP: figures stay fixed at 45 min. The real page re-ranks instantly here.</p>`:''}
+      ${S.stay!==180?`<p class="mocknote">MOCKUP: figures stay fixed at 3h. The real page re-ranks instantly here.</p>`:''}
     </div>
     ${sheet()}
   </div>`;
