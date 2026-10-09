@@ -125,7 +125,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 | Battery nearly full | Battery 90% of 15 kWh | kWh added stops at the room left in the battery (1.5 kWh); the start fee weighs heavily and the verdict reflects that |
 | Only DC fast chargers nearby | No AC charging points among nearby locations | DC-only locations are not listed. The 10 nearest locations with AC points are shown, however far |
 | Ties on saving | Two chargers save exactly the same | The nearer one comes first |
-| Location outside the Netherlands | GPS or address search places the driver in Belgium | "Charger prices are available for the Netherlands only for now." No list is shown |
+| Location outside the Netherlands | GPS or typed coordinates place the driver in Belgium (address search withdrawn for v0.1) | "Charger prices are available for the Netherlands only for now." No list is shown |
 
 #### Error Handling
 
@@ -342,7 +342,8 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 - Automatic petrol prices
 - Hosting as a claude.ai artifact
 - Starting, stopping or paying for a charging session
-- Charger results outside the Netherlands (address search does work in the EU and the US)
+- Charger results outside the Netherlands
+- Address search (withdrawn for v0.1 by solution design D-3, 2026-10-09; typed coordinates instead)
 - Accounts, syncing settings between devices
 - Native apps and in-car versions
 
@@ -358,7 +359,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 | D-6 | Rank by saving | Nearest isn't cheapest (Klokgebouw example) | By distance; by saving; by distance with highlight | By saving, biggest first | The product's promise is "worth it or not" | internal | FR-010 | The nearest charger may appear lower in the list |
 | D-7 | Ignore live availability | NDW includes live point status | Ignore; label; hide occupied | Ignore in v0.1 | User choice | internal | none | A recommended charger may be occupied; availability labels move to fast-follow |
 | D-8 | Current battery entered by hand | Battery level decides the kWh that fit | Arrival %; current % minus trip; assume empty | Current % entered by the driver | Follows from D-2: the driver is already parked | internal | FR-005 | No route data needed |
-| D-9 | GPS with address fallback | Where the driver is parked | GPS only; GPS plus address; address only | GPS by default, address search as fallback | One tap normally; works when location is denied and for laptop demos | internal | FR-006, FR-007 | Needs an address search service |
+| D-9 | GPS with address fallback | Where the driver is parked | GPS only; GPS plus address; address only | GPS by default, address search as fallback | One tap normally; works when location is denied and for laptop demos | internal | FR-006, FR-007 | Needs an address search service. **Superseded for v0.1** (solution design D-3/D-4, 2026-10-09): browser location plus a typed-coordinates box, no address search |
 | D-10 | Card fees: start fee and markup | Card providers charge differently | Start fee only; start fee plus markup; plus subscription | Start fee plus optional markup per kWh | Covers most Dutch cards per session without error-prone subscription maths | internal | FR-001, FR-012 | Subscriptions aren't reflected |
 | D-11 | Normal web page, not a claude.ai artifact | User wanted easy laptop demos and sharing | claude.ai artifact; normal web page; both | Normal web page on free hosting | Artifacts can't use location or fetch live NDW data or addresses | internal | FR-006, FR-007, FR-019 | Laptop demos via the same link |
 | D-12 | Success criteria | How to judge the proof of concept | Accuracy only; accuracy, speed and PM reception; usage | Accuracy, speed and PM reception | Proves the calculation, usability at the charger, and the real goal: PM buy-in | internal | none | Requires 5 real invoices for comparison |
@@ -370,4 +371,4 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 | D-18 | Default stays per event type | FR-017 needs concrete durations | Fixed values; driver-defined values | Quick errand 30 min, Shopping 1h30, Café or restaurant 2h, Sports or leisure 2h, Meeting 2h30, Workday 8h, Overnight 12h | Common-sense durations; Shopping and Café or restaurant set by the user in review | internal | FR-017 | Easy to change later |
 | D-19 | Stay range and steps (assumed) | Window and stay need limits | Fixed limits; unlimited | Stay 15 min–24 h in 15-minute steps; window in 5-minute steps | Covers a quick stop to a full day; 5-minute window steps read naturally | internal (assumed, please confirm) | FR-016, FR-018 | Stays over 24 h aren't supported |
 | D-20 | Setting ranges (assumed) | FR-004 needs testable limits | Fixed ranges; no validation | Ranges listed in FR-004 | Cover all current plug-in hybrids and Dutch price levels with margin, while catching typos | internal (assumed, please confirm) | FR-004 | Unusual cars outside the ranges can't be entered |
-| D-21 | Coverage: search anywhere, results in the Netherlands | User asked for EU/US, not just the Netherlands; NDW covers Dutch chargers only | Address search EU/US with NL results; full EU/US coverage; NL only with EU/US later | Address search works in the EU and the US; charger results stay Netherlands-only in v0.1 | A proof of concept needs one well-covered country; other countries lack a free feed like NDW | internal | FR-007, FR-008, FR-021 | EU/US charger coverage moves to "later" |
+| D-21 | Coverage: search anywhere, results in the Netherlands | User asked for EU/US, not just the Netherlands; NDW covers Dutch chargers only | Address search EU/US with NL results; full EU/US coverage; NL only with EU/US later | Address search works in the EU and the US; charger results stay Netherlands-only in v0.1 | A proof of concept needs one well-covered country; other countries lack a free feed like NDW | internal | FR-007, FR-008, FR-021 | EU/US charger coverage moves to "later". **Address search withdrawn for v0.1** (solution design D-3, 2026-10-09) |
