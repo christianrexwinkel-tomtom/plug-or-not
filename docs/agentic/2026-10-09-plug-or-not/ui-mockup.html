@@ -16,6 +16,7 @@
   --bad:#a51d12; --bad-ink:#ffffff; --bad-soft:#fbe3df;
   --unknown:#4f5b59; --unknown-soft:#eef1f0;
   --focus:#1d5fd1;
+  --map-land:#e8ebe4; --map-road:#ffffff; --map-edge:#cdd4cd; --map-park:#cde5c4; --map-water:#b6d6ea; --map-label:#66746f;
   --mock:#2b2440; --mock-ink:#f3efff; --mock-accent:#c9b8ff;
   --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
   --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
@@ -27,14 +28,14 @@
   --warn:#ffc061; --warn-soft:#3a2a10; --warn-line:#d8962e;
   --bad:#ff8b7b; --bad-ink:#2b0703; --bad-soft:#3d1a16;
   --unknown:#b3c0bd; --unknown-soft:#1c2826;
-  --focus:#7aa7ff; color-scheme:dark}}
+  --focus:#7aa7ff; --map-land:#18221f; --map-road:#2c3a36; --map-edge:#121a18; --map-park:#1d3324; --map-water:#173246; --map-label:#8fa29d; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0b1312; --surface:#141f1d; --ink:#e6efed; --muted:#9db0ab; --line:#2b3b38; --field:#0f1917;
   --charge:#3cc9a2; --charge-ink:#04201a; --charge-soft:#123a31;
   --warn:#ffc061; --warn-soft:#3a2a10; --warn-line:#d8962e;
   --bad:#ff8b7b; --bad-ink:#2b0703; --bad-soft:#3d1a16;
   --unknown:#b3c0bd; --unknown-soft:#1c2826;
-  --focus:#7aa7ff; color-scheme:dark}
+  --focus:#7aa7ff; --map-land:#18221f; --map-road:#2c3a36; --map-edge:#121a18; --map-park:#1d3324; --map-water:#173246; --map-label:#8fa29d; color-scheme:dark}
 
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -186,6 +187,36 @@ h2.sec{font:700 13px/1 var(--f-data);text-transform:uppercase;letter-spacing:.1e
 .message p{font:700 20px/1.3 var(--f-display);margin:0 0 14px}
 .message p:last-child{margin-bottom:0}
 .message .btn{max-width:240px;margin:0 auto}
+/* ---------- Results map + bottom sheet ---------- */
+.rwrap{display:flex;flex-direction:column;height:calc(100dvh - var(--mockh,0px))}
+@media (min-width:760px){.rwrap{height:760px}}
+.rwrap .ctx{position:relative;top:auto}
+.mapwrap{position:relative;flex:1;overflow:hidden;background:var(--map-land)}
+svg.map{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pin{cursor:pointer}
+.pin:focus{outline:none}
+.pin:focus-visible .pinbody{stroke:var(--focus);stroke-width:4}
+.legend{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+.legend span{background:var(--surface);border-radius:999px;padding:3px 9px 3px 4px;font-size:13px;font-weight:700;display:inline-flex;gap:5px;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.22)}
+.overlay{position:absolute;top:44px;left:10px;right:10px;display:flex;flex-direction:column;gap:6px}
+.overlay .notice{margin:0;padding:8px 10px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.overlay .mocknote{margin:0}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.2);display:flex;flex-direction:column;max-height:84%}
+.sheet.s-list{height:84%}
+.sheet.s-detail{max-height:62%}
+.grab{border:0;background:none;padding:8px 0 4px;width:100%}
+.grab span{display:block;width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto}
+.sheethead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 16px 8px}
+.sheethead h2{font:800 20px/1.15 var(--f-display);margin:0}
+.sheetbody{overflow:auto;padding:12px 16px 18px}
+.sheet .meta{margin:0 16px 10px}
+.best{display:flex;align-items:center;gap:10px;width:calc(100% - 32px);margin:0 16px 12px;line-height:1.2;text-align:left;border:2px solid var(--charge);background:var(--charge-soft);border-radius:12px;padding:9px 12px}
+.best b{display:block}
+.best small{color:var(--muted);font-weight:600}
+.best .go{margin-left:auto;font-weight:700;color:var(--charge);white-space:nowrap}
+.closebtn{border:2px solid var(--line);background:var(--surface);border-radius:999px;width:36px;height:36px;font:700 20px/1 var(--f-body);flex:none}
+.entries.click .entry{cursor:pointer}
+.entries.click .entry:hover{box-shadow:0 0 0 3px var(--line)}
 .foot{color:var(--muted);font-size:13px;margin:18px 0 0;text-align:center}
 </style>
 </head>
@@ -249,18 +280,21 @@ const EVENTS = [
 const DATA_TIME = '9 Oct 2026, 08:12';
 // Fake results for battery 20%, stay 45 min, PRD example settings. Already ranked (FR-010).
 const ENTRIES = [
-  {v:'worth',  op:'Vattenfall',     addr:'Parkstraat 21, Nuenen',            m:74,   price:'€0.33/kWh', amt:'saves €0.39', kwh:'2.7', total:'€1.77', km:'€0.16', win:'Worth it if you stay at least 40 min'},
-  {v:'worth',  op:'Vattenfall',     addr:'Park 52, Nuenen',                  m:980,  price:'€0.33/kWh', amt:'saves €0.39', kwh:'2.7', total:'€1.77', km:'€0.16', win:'Worth it if you stay at least 40 min'},
-  {v:'worth',  op:'Equans',         addr:'Berg 14, Nuenen',                  m:412,  price:'€0.38/kWh', amt:'saves €0.24', kwh:'2.7', total:'€1.92', km:'€0.18', win:'Worth it if you stay at least 40 min'},
-  {v:'worth',  op:'Equans',         addr:'Hoogstraat 1, Nuenen',             m:1120, price:'€0.45/kWh', amt:'saves €0.05', kwh:'2.7', total:'€2.11', km:'€0.19', win:'Worth it if you stay at least 45 min'},
-  {v:'worth',  op:'Allego',         addr:'Boordseweg 7, Nuenen',             m:1310, price:'€0.47/kWh', amt:'saves less than €0.01', kwh:'2.7', total:'€2.16', km:'€0.20', win:'Worth it if you stay at least 45 min'},
-  {v:'notstay',op:'Shell Recharge', addr:'Gerwenseweg 32, Nuenen',           m:548,  price:'€0.57/kWh', amt:'costs €0.27 more', kwh:'2.7', total:'€2.43', km:'€0.22', win:'Worth it if you stay at least 1h10'},
-  {v:'notstay',op:'Opcharge',       addr:'Vincent van Goghstraat 10, Nuenen',m:693,  price:'€0.52/kWh · €0.61/h after full · €0.61 start', amt:'costs €0.74 more', kwh:'2.7', total:'€2.90', km:'€0.27', win:'Worth it if you stay 1h30 to 7h30'},
-  {v:'never',  op:'E-Flux',         addr:'Europalaan 2, Nuenen',             m:811,  price:'€0.66/kWh · €0.50/h charging · price varies by time', amt:'costs €0.87 more', kwh:'2.7', total:'€3.03', km:'€0.28', win:'Never worth it: always more expensive than petrol for your car'},
-  {v:'never',  op:'Allego',         addr:'Kerkstraat 6, Nuenen',             m:266,  price:'€3.00/h charging', amt:'costs €0.98 more', kwh:'2.7', total:'€3.14', km:'€0.29', win:'Never worth it: always more expensive than petrol for your car'},
-  {v:'unknown',op:'Equans',         addr:'Berg 14, Nuenen',                  m:412,  reason:'No price published for this charger.'},
-  {v:'unknown',op:'Last Mile Solutions', addr:'Molenstraat 5, Nuenen',       m:902,  reason:"Charging power isn't published for this charger."}
+  {v:'worth',  op:'Vattenfall',     loc:'parkstraat', addr:'Parkstraat 21, Nuenen',            m:74,   price:'€0.33/kWh', amt:'saves €0.39', kwh:'2.7', total:'€1.77', km:'€0.16', win:'Worth it if you stay at least 40 min'},
+  {v:'worth',  op:'Vattenfall',     loc:'park52', addr:'Park 52, Nuenen',                  m:980,  price:'€0.33/kWh', amt:'saves €0.39', kwh:'2.7', total:'€1.77', km:'€0.16', win:'Worth it if you stay at least 40 min'},
+  {v:'worth',  op:'Equans',         loc:'berg', addr:'Berg 14, Nuenen',                  m:412,  price:'€0.38/kWh', amt:'saves €0.24', kwh:'2.7', total:'€1.92', km:'€0.18', win:'Worth it if you stay at least 40 min'},
+  {v:'worth',  op:'Equans',         loc:'hoog', addr:'Hoogstraat 1, Nuenen',             m:1120, price:'€0.45/kWh', amt:'saves €0.05', kwh:'2.7', total:'€2.11', km:'€0.19', win:'Worth it if you stay at least 45 min'},
+  {v:'worth',  op:'Allego',         loc:'boord', addr:'Boordseweg 7, Nuenen',             m:1310, price:'€0.47/kWh', amt:'saves less than €0.01', kwh:'2.7', total:'€2.16', km:'€0.20', win:'Worth it if you stay at least 45 min'},
+  {v:'notstay',op:'Shell Recharge', loc:'gerwen', addr:'Gerwenseweg 32, Nuenen',           m:548,  price:'€0.57/kWh', amt:'costs €0.27 more', kwh:'2.7', total:'€2.43', km:'€0.22', win:'Worth it if you stay at least 1h10'},
+  {v:'notstay',op:'Opcharge',       loc:'vvg', addr:'Vincent van Goghstraat 10, Nuenen',m:693,  price:'€0.52/kWh · €0.61/h after full · €0.61 start', amt:'costs €0.74 more', kwh:'2.7', total:'€2.90', km:'€0.27', win:'Worth it if you stay 1h30 to 7h30'},
+  {v:'never',  op:'E-Flux',         loc:'europa', addr:'Europalaan 2, Nuenen',             m:811,  price:'€0.66/kWh · €0.50/h charging · price varies by time', amt:'costs €0.87 more', kwh:'2.7', total:'€3.03', km:'€0.28', win:'Never worth it: always more expensive than petrol for your car'},
+  {v:'never',  op:'Allego',         loc:'kerk', addr:'Kerkstraat 6, Nuenen',             m:266,  price:'€3.00/h charging', amt:'costs €0.98 more', kwh:'2.7', total:'€3.14', km:'€0.29', win:'Never worth it: always more expensive than petrol for your car'},
+  {v:'unknown',op:'Equans',         loc:'berg', addr:'Berg 14, Nuenen',                  m:412,  reason:'No price published for this charger.'},
+  {v:'unknown',op:'Last Mile Solutions', loc:'molen', addr:'Molenstraat 5, Nuenen',       m:902,  reason:"Charging power isn't published for this charger."}
 ];
+// MOCKUP ONLY: hand-placed pin positions on the fake map (viewBox 390 × 620); the spot is at 195,280.
+const PINS = {parkstraat:[211,266], kerk:[150,226], berg:[268,214], gerwen:[302,322], vvg:[86,318],
+  europa:[236,140], molen:[66,178], park52:[346,150], hoog:[76,446], boord:[322,452]};
 const VERDICT = {
   worth:  {t:'Worth it', i:'check'},
   notstay:{t:'Not worth it for this stay', i:'clock'},
@@ -294,8 +328,14 @@ const STATES = [
    note:'<p><b>G3-AC3.</b> Only “lat, lon” in decimal degrees is accepted. No results are shown.</p>'},
   {id:'loading',        g:'3 · Loading', label:'Loading — finding chargers', s:{screen:'loading'},
    note:'<p><b>G7-AC5.</b> Shown while the spot, tiles and cost curves resolve. Entries then appear complete, window included — no skeleton cards with partial data.</p>'},
-  {id:'results',        g:'4 · Results', label:'Results — Nuenen, 20%, 45 min', s:{screen:'results', battery:'20', stay:45},
-   note:'<p><b>PRD S2 scenario 1, FR-015, FR-019, G6.</b> 10 nearest locations → 11 entries: Berg 14 has a priced and a tariff-less connector (FR-022, entry rule c), so it appears twice.</p><p>Parkstraat 21 and Park 52 tie on saving; the nearer one comes first. Allego Boordseweg shows the D-19 “less than €0.01” label. Price unknown entries come last, by distance.</p><p>The stepper in the top bar changes the stay in place (G7-AC4); tapping the battery returns to “parked here now”.</p>'},
+  {id:'results',        g:'4 · Results', label:'Results — map, Nuenen, 20%, 45 min', s:{screen:'results', battery:'20', stay:45},
+   note:'<p><b>Map view.</b> Green pin = Worth it (✓). Red pin = Not worth it for this stay (clock) or Never worth it (✕). Grey dashed pin = Price unknown (?). The small number is the rank. The blue dot is the spot.</p><p>The sheet shows the best pick and the tariff data time (FR-019). Tap a pin for details.</p><p><b>PRD S2 scenario 1, FR-015, FR-019, G6.</b> 10 nearest locations → 11 entries: Berg 14 has a priced and a tariff-less connector (FR-022, entry rule c), so it appears twice.</p><p>Parkstraat 21 and Park 52 tie on saving; the nearer one comes first. Allego Boordseweg shows the D-19 “less than €0.01” label. Price unknown entries come last, by distance.</p><p>The stepper in the top bar changes the stay in place (G7-AC4); tapping the battery returns to “parked here now”.</p>'},
+  {id:'results-pin',    g:'4 · Results', label:'Results — pin tapped (Parkstraat 21)', s:{screen:'results', battery:'20', stay:45, sheet:'detail', loc:'parkstraat'},
+   note:'<p><b>FR-015.</b> Tapping a pin opens its full entry in the bottom sheet: verdict first, then saving, price summary, kWh, cost per km and the window.</p><p><b>‹ All chargers</b> opens the ranked list; <b>×</b> or tapping the map closes it.</p>'},
+  {id:'results-pin-two',g:'4 · Results', label:'Results — pin with two prices (Berg 14)', s:{screen:'results', battery:'20', stay:45, sheet:'detail', loc:'berg'},
+   note:'<p><b>FR-022.</b> One location, two entries (a priced connector and a tariff-less one). One pin, coloured by its best entry; the sheet shows both.</p>'},
+  {id:'results-list',   g:'4 · Results', label:'Results — ranked list sheet pulled up', s:{screen:'results', battery:'20', stay:45, sheet:'list'},
+   note:'<p><b>FR-010.</b> The ranked list stays one swipe (tap) away. Tapping an entry shows it on the map.</p>'},
   {id:'results-approx', g:'4 · Results', label:'Message — location is approximate', s:{screen:'results', battery:'20', stay:45, approx:true},
    note:'<p><b>G3-AC2.</b> Accuracy worse than 1,000 m: results are still shown for the reported position, with a pointer to the coordinates box.</p>'},
   {id:'msg-full',       g:'4 · Results', label:'Message — battery full', s:{screen:'results', battery:'100', stay:45, msg:'full'},
@@ -311,7 +351,7 @@ function defaults(){
     vals:Object.fromEntries(FIELDS.map(f=>[f.k,f.v])), errs:{}, storage:false, reopen:false,
     battery:'', ev:'shopping', stay:90, limit:false, battErr:false,
     coords:'', coordErr:false, banner:null, hl:false,
-    spot:'Your location', spotCoords:'51.4436, 5.5519', approx:false, msg:null};
+    spot:'Your location', spotCoords:'51.4436, 5.5519', approx:false, msg:null, sheet:'peek', loc:null};
 }
 function applyState(id){
   clearTimeout(timer);
@@ -324,10 +364,11 @@ function applyState(id){
 }
 function go(screen, extra){ clearTimeout(timer); Object.assign(S, {screen}, extra||{}); syncSwitcher(); render(); window.scrollTo(0,0); }
 function syncSwitcher(){
+  if (S.screen==='results') window.scrollTo(0,0);
   let id = null;
   if (S.screen==='setup') id = S.reopen?'setup-reopen':(S.storage?'setup-storage':'setup');
   else if (S.screen==='loading') id='loading';
-  else if (S.screen==='results') id = S.msg==='full'?'msg-full':S.msg==='load'?'msg-load':S.approx?'results-approx':'results';
+  else if (S.screen==='results') id = S.msg==='full'?'msg-full':S.msg==='load'?'msg-load':S.approx?'results-approx':S.sheet==='list'?'results-list':S.sheet==='detail'?(S.loc==='berg'?'results-pin-two':S.loc==='parkstraat'?'results-pin':null):'results';
   else if (S.screen==='parked') id = S.banner==='denied'?'msg-denied':S.banner==='outside'?'msg-outside':S.coordErr?'msg-coords':S.battErr?'parked-battery':'parked';
   if (id){ sel.value=id; showNote(id); }
 }
@@ -420,15 +461,16 @@ function ctxBar(){
       ${stepper(true)}
     </div>
     <div class="spot"><span>${I.pin.replace('width="22" height="22"','width="14" height="14"')} <b>${S.spot}</b> · <span class="num">${S.spotCoords}</span></span><button class="linkbtn" data-a="back">Change spot</button></div>
-    ${S.stay!==45 && !S.msg?`<p class="mocknote">MOCKUP: the list stays fixed at the 45 min figures. The real page re-ranks instantly here.</p>`:''}
   </div>`;
 }
-function entry(e,i){
+function entry(e,i,clickable){
+  i = ENTRIES.indexOf(e);
   const vd=VERDICT[e.v];
   const top = `<div class="etop"><span class="verdict">${I[vd.i]}${vd.t}</span>${e.amt?`<span class="amount"><b>${e.amt.replace(/^(saves|costs) /,'$1&nbsp;')}</b><small>${e.v==='worth'?'vs petrol':'vs petrol, this stay'}</small></span>`:''}</div>`;
   const place = `<h3 class="op">${e.op}</h3><p class="addr">${e.addr} · <span class="num">${metres(e.m)}</span></p>`;
-  if (e.v==='unknown') return `<li class="entry v-unknown"><span class="rank">${i+1}</span>${top}${place}<p class="reason">${e.reason}</p></li>`;
-  return `<li class="entry v-${e.v}"><span class="rank">${i+1}</span>${top}${place}
+  const click = clickable?` data-a="pin" data-loc="${e.loc}" tabindex="0" role="button" aria-label="Show ${esc(e.op)}, ${esc(e.addr)} on the map"`:'';
+  if (e.v==='unknown') return `<li class="entry v-unknown"${click}><span class="rank">${i+1}</span>${top}${place}<p class="reason">${e.reason}</p></li>`;
+  return `<li class="entry v-${e.v}"${click}><span class="rank">${i+1}</span>${top}${place}
     <p class="price">${e.price}</p>
     <dl class="stats">
       <dt>Adds</dt><dd>${e.kwh} kWh</dd>
@@ -437,16 +479,94 @@ function entry(e,i){
     </dl>
     <p class="window">${I.win}<span>${e.win}</span></p></li>`;
 }
+const Y = y => 80 + (y-110)*0.86;   // squeeze the hand-placed layout into the area above the sheet
+const PIN_COL = {worth:'var(--charge)', notstay:'var(--bad)', never:'var(--bad)', unknown:'var(--unknown)'};
+function glyph(v){
+  if (v==='worth') return '<path d="M-6.5 -28 l4.5 4.5 l8.5 -9.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>';
+  if (v==='never') return '<path d="M-5.5 -33.5 l11 11 M5.5 -33.5 l-11 11" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>';
+  if (v==='notstay') return '<circle cx="0" cy="-28" r="7" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M0 -32 v4.5 l3 2" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>';
+  return '<text x="0" y="-22.5" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-weight="800" font-size="17" fill="#fff">?</text>';
+}
+function pin(lid){
+  const list=ENTRIES.filter(e=>e.loc===lid), best=list[0], x=PINS[lid][0], y=Y(PINS[lid][1]), sel=S.sheet==='detail'&&S.loc===lid;
+  const rank=ENTRIES.indexOf(best)+1, vd=VERDICT[best.v];
+  const label=`${rank}. ${best.op}, ${best.addr}: ${vd.t}${best.amt?', '+best.amt:''}${list.length>1?', and '+(list.length-1)+' more price':''}`;
+  return `<g class="pin" data-a="pin" data-loc="${lid}" role="button" tabindex="0" aria-label="${esc(label)}" transform="translate(${x} ${y}) scale(${sel?1.3:1})">
+    ${sel?'<ellipse cx="0" cy="0" rx="10" ry="4" fill="rgba(0,0,0,.25)"/>':''}
+    <path class="pinbody" d="M0 0 C-4 -9 -16 -15 -16 -28 A16 16 0 1 1 16 -28 C16 -15 4 -9 0 0Z" fill="${PIN_COL[best.v]}" stroke="${sel?'var(--ink)':'#fff'}" stroke-width="${sel?3:2.2}" ${best.v==='unknown'?'stroke-dasharray="4 3"':''}/>
+    ${glyph(best.v)}
+    <circle cx="13" cy="-43" r="8.5" fill="var(--ink)" stroke="#fff" stroke-width="1.5"/>
+    <text x="13" y="-39.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" font-size="10" fill="var(--surface)">${rank}</text>
+    ${list.length>1?`<circle cx="-13" cy="-43" r="8.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/><text x="-13" y="-39.5" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-weight="800" font-size="10" fill="var(--ink)">×${list.length}</text>`:''}
+  </g>`;
+}
+function mapSvg(){
+  const road=(d,w)=>`<path d="${d}" fill="none" stroke="var(--map-edge)" stroke-width="${w+3}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="var(--map-road)" stroke-width="${w}" stroke-linecap="round"/>`;
+  const lbl=(x,y,r,t)=>`<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" font-family="Source Sans 3, sans-serif" font-size="10.5" font-weight="600" fill="var(--map-label)" letter-spacing=".04em">${t}</text>`;
+  // MOCKUP ONLY: a hand-drawn stand-in for a real map.
+  return `<svg class="map" viewBox="0 0 390 540" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of the 10 nearest chargers around your spot">
+    <rect data-a="mapbg" width="390" height="540" fill="var(--map-land)"/>
+    <g data-a="mapbg" transform="matrix(1 0 0 0.86 0 -14.6)">
+      <path d="M40 360 C70 330 150 335 170 370 C190 410 150 450 100 445 C55 440 25 400 40 360Z" fill="var(--map-park)"/>
+      <path d="M300 520 C320 505 360 510 372 530 C380 550 350 570 320 562 C300 556 290 535 300 520Z" fill="var(--map-water)"/>
+      <path d="M-10 560 C80 540 140 600 230 640" fill="none" stroke="var(--map-water)" stroke-width="10"/>
+      ${road('M-10 300 C110 292 260 276 400 266',9)}
+      ${road('M196 -10 C202 150 188 400 206 640',9)}
+      ${road('M30 112 L196 238',6)}
+      ${road('M202 300 C262 318 330 330 400 352',7)}
+      ${road('M110 70 L400 128',7)}
+      ${road('M226 640 C262 540 330 480 400 446',7)}
+      ${road('M-10 200 C60 190 120 160 150 120',5)}
+      ${road('M120 300 C110 360 90 420 60 640',5)}
+      ${road('M270 120 C275 180 280 240 300 330',5)}
+      ${lbl(18,290,-1.5,'PARKSTRAAT')}${lbl(206,560,86,'BERG')}${lbl(78,146,37,'KERKSTRAAT')}${lbl(320,330,15,'GERWENSEWEG')}${lbl(290,105,11,'EUROPALAAN')}${lbl(276,500,-30,'BOORDSEWEG')}
+      ${lbl(66,400,0,'PARK')}
+    </g>
+    <circle cx="195" cy="${Y(280)}" r="20" fill="var(--focus)" opacity=".18"/>
+    <circle cx="195" cy="${Y(280)}" r="8" fill="var(--focus)" stroke="#fff" stroke-width="3"/>
+    ${Object.keys(PINS).map(pin).join('')}
+  </svg>`;
+}
+const LEG = (v,t)=>`<span><svg width="22" height="22" viewBox="-17 -46 34 48" aria-hidden="true"><path d="M0 0 C-4 -9 -16 -15 -16 -28 A16 16 0 1 1 16 -28 C16 -15 4 -9 0 0Z" fill="${PIN_COL[v]}" stroke="#fff" stroke-width="2" ${v==='unknown'?'stroke-dasharray="4 3"':''}/>${glyph(v)}</svg>${t}</span>`;
+function sheet(){
+  if (S.sheet==='detail'){
+    const list=ENTRIES.filter(e=>e.loc===S.loc);
+    return `<section class="sheet s-detail" aria-label="Charger details">
+      <button class="grab" data-a="tolist" aria-label="Show all chargers"><span></span></button>
+      <div class="sheethead"><button class="linkbtn" data-a="tolist">‹ All chargers</button><button class="closebtn" data-a="close" aria-label="Close details">×</button></div>
+      ${list.length>1?`<p class="meta"><b>${list.length} prices at this location.</b> Different charging points here use different tariffs.</p>`:''}
+      <div class="sheetbody" style="padding-top:12px"><ol class="entries">${list.map(e=>entry(e)).join('')}</ol></div></section>`;
+  }
+  if (S.sheet==='list'){
+    return `<section class="sheet s-list" aria-label="Ranked list">
+      <button class="grab" data-a="close" aria-label="Back to the map"><span></span></button>
+      <div class="sheethead"><h2>Best saving first</h2><button class="closebtn" data-a="close" aria-label="Back to the map">×</button></div>
+      <p class="meta">10 nearest chargers · prices include VAT and your card fees · <b>Tariff data from ${DATA_TIME}</b></p>
+      <div class="sheetbody"><ol class="entries click">${ENTRIES.map(e=>entry(e,0,true)).join('')}</ol>
+      <p class="foot">Distances are straight-line. Prices from NDW open data, ${DATA_TIME}.</p></div></section>`;
+  }
+  const b=ENTRIES[0];
+  return `<section class="sheet s-peek" aria-label="Summary">
+    <button class="grab" data-a="tolist" aria-label="Show the ranked list"><span></span></button>
+    <div class="sheethead"><h2>10 nearest chargers</h2><button class="linkbtn" data-a="tolist">List ▲</button></div>
+    <p class="meta" style="font-size:13px;margin-bottom:8px">Incl. VAT and card fees · <b>Tariff data from ${DATA_TIME}</b></p>
+    <button class="best" data-a="pin" data-loc="${b.loc}"><span style="color:var(--charge)">${I.check}</span><span><b>Best: ${b.op}, ${b.addr.split(',')[0]}</b><small>${b.amt} · ${metres(b.m)}</small></span><span class="go">Details</span></button>
+  </section>`;
+}
 function vResults(){
   let body;
-  if (S.msg==='load') body = `<div class="message" role="alert"><span style="color:var(--bad)">${I.wifi}</span><p>Couldn't load charger prices. Check your connection and try again.</p><button class="btn btn-primary" data-a="retry">Try again</button></div>`;
-  else if (S.msg==='full') body = `<div class="message" role="status"><span style="color:var(--charge)">${I.full}</span><p>Your battery is full, so there's nothing to charge here.</p></div>`;
-  else body = `${S.approx?`<div class="notice info" role="status" style="margin-top:14px">${I.info}<div><p>Your location is approximate</p><p style="font-weight:400">Results are for the spot your browser reported. <button class="linkbtn" data-a="precise">Enter coordinates</button> for a precise spot.</p></div></div>`:''}
-    <div class="listhead"><h1>Best saving first</h1></div>
-    <p class="meta">10 nearest chargers · prices include VAT and your card fees · <b>Tariff data from ${DATA_TIME}</b></p>
-    <ol class="entries">${ENTRIES.map(entry).join('')}</ol>
-    <p class="foot">Distances are straight-line. Prices from NDW open data, ${DATA_TIME}.</p>`;
-  return appbar(true)+ctxBar()+`<section class="screen">${body}</section>`;
+  if (S.msg==='load') body = `<section class="screen"><div class="message" role="alert"><span style="color:var(--bad)">${I.wifi}</span><p>Couldn't load charger prices. Check your connection and try again.</p><button class="btn btn-primary" data-a="retry">Try again</button></div></section>`;
+  else if (S.msg==='full') body = `<section class="screen"><div class="message" role="status"><span style="color:var(--charge)">${I.full}</span><p>Your battery is full, so there's nothing to charge here.</p></div></section>`;
+  else body = `<div class="mapwrap">
+    ${mapSvg()}
+    <div class="legend">${LEG('worth','Worth it')}${LEG('notstay','Not worth it')}${LEG('unknown','Price unknown')}</div>
+    <div class="overlay">
+      ${S.approx?`<div class="notice info" role="status">${I.info}<div><p>Your location is approximate</p><p style="font-weight:400"><button class="linkbtn" data-a="precise">Enter coordinates</button> for a precise spot.</p></div></div>`:''}
+      ${S.stay!==45?`<p class="mocknote">MOCKUP: figures stay fixed at 45 min. The real page re-ranks instantly here.</p>`:''}
+    </div>
+    ${sheet()}
+  </div>`;
+  return `<div class="rwrap">${appbar(true)}${ctxBar()}${body}</div>`;
 }
 
 const app = document.getElementById('app');
@@ -457,7 +577,7 @@ function render(){
 /* ---------- Interactions ---------- */
 function startSearch(extra){
   go('loading');
-  timer = setTimeout(()=>go('results', Object.assign({msg:null, approx:false}, extra)), 1300);
+  timer = setTimeout(()=>go('results', Object.assign({msg:null, approx:false, sheet:'peek', loc:null}, extra)), 1300);
 }
 function batteryOk(){
   const b=S.battery.trim(); const n=Number(b.replace(',','.'));
@@ -502,6 +622,9 @@ app.addEventListener('click', ev=>{
   else if (a==='back'){ go('parked',{msg:null, approx:false}); }
   else if (a==='precise'){ go('parked',{msg:null, approx:false, hl:true}); setTimeout(()=>document.getElementById('coords')?.focus(),50); }
   else if (a==='retry'){ startSearch(); }
+  else if (a==='pin'){ S.sheet='detail'; S.loc=b.dataset.loc; render(); syncSwitcher(); }
+  else if (a==='tolist'){ S.sheet='list'; render(); syncSwitcher(); }
+  else if (a==='close' || a==='mapbg'){ S.sheet='peek'; S.loc=null; render(); syncSwitcher(); }
 });
 app.addEventListener('input', ev=>{
   const t=ev.target;
@@ -509,7 +632,11 @@ app.addEventListener('input', ev=>{
   else if (t.id==='coords'){ S.coords=t.value; }
   else if (t.name && S.vals && t.name in S.vals){ S.vals[t.name]=t.value; }
 });
-app.addEventListener('keydown', ev=>{ if(ev.key==='Enter' && ev.target.id==='coords'){ ev.preventDefault(); app.querySelector('[data-a="coords"]').click(); } });
+app.addEventListener('keydown', ev=>{
+  if(ev.key==='Enter' && ev.target.id==='coords'){ ev.preventDefault(); app.querySelector('[data-a="coords"]').click(); return; }
+  const r=ev.target.closest('[role="button"][data-a]');   // SVG pins and list cards
+  if(r && (ev.key==='Enter'||ev.key===' ')){ ev.preventDefault(); r.dispatchEvent(new MouseEvent('click',{bubbles:true})); }
+});
 app.addEventListener('submit', ev=>{
   ev.preventDefault();
   const errs={};
