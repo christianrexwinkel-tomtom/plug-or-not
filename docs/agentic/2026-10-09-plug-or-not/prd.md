@@ -32,6 +32,8 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 | S4: See the worth-it window | See for each charger the range of stay lengths for which charging beats petrol | P1 |
 | S5: Use a typed address instead of my location | Search for an address or place when location is unavailable or for a demo | P2 |
 
+Unless a scenario says otherwise, every scenario with numbers uses the example settings from Story 1, Scenario 1 (no card markup), and chargers whose maximum AC power is at least the car's 3.6 kW.
+
 ### Story 1: Set up my car and costs
 
 - **As a** plug-in hybrid driver who charges in public
@@ -193,7 +195,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 - **Then** the entry shows "Price unknown" and no window, instead of a window based on a guess
 
 **Scenario 3: Edge Case — no window**
-- **Given** the charger E-Flux Laboratoriumstraat 2, Eindhoven (€0.5417/kWh plus €0.41/h)
+- **Given** the example settings from Story 1, a battery at 10%, and the charger E-Flux Laboratoriumstraat 2, Eindhoven (€0.5417/kWh plus €0.41/h, excluding VAT)
 - **When** the driver views the results
 - **Then** the entry shows "Never worth it: always more expensive than petrol for your car"
 
