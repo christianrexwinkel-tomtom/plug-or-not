@@ -30,7 +30,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 | S2: See which nearby chargers are worth it | Get the 10 nearest chargers ranked by saving compared with petrol, for my current spot | P1 |
 | S3: Tell the app how long I'll stay | Pick an event type that fills in a typical stay, and adjust it | P1 |
 | S4: See the worth-it window | See for each charger the range of stay lengths for which charging beats petrol | P1 |
-| S5: Use a typed address instead of my location | Search for an address or place when location is unavailable or for a demo | P2 |
+| S5: Use a typed address instead of my location | Search for an address or place when location is unavailable or for a demo. **Withdrawn for v0.1** (solution design D-3, 2026-10-09) | P2 |
 
 Unless a scenario says otherwise, every scenario with numbers uses the example settings from Story 1, Scenario 1 (no card markup), and chargers whose maximum AC power is at least the car's 3.6 kW.
 
@@ -133,7 +133,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 |-----------------|--------------|---------------|
 | Charger data can't be loaded | "Couldn't load charger prices. Check your connection and try again." | Shows a "Try again" button. No partial answer |
 | Battery level missing or invalid | "Enter your current battery level (0–100%)." | Highlights the field and blocks the request |
-| Outside coverage | "Charger prices are available for the Netherlands only for now." | Shows no list. Offers address search (Story 5) |
+| Outside coverage | "Charger prices are available for the Netherlands only for now." | Shows no list. Offers the coordinates box (address search withdrawn for v0.1) |
 | Settings missing | "Set up your car first so we can calculate your costs." | Opens the setup (Story 1) |
 
 ### Story 3: Tell the app how long I'll stay
@@ -218,6 +218,8 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 
 ### Story 5: Use a typed address instead of my location
 
+> **Withdrawn for v0.1** (solution design D-3, edited 2026-10-09). No address search in v0.1: the spot comes from the browser location, or from "lat, lon" typed in a coordinates box (solution design D-4). Kept below for a later release.
+
 - **As a** driver whose phone can't share its location, or a presenter demoing on a laptop
 - **I want to** type an address or place and get the answer for that spot
 - **So that** the page works without GPS and for any place I want to check
@@ -277,7 +279,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 - **FR-004**: System MUST validate each setting against its allowed range and block saving until all are valid. Ranges: usable battery 1–40 kWh; charging speed 1–22 kW; electric consumption 0.10–0.40 kWh/km; petrol consumption 5–30 km/L; petrol price €0.50–€5.00/L; card start fee €0–€5; card markup €0–€1/kWh.
 - **FR-005**: System MUST ask for the current battery level (0–100%) on the "parked here now" screen.
 - **FR-006**: System MUST use the phone's or laptop's location when the driver allows it.
-- **FR-007**: System MUST let the driver search for an address or place anywhere in the EU and the US, with up to 5 suggestions shown while typing, when location is denied, unavailable or approximate, or whenever the driver chooses to.
+- **FR-007**: Withdrawn for v0.1 (solution design D-3, 2026-10-09); a coordinates box takes its place (solution design D-4). Original text: System MUST let the driver search for an address or place anywhere in the EU and the US, with up to 5 suggestions shown while typing, when location is denied, unavailable or approximate, or whenever the driver chooses to.
 - **FR-008**: System MUST, for a spot in the Netherlands, list the 10 nearest public charging locations that have at least one AC charging point, based on straight-line distance from the chosen spot.
 - **FR-009**: System MUST show the straight-line distance in metres from the chosen spot for each listed location.
 - **FR-010**: System MUST order the list by saving compared with petrol, biggest first; ties go to the nearer location; locations with an unknown price come last.
@@ -291,7 +293,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 - **FR-018**: System MUST let the driver adjust the stay between 15 minutes and 24 hours in 15-minute steps, and update all results without reloading.
 - **FR-019**: System MUST show the date and time of the tariff data used.
 - **FR-020**: System MUST show "Price unknown" with no verdict or window for locations whose tariff is missing or can't be interpreted.
-- **FR-021**: System MUST show plain-language messages for: data that can't be loaded, a full battery, a spot outside the Netherlands, location denied, and no address match (see the story error tables).
+- **FR-021**: System MUST show plain-language messages for: data that can't be loaded, a full battery, a spot outside the Netherlands, location denied, and invalid typed coordinates (see the story error tables; "no address match" withdrawn with FR-007, 2026-10-09).
 - **FR-022**: System MUST show a separate entry for each distinct AC tariff at a location; the location counts once towards the 10 nearest.
 - **FR-023**: System SHOULD remember the last used event type and use it as the default next time.
 
@@ -308,7 +310,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 
 | Release | Contents (stories / FRs) | Rationale for this cut |
 |---------|--------------------------|------------------------|
-| v1 (v0.1 proof of concept) | S1–S5; FR-001–FR-022 | The smallest cut that answers "is it worth plugging in here?" end to end, with real NDW tariffs, for demos and the driver's own sessions |
+| v1 (v0.1 proof of concept) | S1–S4; FR-001–FR-022 except FR-007 (S5 and FR-007 withdrawn, 2026-10-09) | The smallest cut that answers "is it worth plugging in here?" end to end, with real NDW tariffs, for demos and the driver's own sessions |
 | fast-follow | FR-023; planning ahead for a destination (moment 1 from the journey page); live availability labels | Convenience and the second journey moment, both reusing the same calculation |
 | later | Stay estimate from calendar and own history; battery level from the Volvo API; charge card details from the card provider; Android Automotive in-car version; worth-it colouring in navigation; full electric cars (comparison against other chargers); charger coverage in the EU and the US; vehicle integration (possible IP, discussed separately) | Each needs an outside integration or partner, which the proof of concept should validate first |
 
@@ -316,7 +318,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 
 - Runs in current phone and laptop browsers (Safari on iOS, Chrome on Android, Chrome, Edge and Safari on desktop), opened from a link, with no install or app store.
 - Answer on screen within 30 seconds of opening the page with saved settings, on a normal mobile connection.
-- Tariff data no older than 24 hours under normal operation.
+- Tariff data from a snapshot refreshed by hand before demos and accuracy sessions; the data date is shown on screen (changed from "no older than 24 hours" by solution design D-1, 2026-10-09).
 - No accounts and no personal data stored outside the driver's own browser. Location is used only to find nearby chargers and isn't stored.
 
 ## Dependencies
@@ -325,7 +327,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 |------------|------|--------|
 | NDW open data: charging locations (OCPI) feed | Required | Available |
 | NDW open data: charging tariffs (OCPI) feed | Required | Available |
-| Address search service covering the EU and the US | Required | Available (provider to be chosen in solution design) |
+| Address search service covering the EU and the US | Not needed in v0.1 | Withdrawn with FR-007 (solution design D-3, 2026-10-09) |
 | Free public web hosting reachable by a link | Required | Available |
 | Browser location access | Optional | Available (driver permission needed) |
 
