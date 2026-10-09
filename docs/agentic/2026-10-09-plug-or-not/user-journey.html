@@ -1,0 +1,385 @@
+<title>Worth-It Charging Journey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column that widens for the journey lanes and phone mock-ups; the charger chart is the one bold moment. */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --ink:#132320; --muted:#5a6b67; --line:#d5dfdc;
+  --charge:#0a7560; --charge-soft:#dff1ec; --petrol:#b25a06; --petrol-soft:#fbeedd;
+  --bad:#b42318; --bad-soft:#fbe4e1; --phone:#0f1b19; --phone-fg:#eef5f3; --phone-card:#1b2a27;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-data:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1614; --surface:#15201e; --ink:#e4eeeb; --muted:#93a6a1; --line:#2a3a37;
+  --charge:#3fc9a4; --charge-soft:#123a31; --petrol:#f0a04b; --petrol-soft:#3a2810;
+  --bad:#ff8a7a; --bad-soft:#3d1a16; --phone:#050a09; --phone-fg:#eef5f3; --phone-card:#16221f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1614; --surface:#15201e; --ink:#e4eeeb; --muted:#93a6a1; --line:#2a3a37;
+  --charge:#3fc9a4; --charge-soft:#123a31; --petrol:#f0a04b; --petrol-soft:#3a2810;
+  --bad:#ff8a7a; --bad-soft:#3d1a16; --phone:#050a09; --phone-fg:#eef5f3; --phone-card:#16221f; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--f-body);margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:flex;flex-direction:column;gap:64px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.12}
+h1{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3vw,2.1rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.2rem;font-weight:700}
+p{margin:0;max-width:66ch}
+.eyebrow{font:500 .78rem/1 var(--f-data);letter-spacing:.12em;text-transform:uppercase;color:var(--charge)}
+.muted{color:var(--muted)}
+.num{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+section{display:flex;flex-direction:column;gap:20px}
+.lede{font-size:1.2rem;color:var(--muted)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:40px;align-items:end}
+.hero-text{display:flex;flex-direction:column;gap:18px}
+.receipt{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px 22px;font-family:var(--f-data);font-size:.86rem;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 0 var(--line)}
+.receipt .row{display:flex;justify-content:space-between;gap:12px}
+.receipt hr{border:0;border-top:1px dashed var(--line);margin:6px 0;width:100%}
+.receipt .tot{font-weight:500;font-size:1rem}
+.receipt .verdict{margin-top:8px;padding:8px 10px;border-radius:4px;background:var(--bad-soft);color:var(--bad);font-family:var(--f-body);font-weight:600;font-size:.92rem}
+.stat{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;border-top:2px solid var(--ink);padding-top:14px}
+.stat b{font:700 2.6rem/1 var(--f-display);color:var(--bad)}
+.stat span{max-width:46ch;color:var(--muted)}
+
+/* assumptions */
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.fact{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.fact .k{font:500 .72rem/1.2 var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fact .v{font:500 1.05rem/1.3 var(--f-data)}
+
+/* chart */
+.chart-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:16px}
+.chart-scroll{overflow-x:auto}
+#chart{display:block;width:100%;min-width:560px;height:auto}
+#chart text{font-family:var(--f-data);font-size:11px;fill:var(--muted)}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.controls label{font-weight:600}
+#stay{flex:1;min-width:180px;accent-color:var(--charge)}
+#stayOut{font:500 1.1rem var(--f-data);min-width:5ch}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.lg{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--line);border-radius:6px;min-width:0}
+.lg .name{display:flex;align-items:center;gap:8px;font-weight:600}
+.sw{width:18px;height:3px;border-radius:2px;flex:none}
+.lg .meta{font-size:.88rem;color:var(--muted)}
+.lg .res{font:500 .92rem var(--f-data)}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font:600 .78rem/1.5 var(--f-body)}
+.pill.good{background:var(--charge-soft);color:var(--charge)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.meh{background:var(--petrol-soft);color:var(--petrol)}
+.edges{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.edge{display:flex;flex-direction:column;gap:6px}
+.edge h3{font-size:1.05rem}
+
+/* journeys */
+.journey{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:36px;align-items:start}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0;counter-reset:s}
+.step{display:grid;grid-template-columns:36px minmax(0,1fr);gap:14px;padding-bottom:22px;position:relative}
+.step::before{counter-increment:s;content:counter(s);width:36px;height:36px;border-radius:50%;border:2px solid var(--charge);color:var(--charge);display:grid;place-items:center;font:600 .95rem var(--f-data);background:var(--bg);z-index:1}
+.step:not(:last-child)::after{content:"";position:absolute;left:17px;top:36px;bottom:0;width:2px;background:var(--line)}
+.step-body{display:flex;flex-direction:column;gap:8px;min-width:0;padding-top:5px}
+.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.lane{font-size:.92rem;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px solid var(--line);min-width:0}
+.lane .lk{display:block;font:500 .68rem/1.2 var(--f-data);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.lane.sys{background:transparent;border-style:dashed}
+
+/* phone */
+.phone{position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px);background:var(--phone);color:var(--phone-fg);border-radius:34px;padding:16px 14px 20px;border:6px solid #2b3533;display:flex;flex-direction:column;gap:10px;font-size:14px;max-width:300px;width:100%;justify-self:center}
+.phone .bar{display:flex;justify-content:space-between;font:500 11px var(--f-data);opacity:.7;padding:0 6px}
+.phone .ctx{padding:6px 6px 2px;display:flex;flex-direction:column;gap:2px}
+.phone .ctx b{font:700 1.05rem/1.2 var(--f-display)}
+.phone .ctx span{opacity:.72;font-size:12.5px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 6px}
+.chip{font:500 11px var(--f-data);padding:3px 8px;border-radius:999px;background:var(--phone-card);border:1px solid #2c3f3b}
+.pc{background:var(--phone-card);border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:4px;border-left:4px solid #3fc9a4}
+.pc.meh{border-left-color:#f0a04b}
+.pc.bad{border-left-color:#ff8a7a;opacity:.85}
+.pc .t{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.pc .t .s{font-family:var(--f-data);font-weight:500;white-space:nowrap}
+.pc .g{color:#3fc9a4}.pc .o{color:#f0a04b}.pc .r{color:#ff8a7a}
+.pc .d{font-size:12px;opacity:.75}
+.pc .w{font:500 11.5px var(--f-data);opacity:.9}
+.big{background:var(--phone-card);border-radius:16px;padding:16px 14px;display:flex;flex-direction:column;gap:8px;text-align:left}
+.big .verdict{font:700 1.5rem/1.1 var(--f-display);color:#3fc9a4}
+.bar-track{position:relative;height:28px;border-radius:6px;background:#2a1714;overflow:hidden;margin-top:4px}
+.bar-ok{position:absolute;top:0;bottom:0;background:#1f5e4f}
+.bar-now{position:absolute;top:-2px;bottom:-2px;width:3px;background:#fff;border-radius:2px}
+.bar-lbl{display:flex;justify-content:space-between;font:500 10.5px var(--f-data);opacity:.7}
+
+/* flow */
+.flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.1fr) auto minmax(0,1fr);gap:14px;align-items:center}
+.flow-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.src{padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:.9rem}
+.src b{display:block;font-size:.95rem}
+.engine{padding:20px;border-radius:10px;background:var(--charge);color:#fff;display:flex;flex-direction:column;gap:8px}
+:root[data-theme="dark"] .engine{color:#06231c}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .engine{color:#06231c}}
+.engine b{font:700 1.2rem var(--f-display)}
+.engine ul{margin:0;padding-left:18px;font-size:.9rem}
+.arrow{font:500 1.4rem var(--f-data);color:var(--muted)}
+
+/* comparison table */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.95rem}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 .74rem/1.3 var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600}
+
+/* phases */
+.phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.phase{padding:16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:6px}
+.phase.now{border:2px solid var(--charge)}
+.phase .when{font:500 .72rem var(--f-data);letter-spacing:.1em;text-transform:uppercase;color:var(--charge)}
+.phase.locked{background:transparent;border-style:dashed}
+
+.qs{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px 28px;margin:0;padding:0;list-style:none}
+.qs li{padding-left:16px;border-left:3px solid var(--petrol);font-size:.96rem}
+.qs b{display:block}
+footer{font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:18px}
+footer p{max-width:none}
+
+@media (max-width:860px){
+  .hero,.journey{grid-template-columns:minmax(0,1fr)}
+  .phone{position:static}
+  .flow{grid-template-columns:minmax(0,1fr)}
+  .arrow{transform:rotate(90deg);justify-self:center}
+}
+@media (prefers-reduced-motion:no-preference){ .bar-now{transition:left .2s} }
+a{color:var(--charge)}
+:focus-visible{outline:3px solid var(--charge);outline-offset:2px}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-text">
+    <span class="eyebrow">Product concept · user journey</span>
+    <h1>Worth-it charging for plug-in hybrids</h1>
+    <p class="lede">A plug-in hybrid driver can always fall back on petrol. So the real question at every charger is: <strong>is plugging in here, for as long as I'll stay, cheaper than just driving on petrol?</strong> Today no app answers that. Tariffs mix kWh prices, time fees and start fees, and the answer depends on the car, the battery level and the length of the stay.</p>
+    <div class="stat"><b class="num">64%</b><span>of public AC charging locations within 5 km of Eindhoven centre are never cheaper than petrol for a typical plug-in hybrid, however long it stays. (1,154 locations, NDW OCPI feed, 7 Oct 2026.)</span></div>
+  </div>
+  <aside class="receipt" aria-label="A real charging session">
+    <div class="row"><span>Real session · Culemborg</span><span>E-Flux / ANWB card</span></div>
+    <hr>
+    <div class="row"><span>Energy 16.64 kWh</span><span class="num">€9.48</span></div>
+    <div class="row"><span>Time ≈4h53 × €0.41</span><span class="num">€2.00</span></div>
+    <div class="row"><span>Start fee (card)</span><span class="num">€0.74</span></div>
+    <div class="row"><span>VAT 21%</span><span class="num">€2.57</span></div>
+    <hr>
+    <div class="row tot"><span>Total</span><span class="num">€14.79</span></div>
+    <div class="row"><span>Per km</span><span class="num">€0.222</span></div>
+    <div class="row"><span>Same km on petrol</span><span class="num">€0.200</span></div>
+    <div class="verdict">Charging here cost 11% more than petrol. The driver had no way to know beforehand.</div>
+  </aside>
+</header>
+
+<section aria-labelledby="persona">
+  <span class="eyebrow">Who it's for</span>
+  <h2 id="persona">A plug-in hybrid driver who charges in public</h2>
+  <p>No charger at home or work, so every kWh comes from a public charger with a charge card. The alternative to charging is always the petrol tank. The figures below are the example driver used throughout this page.</p>
+  <div class="facts">
+    <div class="fact"><span class="k">Car</span><span class="v">Volvo PHEV</span></div>
+    <div class="fact"><span class="k">Battery (usable)</span><span class="v num">≈15 kWh</span></div>
+    <div class="fact"><span class="k">AC charging</span><span class="v num">≈3.6 kW</span></div>
+    <div class="fact"><span class="k">Electric</span><span class="v num">0.25 kWh/km</span></div>
+    <div class="fact"><span class="k">Petrol</span><span class="v num">12 km/L · €2.399</span></div>
+    <div class="fact"><span class="k">Charge card</span><span class="v">ANWB · <span class="num">€0.89</span>/session</span></div>
+  </div>
+</section>
+
+<section aria-labelledby="window">
+  <span class="eyebrow">The core idea</span>
+  <h2 id="window">Every charger has a "worth-it window"</h2>
+  <p>Instead of a single price, the app tells the driver <strong>between which stay lengths</strong> charging beats petrol. Below are three real chargers in Eindhoven. Move the slider to change the stay.</p>
+  <div class="chart-card">
+    <div class="controls">
+      <label for="stay">Stay</label>
+      <input id="stay" type="range" min="15" max="480" step="5" value="150" aria-describedby="stayOut">
+      <output id="stayOut" class="num">2h30</output>
+    </div>
+    <div class="chart-scroll"><svg id="chart" viewBox="0 0 760 330" role="img" aria-label="Cost per km against length of stay for three chargers, compared with petrol"></svg></div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="edges">
+    <div class="edge"><h3>Lower edge: too short</h3><p class="muted">A short stay delivers few kWh, so the €0.89 start fee weighs heavily on each one. At 3.6 kW, a 30-minute stop gives only 1.8 kWh.</p></div>
+    <div class="edge"><h3>Upper edge: too long</h3><p class="muted">Once the battery is full, idle or parking fees keep running while no km are added. Chargers without time fees have no upper edge.</p></div>
+    <div class="edge"><h3>No window at all</h3><p class="muted">High kWh prices, or a time fee on a slow-charging car, mean charging never beats petrol. For a plug-in hybrid at 3.6 kW, €0.41/h works out to an extra €0.11/kWh.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="j1">
+  <span class="eyebrow">Moment 1 · Planning</span>
+  <h2 id="j1">"Where should I charge for my meeting at Strijp-S?"</h2>
+  <div class="journey">
+    <ol class="steps">
+      <li class="step"><div class="step-body">
+        <h3>The trip is known</h3>
+        <div class="lanes">
+          <div class="lane"><span class="lk">Driver</span>Has "Workshop, Klokgebouw 50, 14:00–16:30" in the calendar.</div>
+          <div class="lane sys"><span class="lk">Behind the scenes</span>The app reads the event's place and time. No typing needed.</div>
+        </div></div></li>
+      <li class="step"><div class="step-body">
+        <h3>The app estimates the stay</h3>
+        <div class="lanes">
+          <div class="lane"><span class="lk">App shows</span>"About 2h30 parked (meeting)". One tap to change.</div>
+          <div class="lane sys"><span class="lk">Behind the scenes</span>Event type → typical stay. Calendar end time wins when it's there.</div>
+        </div></div></li>
+      <li class="step"><div class="step-body">
+        <h3>It predicts the battery on arrival</h3>
+        <div class="lanes">
+          <div class="lane"><span class="lk">App shows</span>"You'll arrive with about 12%."</div>
+          <div class="lane sys"><span class="lk">Behind the scenes</span>Volvo API battery level minus the route's energy use. This sets how many kWh can still go in.</div>
+        </div></div></li>
+      <li class="step"><div class="step-body">
+        <h3>It ranks chargers within walking distance</h3>
+        <div class="lanes">
+          <div class="lane"><span class="lk">App shows</span>Each charger's saving compared with petrol and its worth-it window, best first.</div>
+          <div class="lane sys"><span class="lk">Behind the scenes</span>NDW OCPI tariffs + card fee + the car's charging speed, for every charger within 600 m.</div>
+        </div></div></li>
+      <li class="step"><div class="step-body">
+        <h3>The driver picks one and drives</h3>
+        <div class="lanes">
+          <div class="lane"><span class="lk">Insight</span>The charger at the door costs more than petrol. A 5-minute walk away, one saves €2.72.</div>
+          <div class="lane sys"><span class="lk">Behind the scenes</span>Navigation hand-off. Live availability from the same feed.</div>
+        </div></div></li>
+    </ol>
+    <div class="phone" aria-label="Mock-up: planning screen">
+      <div class="bar"><span>09:12</span><span>Worth it?</span></div>
+      <div class="ctx"><b>Klokgebouw 50, Eindhoven</b><span>Workshop · 14:00–16:30</span></div>
+      <div class="chips"><span class="chip">Stay ≈2h30</span><span class="chip">Arrive 12%</span><span class="chip">ANWB</span></div>
+      <div class="pc"><div class="t"><span>Marconilaan 183</span><span class="s g">−€2.72</span></div><div class="d">Vattenfall · 290 m walk · €0.27/kWh</div><div class="w">Worth it from 40 min · no upper limit</div></div>
+      <div class="pc"><div class="t"><span>Torenallee 80</span><span class="s g">−€2.17</span></div><div class="d">DAEN · 250 m walk · €0.32/kWh</div><div class="w">Worth it from 45 min · no upper limit</div></div>
+      <div class="pc"><div class="t"><span>'s Gravesandestraat 39</span><span class="s g">−€1.24</span></div><div class="d">Vattenfall · 250 m walk · €0.41/kWh</div><div class="w">Worth it from 1h05</div></div>
+      <div class="pc meh"><div class="t"><span>Klokgebouw 50</span><span class="s o">+€0.12</span></div><div class="d">E-Flux · at the door · €0.53/kWh</div><div class="w">Worth it only from 2h55</div></div>
+      <div class="pc bad"><div class="t"><span>Laboratoriumstraat 2</span><span class="s r">+€1.49</span></div><div class="d">E-Flux · 370 m · €0.54/kWh + €0.41/h</div><div class="w">Never cheaper than petrol</div></div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="j2">
+  <span class="eyebrow">Moment 2 · Arriving</span>
+  <h2 id="j2">"I'm parked in Nuenen centre for coffee. Plug in or not?"</h2>
+  <div class="journey">
+    <ol class="steps">
+      <li class="step"><div class="step-body">
+        <h3>The car is parked</h3>
+        <div class="lanes">
+          <div class="lane"><span class="lk">Driver</span>Parks on Parkstraat, Nuenen, next to a charger.</div>
+          <div class="lane sys"><span class="lk">Behind the scenes</span>Volvo API reports "parked". Phone location matches nearby charging points.</div>
+        </div></div></li>
+      <li class="step"><div class="step-body">
+        <h3>The app guesses the stay from the place</h3>
+        <div class="lanes">
+          <div class="lane"><span class="lk">App shows</span>"Shopping street, about 45 min". Quick buttons: 30 min, 1h, 2h.</div>
+          <div class="lane sys"><span class="lk">Behind the scenes</span>Type of place → typical stay. Over time, the driver's own history for this spot.</div>
+        </div></div></li>
+      <li class="step"><div class="step-body">
+        <h3>One clear answer, with the window</h3>
+        <div class="lanes">
+          <div class="lane"><span class="lk">App shows</span>"Worth it, just. Saves €0.19. Stay 2h and it saves €2.00."</div>
+          <div class="lane sys"><span class="lk">Behind the scenes</span>The same engine as moment 1, using "here" as the destination.</div>
+        </div></div></li>
+      <li class="step"><div class="step-body">
+        <h3>It warns against the wrong charger</h3>
+        <div class="lanes">
+          <div class="lane"><span class="lk">Insight</span>The Allego charger 260 m away charges by the hour and is never worth it. Claushof needs at least 65 min.</div>
+          <div class="lane sys"><span class="lk">Behind the scenes</span>Ranking by saving, not by distance.</div>
+        </div></div></li>
+    </ol>
+    <div class="phone" aria-label="Mock-up: arriving screen">
+      <div class="bar"><span>10:41</span><span>Worth it?</span></div>
+      <div class="ctx"><b>Parkstraat 21, Nuenen</b><span>Vattenfall · 74 m · €0.27/kWh</span></div>
+      <div class="big">
+        <span style="font-size:12px;opacity:.75">If you stay ≈45 min</span>
+        <span class="verdict">Worth it, just</span>
+        <span class="num" style="font-size:13px">Saves €0.19 compared with petrol · €0.18/km</span>
+        <div class="bar-track" aria-hidden="true"><div class="bar-ok" style="left:8.3%;right:0"></div><div class="bar-now" style="left:15.6%"></div></div>
+        <div class="bar-lbl"><span>0</span><span>40 min →</span><span>8h</span></div>
+        <span style="font-size:12.5px;opacity:.85">Worth it from 40 min, no upper limit. Stay 2h: saves €2.00.</span>
+      </div>
+      <div class="chips"><span class="chip">30 min</span><span class="chip">45 min ✓</span><span class="chip">1h</span><span class="chip">2h</span></div>
+      <div class="pc meh"><div class="t"><span>Claushof 26</span><span class="s o">+€0.25</span></div><div class="d">Vattenfall · 263 m · €0.41/kWh</div><div class="w">Worth it from 1h05</div></div>
+      <div class="pc bad"><div class="t"><span>Kerkstraat 6</span><span class="s r">+€1.18</span></div><div class="d">Allego · 266 m · €2.48/h</div><div class="w">Never cheaper than petrol</div></div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var PETROL = 2.399/12, KWH_KM = 0.275, START = 0.89, VAT = 1.21, PWR = 3.6, CAP = 14.3;
+  var chargers = [
+    {name:"Marconilaan 183", op:"Vattenfall", meta:"€0.2691/kWh excl. VAT", e:0.2691, t:0, p:0, f:0, color:"var(--charge)"},
+    {name:"Zernikestraat 17", op:"Opcharge", meta:"€0.43/kWh + €0.50 start + €0.50/h once full", e:0.43, t:0, p:0.5, f:0.5, color:"var(--petrol)"},
+    {name:"Laboratoriumstraat 2", op:"E-Flux", meta:"€0.5417/kWh + €0.41/h", e:0.5417, t:0.41, p:0, f:0, color:"var(--bad)"}
+  ];
+  function calc(c, h){
+    var kwh = Math.min(PWR*h, CAP), hc = Math.min(h, CAP/PWR);
+    var cost = (c.f + c.e*kwh + c.t*h + c.p*Math.max(0, h-hc))*VAT + START;
+    var km = kwh/KWH_KM;
+    return {cost:cost, km:km, perKm:cost/km, save:km*PETROL - cost};
+  }
+  function windowOf(c){
+    var lo=null, hi=null;
+    for (var m=5; m<=24*60; m+=5){ if (calc(c,m/60).perKm < PETROL){ if(lo===null) lo=m; hi=m; } }
+    return lo===null ? null : {lo:lo, hi:hi};
+  }
+  function fmt(m){ var h=Math.floor(m/60), mm=m%60; return h ? h+"h"+(mm<10?"0":"")+mm : mm+" min"; }
+  chargers.forEach(function(c){ c.win = windowOf(c); });
+
+  var svg = document.getElementById("chart"), NS="http://www.w3.org/2000/svg";
+  var W=760, H=330, L=56, R=20, T=16, B=40, X0=0, X1=8, Y0=0, Y1=0.40;
+  function x(h){ return L + (h-X0)/(X1-X0)*(W-L-R); }
+  function y(v){ return T + (1-(v-Y0)/(Y1-Y0))*(H-T-B); }
+  function el(n, a){ var e=document.createElementNS(NS,n); for (var k in a) e.setAttribute(k,a[k]); svg.appendChild(e); return e; }
+  for (var v=0; v<=0.40001; v+=0.10){
+    el("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:"var(--line)","stroke-width":1});
+    el("text",{x:L-8,y:y(v)+4,"text-anchor":"end"}).textContent="€"+v.toFixed(2);
+  }
+  for (var h=0; h<=8; h++){
+    el("text",{x:x(h),y:H-B+18,"text-anchor":"middle"}).textContent=h+"h";
+  }
+  el("text",{x:L,y:H-4}).textContent="length of stay";
+  el("text",{x:L+4,y:T+10}).textContent="cost per km";
+  el("line",{x1:L,x2:W-R,y1:y(PETROL),y2:y(PETROL),stroke:"var(--ink)","stroke-width":1.5,"stroke-dasharray":"6 5"});
+  el("text",{x:W-R,y:y(PETROL)-7,"text-anchor":"end",style:"fill:var(--ink)"}).textContent="petrol €0.200/km";
+  chargers.forEach(function(c){
+    var d="", started=false;
+    for (var m=10; m<=480; m+=2){
+      var v=calc(c,m/60).perKm; if (v>Y1){ started=false; continue; }
+      d += (started?"L":"M") + x(m/60).toFixed(1) + "," + y(v).toFixed(1); started=true;
+    }
+    el("path",{d:d,fill:"none",stroke:c.color,"stroke-width":2.5,"stroke-linejoin":"round"});
+  });
+  var cursor = el("line",{y1:T,y2:H-B,stroke:"var(--muted)","stroke-width":1});
+  var dots = chargers.map(function(c){ return el("circle",{r:5,fill:c.color,stroke:"var(--surface)","stroke-width":2}); });
+
+  var legend = document.getElementById("legend");
+  var rows = chargers.map(function(c){
+    var d=document.createElement("div"); d.className="lg";
+    var win = c.win ? ("Worth it from "+fmt(c.win.lo)+(c.win.hi>=23*60 ? ", no upper limit" : " to "+fmt(c.win.hi))) : "Never cheaper than petrol";
+    d.innerHTML='<span class="name"><span class="sw" style="background:'+c.color+'"></span>'+c.name+' · '+c.op+'</span>'+
+      '<span class="meta">'+c.meta+'</span><span class="meta">'+win+'</span><span class="res"></span>';
+    legend.appendChild(d); return d.querySelector(".res");
+  });
+  var stay=document.getElementById("stay"), out=document.getElementById("stayOut");
+  function update(){
+    var m=+stay.value, h=m/60; out.textContent=fmt(m);
+    cursor.setAttribute("x1",x(h)); cursor.setAttribute("x2",x(h));
+    chargers.forEach(function(c,i){
+      var r=calc(c,h), v=Math.min(r.perKm,Y1);
+      dots[i].setAttribute("cx",x(h)); dots[i].setAttribute("cy",y(v));
+      dots[i].style.opacity = r.perKm>Y1 ? 0 : 1;
+      var good = r.save>0;
+      rows[i].innerHTML = '<span class="pill '+(good?'good':'bad')+'">'+(good?'Saves €'+r.save.toFixed(2):'Costs €'+(-r.save).toFixed(2)+' more')+'</span> €'+r.perKm.toFixed(3)+'/km · €'+r.cost.toFixed(2)+' total';
+    });
+  }
+  stay.addEventListener("input", update); update();
+})();
+</script>
