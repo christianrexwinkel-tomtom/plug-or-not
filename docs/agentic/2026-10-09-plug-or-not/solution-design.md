@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-09
 **Artifact:** solution-design
-**Status:** Draft
+**Status:** Approved
 **Template version:** default/0.3.1
 **PRD:** [prd.md](prd.md)
 **References:** NDW open data (https://opendata.ndw.nu/): `charging_point_locations_ocpi.json.gz`, `charging_point_tariffs_ocpi.json.gz`; OCPI 2.2.1 Tariffs module; GitHub repo `christianrexwinkel-tomtom/plug-or-not`
