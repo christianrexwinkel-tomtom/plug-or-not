@@ -1,7 +1,7 @@
 # PRD: Plug or Not — is charging here worth it? (v0.1 proof of concept)
 
 **Date:** 2026-10-09
-**Status:** Draft
+**Status:** Approved
 **Template version:** default/0.2.1
 **References:** User journey page "Worth-It Charging Journey" (https://claude.ai/artifact/QH6WeJ3mzufmZHDaAQ62VW); NDW open data (https://opendata.ndw.nu/): `charging_point_locations_ocpi.json.gz`, `charging_point_tariffs_ocpi.json.gz`; prior art: GE patent CN102529851A
 **Plugin version:** 0.5.3
