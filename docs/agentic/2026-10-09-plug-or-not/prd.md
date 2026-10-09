@@ -292,7 +292,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 - **FR-017**: System MUST offer the event types Quick errand (30 min), Shopping (1h30), Café or restaurant (2h), Sports or leisure (2h), Meeting (2h30), Workday (8h) and Overnight (12h), each setting the stay to its typical duration.
 - **FR-018**: System MUST let the driver adjust the stay between 15 minutes and 24 hours in 15-minute steps, and update all results without reloading.
 - **FR-019**: System MUST show the date and time of the tariff data used.
-- **FR-020**: System MUST show "Price unknown" with no verdict or window for locations whose tariff is missing or can't be interpreted.
+- **FR-020**: System MUST show "Price unknown" with no verdict, window or price calculation for chargers whose data is incomplete — tariff missing or unreadable, or charger power not published — and say briefly what's missing (changed by solution design D-18, 2026-10-09).
 - **FR-021**: System MUST show plain-language messages for: data that can't be loaded, a full battery, a spot outside the Netherlands, location denied, and invalid typed coordinates (see the story error tables; "no address match" withdrawn with FR-007, 2026-10-09).
 - **FR-022**: System MUST show a separate entry for each distinct AC tariff at a location; the location counts once towards the 10 nearest.
 - **FR-023**: System SHOULD remember the last used event type and use it as the default next time.
