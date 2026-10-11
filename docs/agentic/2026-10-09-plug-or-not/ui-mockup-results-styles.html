@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plug or Not Result Styles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&family=Sora:wght@400;600;700;800&family=Figtree:wght@400;500;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: three phone frames side by side on a laptop, one at a time behind A/B/C tabs on a phone.
+   The comparison chrome follows the viewer's theme; each variant commits to its own fixed look. */
+:root{
+  --bg:#f1f3f2; --fg:#121816; --muted:#5d6864; --line:#d6ddda; --chip:#ffffff; --focus:#2a62d6;
+  --f-ui:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"Geist Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d1110; --fg:#e7edeb; --muted:#97a39f; --line:#28312e; --chip:#171d1b; --focus:#7da5ff; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1110; --fg:#e7edeb; --muted:#97a39f; --line:#28312e; --chip:#171d1b; --focus:#7da5ff; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 15px/1.45 var(--f-ui)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{padding-inline:16px;padding-block:28px 56px;max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+header.intro h1{font:700 26px/1.15 var(--f-ui);letter-spacing:-.02em;margin:0 0 6px;text-wrap:balance}
+header.intro p{margin:0;color:var(--muted);max-width:68ch}
+.tabs{display:flex;gap:6px;background:var(--chip);border:1px solid var(--line);border-radius:12px;padding:4px;width:max-content;max-width:100%}
+.tabs button{border:0;background:none;border-radius:9px;padding:8px 14px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+.grid{display:grid;grid-template-columns:1fr;gap:28px;justify-items:center}
+.col{display:flex;flex-direction:column;gap:10px;width:100%;max-width:390px;min-width:0}
+.col[hidden]{display:none}
+.col h2{font:700 17px/1.2 var(--f-ui);margin:0;display:flex;gap:8px;align-items:baseline}
+.col h2 span{font:500 12px/1 var(--f-mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.col p.d{margin:0;color:var(--muted);font-size:14px;min-height:3em}
+@media (min-width:1240px){.tabs{display:none}.grid{grid-template-columns:repeat(3,390px);justify-content:center}.col[hidden]{display:flex}}
+
+.phone{position:relative;width:100%;height:780px;border-radius:34px;overflow:hidden;border:8px solid #0c0f0e;box-shadow:0 24px 50px -24px rgba(0,0,0,.45);isolation:isolate}
+.map{position:absolute;inset:0;width:100%;height:100%;display:block}
+.canvas{position:absolute;left:50%;width:360px;margin-left:-180px}
+.me{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#2a62d6;border:3px solid #fff;box-shadow:0 0 0 8px rgba(42,98,214,.18)}
+.ico{display:inline-block;flex:none}
+.num{font-variant-numeric:tabular-nums}
+
+/* ================= A · Glass (light, floating) ================= */
+.vA{font-family:var(--f-ui);color:#101614;background:#eef1ee}
+.vA .top{position:absolute;top:12px;left:12px;right:12px;z-index:3;background:rgba(255,255,255,.84);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-radius:22px;box-shadow:0 10px 30px -10px rgba(16,30,24,.25);padding:10px 10px 9px 14px}
+.vA .row{display:flex;align-items:center;gap:10px}
+.vA .batt{display:flex;flex-direction:column;line-height:1.1;padding-right:12px;border-right:1px solid #e1e6e3;background:none;border-top:0;border-bottom:0;border-left:0;text-align:left;padding-left:0}
+.vA .lbl{font-size:11px;color:#68736f;font-weight:500;letter-spacing:.02em}
+.vA .batt b{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.vA .stay{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.vA .stay .t{flex:1;min-width:0;line-height:1.1}
+.vA .stay .t b{display:block;font-size:20px;font-weight:700;letter-spacing:-.02em}
+.vA .stay .t span{font-size:11px;color:#68736f;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.vA .rb{width:34px;height:34px;border-radius:50%;border:0;background:#eef2f0;font-size:19px;font-weight:600;display:grid;place-items:center;flex:none}
+.vA .gear{background:#101614;color:#fff}
+.vA .spot{font-size:12px;color:#68736f;margin-top:6px;display:flex;gap:5px;align-items:center}
+.vA .spot b{color:#101614;font-weight:600}
+.vA .pin{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px 0 7px;border-radius:999px;border:0;font:600 13px/1 var(--f-ui);white-space:nowrap;box-shadow:0 4px 12px -4px rgba(0,0,0,.35);transition:transform .15s}
+.vA .pin.w{background:#0d7f58;color:#fff}
+.vA .pin.n{background:#c4321f;color:#fff}
+.vA .pin.u{background:#fff;color:#56615d;outline:1.5px dashed #8a9692;outline-offset:-3px}
+.vA .pin.sel{transform:translate(-50%,-50%) scale(1.18);z-index:2;box-shadow:0 0 0 3px #fff,0 8px 18px -4px rgba(0,0,0,.45)}
+.vA .pin .x2{background:rgba(255,255,255,.25);border-radius:6px;padding:2px 4px;font-size:10px;margin-left:2px}
+.vA .pin.u .x2{background:#eef1ef}
+.vA .card{position:absolute;left:12px;right:12px;bottom:12px;z-index:3;background:#fff;border-radius:26px;box-shadow:0 18px 40px -12px rgba(16,30,24,.3);padding:16px 16px 12px}
+.vA .vrow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.vA .verdict{display:inline-flex;align-items:center;gap:7px;border-radius:12px;padding:8px 12px 8px 9px;font-weight:700;font-size:18px;letter-spacing:-.01em;line-height:1.1}
+.vA .verdict.w{background:#0d7f58;color:#fff}
+.vA .verdict.n{background:#fbe6e2;color:#a3261a}
+.vA .verdict.x{background:#c4321f;color:#fff}
+.vA .verdict.u{background:#f0f2f1;color:#4c5753;outline:1.5px dashed #8a9692;outline-offset:-2px}
+.vA .amt{text-align:right;line-height:1.05}
+.vA .amt b{display:block;font-size:26px;font-weight:700;letter-spacing:-.03em}
+.vA .amt b.w{color:#0d7f58}.vA .amt b.n{color:#b42b1b}
+.vA .amt small{font-size:11px;color:#68736f;font-weight:500}
+.vA .name{margin:12px 0 0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.vA .addr{margin:1px 0 0;color:#68736f;font-size:14px}
+.vA .stats{display:grid;grid-template-columns:repeat(3,1fr);margin:12px 0 0;background:#f4f6f5;border-radius:14px;padding:10px 0}
+.vA .stats div{padding:0 12px;border-left:1px solid #e1e6e3}
+.vA .stats div:first-child{border-left:0}
+.vA .stats dt{font-size:11px;color:#68736f;font-weight:500}
+.vA .stats dd{margin:2px 0 0;font:500 15px/1.15 var(--f-mono)}
+.vA .stats dd small{display:block;font:400 11px/1.2 var(--f-ui);color:#68736f;margin-top:1px}
+.vA .win{display:flex;gap:7px;align-items:center;margin:11px 0 0;font-weight:600;font-size:14px}
+.vA .price{margin:6px 0 0;font:500 12px/1.35 var(--f-mono);color:#56615d}
+.vA .reason{margin:12px 0 4px;font-weight:600}
+.vA .foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid #edf0ee;font-size:12px;color:#68736f;gap:8px}
+.vA .nav{display:flex;align-items:center;gap:6px}
+.vA .nav button{width:30px;height:30px;border-radius:50%;border:1px solid #dde3e0;background:#fff;font-size:16px;line-height:1}
+
+/* ================= B · Night (dark, in-car) ================= */
+.vB{font-family:"Sora",var(--f-ui);color:#e8efec;background:#0c1211}
+.vB .top{position:absolute;top:0;left:0;right:0;z-index:3;padding:14px 14px 28px;background:linear-gradient(#0c1211 55%,rgba(12,18,17,0))}
+.vB .row{display:flex;align-items:center;gap:8px}
+.vB .pill{display:flex;align-items:center;gap:6px;height:40px;border-radius:999px;background:#18211f;border:1px solid #26312e;padding:0 14px;font-weight:600;font-size:15px;color:#e8efec}
+.vB .pill small{color:#8b9a95;font-weight:400;font-size:12px}
+.vB .stp{flex:1;justify-content:space-between;padding:0 4px;min-width:0}
+.vB .stp button{width:32px;height:32px;border-radius:50%;border:0;background:#25302d;color:#e8efec;font-size:18px}
+.vB .stp .t{text-align:center;line-height:1.05;min-width:0}
+.vB .stp .t b{display:block;font-size:16px}
+.vB .stp .t small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vB .gear{width:40px;justify-content:center;padding:0}
+.vB .spot{margin-top:8px;font-size:11px;color:#7f8e89;letter-spacing:.02em}
+.vB .pin{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 9px 0 6px;border-radius:8px;font:700 12px/1 "Sora",sans-serif;white-space:nowrap;border:0}
+.vB .pin.w{background:#2fd39a;color:#04150e;box-shadow:0 0 18px -2px rgba(47,211,154,.55)}
+.vB .pin.n{background:#ff6f5e;color:#2a0703;box-shadow:0 0 18px -4px rgba(255,111,94,.5)}
+.vB .pin.u{background:#141b19;color:#a7b4b0;outline:1.5px dashed #6c7b76;outline-offset:-2px}
+.vB .pin.sel{transform:translate(-50%,-50%) scale(1.2);z-index:2;outline:2px solid #fff;outline-offset:2px}
+.vB .pin .x2{opacity:.75;font-size:10px}
+.vB .sheet{position:absolute;left:0;right:0;bottom:0;z-index:3;background:#121a18;border-top:1px solid #222d2a;border-radius:28px 28px 0 0;padding:10px 18px 14px}
+.vB .grab{width:40px;height:4px;border-radius:2px;background:#33403c;margin:0 auto 12px}
+.vB .rk{font-size:11px;color:#7f8e89;letter-spacing:.12em;text-transform:uppercase;display:flex;justify-content:space-between}
+.vB .verdict{display:flex;align-items:center;gap:10px;font-weight:800;font-size:32px;letter-spacing:-.03em;line-height:1.05;margin:6px 0 4px}
+.vB .verdict.w{color:#2fd39a}.vB .verdict.n,.vB .verdict.x{color:#ff7d6d}.vB .verdict.u{color:#b3c0bc}
+.vB .verdict.n{font-size:25px}
+.vB .sub{font-size:15px;color:#c9d4d0;margin:0}
+.vB .sub b{color:#fff}
+.vB .name{margin:12px 0 0;font-weight:600;font-size:15px}
+.vB .addr{margin:0;color:#8b9a95;font-size:13px}
+.vB .wbar{margin:14px 0 0}
+.vB .wbar .lab{display:flex;justify-content:space-between;font-size:12px;color:#c9d4d0;font-weight:600;margin-bottom:7px;gap:8px}
+.vB .track{position:relative;height:10px;border-radius:5px;background:#25302d}
+.vB .seg{position:absolute;top:0;bottom:0;border-radius:5px;background:#2fd39a}
+.vB .seg.open{border-radius:5px 0 0 5px;background:linear-gradient(90deg,#2fd39a 85%,rgba(47,211,154,.25))}
+.vB .mk{position:absolute;top:-5px;width:3px;height:20px;margin-left:-1.5px;border-radius:2px;background:#fff}
+.vB .ticks{display:flex;justify-content:space-between;font-size:10px;color:#6f7e79;margin-top:5px}
+.vB .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 0}
+.vB .stats div{background:#18211f;border-radius:12px;padding:8px 10px}
+.vB .stats dt{font-size:10px;color:#7f8e89;letter-spacing:.08em;text-transform:uppercase}
+.vB .stats dd{margin:3px 0 0;font:500 14px/1.15 "IBM Plex Mono",monospace;color:#fff}
+.vB .stats dd small{display:block;font:400 10px/1.2 "Sora",sans-serif;color:#7f8e89}
+.vB .price{margin:10px 0 0;font:500 12px/1.35 "IBM Plex Mono",monospace;color:#8b9a95}
+.vB .reason{margin:10px 0;font-size:15px;color:#c9d4d0}
+.vB .strip{display:flex;gap:8px;overflow-x:auto;margin:14px -18px 0;padding:0 18px 2px;scrollbar-width:none}
+.vB .strip button{flex:none;border:1px solid #26312e;background:#18211f;color:#e8efec;border-radius:12px;padding:7px 10px;text-align:left;font-size:12px;line-height:1.25}
+.vB .strip button[aria-current="true"]{border-color:#e8efec}
+.vB .strip b{display:flex;align-items:center;gap:4px;font-size:13px}
+.vB .strip .w{color:#2fd39a}.vB .strip .n{color:#ff7d6d}.vB .strip .u{color:#a7b4b0}
+.vB .foot{font-size:10.5px;color:#6f7e79;margin-top:10px}
+
+/* ================= C · Split list (light, Swiss) ================= */
+.vC{font-family:"Figtree",var(--f-ui);color:#111413;background:#fafaf8;display:flex;flex-direction:column}
+.vC .top{padding:14px 16px 10px;display:flex;flex-direction:column;gap:10px;background:#fafaf8;z-index:2}
+.vC .brand{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:17px;letter-spacing:-.01em}
+.vC .brand button{border:1px solid #dcdfdc;background:#fff;border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600}
+.vC .ctl{display:grid;grid-template-columns:auto 1fr;gap:8px}
+.vC .box{border:1px solid #dcdfdc;background:#fff;border-radius:10px;padding:6px 10px;line-height:1.1;text-align:left}
+.vC .box small{display:block;font-size:11px;color:#6b716e;font-weight:500}
+.vC .box b{font-size:19px;font-weight:800;letter-spacing:-.02em}
+.vC .stp{display:flex;align-items:center;gap:6px;padding:4px}
+.vC .stp button{width:34px;height:34px;border:0;border-radius:7px;background:#f0f1ef;font-size:18px;font-weight:700}
+.vC .stp .t{flex:1;text-align:center;min-width:0}
+.vC .stp .t small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vC .mapbox{position:relative;height:250px;flex:none;border-block:1px solid #e3e5e2;overflow:hidden;background:#f1f2ef}
+.vC .pin{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;display:grid;place-items:center;font:800 12px/1 "Figtree",sans-serif;border:0;padding:0}
+.vC .pin.w{background:#0b7a55;color:#fff;border-radius:50%}
+.vC .pin.n{background:#fff;color:#b8291a;border-radius:50%;box-shadow:inset 0 0 0 3px #b8291a}
+.vC .pin.x{background:#b8291a;color:#fff;border-radius:5px}
+.vC .pin.u{background:#fff;color:#5d6461;border-radius:50%;outline:2px dashed #8c938f;outline-offset:-2px}
+.vC .pin.sel{transform:translate(-50%,-50%) scale(1.3);z-index:2;box-shadow:0 0 0 3px #111413}
+.vC .pin.n.sel{box-shadow:inset 0 0 0 3px #b8291a,0 0 0 3px #111413}
+.vC .legend{position:absolute;left:8px;bottom:8px;display:flex;gap:10px;background:rgba(255,255,255,.92);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:600;color:#3d4340}
+.vC .legend span{display:flex;align-items:center;gap:4px}
+.vC .legend i{width:11px;height:11px;display:inline-block}
+.vC .lhead{display:flex;justify-content:space-between;align-items:baseline;padding:10px 16px 6px;gap:8px}
+.vC .lhead h3{margin:0;font-size:15px;font-weight:800}
+.vC .lhead span{font-size:11px;color:#6b716e;text-align:right}
+.vC ol{list-style:none;margin:0;padding:0 0 16px;overflow-y:auto;flex:1}
+.vC li{border-top:1px solid #ebece9}
+.vC .r{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;width:100%;border:0;background:none;padding:10px 16px;text-align:left}
+.vC .r .n{font:500 12px/1 "IBM Plex Mono",monospace;color:#8c938f}
+.vC .r .who{min-width:0}
+.vC .r .who b{display:block;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vC .r .who span{font-size:12.5px;color:#6b716e}
+.vC .r .res{text-align:right;line-height:1.15}
+.vC .r .res b{display:block;font-size:16px;font-weight:800;letter-spacing:-.01em}
+.vC .r .res span{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:700}
+.vC .w{color:#0b7a55}.vC .nn{color:#b8291a}.vC .u{color:#5d6461}
+.vC li.sel{background:#f0f2ee}
+.vC .more{padding:0 16px 12px 48px;font-size:13px}
+.vC .more .vt{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:15px;margin-bottom:6px}
+.vC .more dl{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:2px 16px;margin:0 0 6px}
+.vC .more dt{font-size:10.5px;color:#6b716e;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.vC .more dd{margin:0;font:500 13.5px/1.2 "IBM Plex Mono",monospace;grid-row:2}
+.vC .more p{margin:4px 0 0}
+.vC .more .pr{font:500 11.5px/1.35 "IBM Plex Mono",monospace;color:#6b716e}
+
+@media (prefers-reduced-motion:reduce){.vA .pin{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="intro">
+    <h1>Results screen: three styles</h1>
+    <p>Same screen and same fake data in each: Nuenen, battery 10%, stay 3h, PRD example settings. Tap a pin (or a list entry) to select a charger. Pick a direction and we'll apply it to the full mockup.</p>
+  </header>
+  <div class="tabs" role="tablist" aria-label="Style">
+    <button role="tab" aria-selected="true" data-tab="A">A · Glass</button>
+    <button role="tab" aria-selected="false" data-tab="B">B · Night</button>
+    <button role="tab" aria-selected="false" data-tab="C">C · Split list</button>
+  </div>
+  <div class="grid">
+    <section class="col" data-col="A"><h2>Glass <span>Style A</span></h2><p class="d">Light and airy. Floating frosted controls, saving shown on the pins, one detail card you can step through.</p><div class="phone vA" id="vA"></div></section>
+    <section class="col" data-col="B" hidden><h2>Night <span>Style B</span></h2><p class="d">Dark, high-contrast, car-dashboard feel. Big verdict, the worth-it window drawn as a timeline, quick-switch strip.</p><div class="phone vB" id="vB"></div></section>
+    <section class="col" data-col="C" hidden><h2>Split list <span>Style C</span></h2><p class="d">Calm and typographic. Compact map with rank markers coded by shape, ranked list below that expands in place.</p><div class="phone vC" id="vC"></div></section>
+  </div>
+</div>
+
+<script>
+/* Fake results: battery 10%, stay 3h, PRD example settings (10.8 kWh, 43.2 km, €8.64 petrol). Ranked. */
+const E = [
+ {loc:'parkstraat',v:'w',op:'Vattenfall',st:'Parkstraat 21',m:74,s:4.23,total:'€4.41',km:'€0.10',price:'€0.33/kWh',win:'Worth it if you stay at least 40 min',w:[40,1440]},
+ {loc:'park52',v:'w',op:'Vattenfall',st:'Park 52',m:980,s:4.23,total:'€4.41',km:'€0.10',price:'€0.33/kWh',win:'Worth it if you stay at least 40 min',w:[40,1440]},
+ {loc:'berg',v:'w',op:'Equans',st:'Berg 14',m:412,s:3.64,total:'€4.99',km:'€0.12',price:'€0.38/kWh',win:'Worth it if you stay at least 40 min',w:[40,1440]},
+ {loc:'hoog',v:'w',op:'Equans',st:'Hoogstraat 1',m:1120,s:2.89,total:'€5.75',km:'€0.13',price:'€0.45/kWh',win:'Worth it if you stay at least 45 min',w:[45,1440]},
+ {loc:'boord',v:'w',op:'Allego',st:'Boordseweg 7',m:1310,s:2.68,total:'€5.95',km:'€0.14',price:'€0.47/kWh',win:'Worth it if you stay at least 45 min',w:[45,1440]},
+ {loc:'vvg',v:'w',op:'Opcharge',st:'Vincent van Goghstraat 10',m:693,s:1.52,total:'€7.11',km:'€0.16',price:'€0.52/kWh · €0.61/h after full · €0.61 start',win:'Worth it if you stay 1h30 to 7h30',w:[90,450]},
+ {loc:'gerwen',v:'n',op:'Shell Recharge',st:'Gerwenseweg 32',m:548,s:-0.03,total:'€8.67',km:'€0.20',price:'€0.72/kWh',win:'Worth it if you stay at least 3h10',w:[190,1440]},
+ {loc:'europa',v:'x',op:'E-Flux',st:'Europalaan 2',m:811,s:-0.82,total:'€9.46',km:'€0.22',price:'€0.66/kWh · €0.50/h charging',win:'Never worth it: always more expensive than petrol for your car',w:null},
+ {loc:'kerk',v:'x',op:'Allego',st:'Kerkstraat 6',m:266,s:-1.25,total:'€9.89',km:'€0.23',price:'€3.00/h charging',win:'Never worth it: always more expensive than petrol for your car',w:null},
+ {loc:'berg',v:'u',op:'Equans',st:'Berg 14',m:412,reason:'No price published for this charger.'},
+ {loc:'molen',v:'u',op:'Last Mile Solutions',st:'Molenstraat 5',m:902,reason:"Charging power isn't published for this charger."}
+];
+E.forEach((e,i)=>e.r=i+1);
+const DATA='9 Oct 2026, 08:12', STAY='3h', EVL='Café or restaurant (adjusted)', BATT='10%', SPOT='51.4436, 5.5519';
+// Pin positions on a 360 × 420 layout; the spot is at 180,230.
+const POS={parkstraat:[205,198],park52:[312,62],berg:[282,160],hoog:[78,345],boord:[290,352],vvg:[72,252],gerwen:[292,268],europa:[208,96],kerk:[108,168],molen:[58,104]};
+const ME=[180,232];
+const VT={w:'Worth it',n:'Not worth it for this stay',x:'Never worth it',u:'Price unknown'};
+const eur=n=>'€'+Math.abs(n).toFixed(2);
+const amtLong=e=>e.s>0?'saves '+eur(e.s):'costs '+eur(e.s)+' more';
+const chip=e=>e.v==='u'?'':(e.s>0?eur(e.s):'−'+eur(e.s));
+const m=n=>n.toLocaleString('en-GB')+' m';
+const ic={
+ w:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+ n:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+ x:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`,
+ u:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9.2a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 1.8v.6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="18.2" r="1.5" fill="currentColor"/></svg>`,
+ win:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 9v4l2.5 1.5M9.5 2.5h5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+ pin:(s=12)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.6 7-12.2A7 7 0 0 0 5 9.8C5 15.4 12 22 12 22z" fill="currentColor"/></svg>`,
+ gear:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`
+};
+const bestOf=loc=>E.find(e=>e.loc===loc);
+const countAt=loc=>E.filter(e=>e.loc===loc).length;
+
+/* A stand-in street map, drawn per style. */
+function mapSvg(c){
+  const road=(d,w)=>`<path d="${d}" fill="none" stroke="${c.edge}" stroke-width="${w+2}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${c.road}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const lbl=(x,y,r,t)=>`<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" font-family="Geist, sans-serif" font-size="9.5" font-weight="500" fill="${c.label}" letter-spacing=".06em">${t}</text>`;
+  return `<svg class="map" viewBox="0 0 390 780" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="390" height="780" fill="${c.land}"/>
+    <path d="M30 470 C70 430 160 438 180 480 C200 525 150 575 95 568 C45 560 15 515 30 470Z" fill="${c.park}"/>
+    <path d="M290 640 C315 620 362 628 374 652 C382 676 348 700 316 690 C294 682 282 660 290 640Z" fill="${c.water}"/>
+    <path d="M-10 720 C90 690 150 760 250 800" fill="none" stroke="${c.water}" stroke-width="12"/>
+    ${road('M-10 380 C110 372 260 352 400 340',10)}
+    ${road('M196 -10 C204 200 186 520 208 800',10)}
+    ${road('M20 150 L196 306',7)}
+    ${road('M202 382 C262 404 330 418 400 446',8)}
+    ${road('M100 90 L400 160',8)}
+    ${road('M226 800 C262 690 330 610 400 570',8)}
+    ${road('M-10 262 C60 250 120 210 150 160',6)}
+    ${road('M118 382 C108 460 88 540 58 800',6)}
+    ${road('M272 160 C278 240 284 310 304 420',6)}
+    ${road('M-10 600 C80 610 150 640 210 700',5)}
+    ${lbl(16,372,-1.5,'PARKSTRAAT')}${lbl(212,700,86,'BERG')}${lbl(60,196,41,'KERKSTRAAT')}${lbl(316,424,15,'GERWENSEWEG')}${lbl(282,138,13,'EUROPALAAN')}${lbl(272,660,-34,'BOORDSEWEG')}${lbl(70,512,0,'PARK')}
+  </svg>`;
+}
+function pinsHtml(sel, top, ys, fn){
+  return `<div class="canvas" style="top:${top}px;height:${420*ys}px">
+    <span class="me" style="left:${ME[0]}px;top:${ME[1]*ys}px" aria-label="Your spot"></span>
+    ${Object.keys(POS).map(loc=>{const b=bestOf(loc),[x,y]=POS[loc],n=countAt(loc);return fn(b,x,y*ys,n,E[sel].loc===loc);}).join('')}
+  </div>`;
+}
+const label=(b,n)=>`${b.r}. ${b.op}, ${b.st}: ${VT[b.v]}${b.s!==undefined?', '+amtLong(b):''}${n>1?', '+(n-1)+' more price here':''}`;
+
+/* ---------- A ---------- */
+function renderA(sel){
+  const e=E[sel], cls=e.v;
+  const pins=pinsHtml(sel,128,0.66,(b,x,y,n,on)=>`<button class="pin ${b.v==='w'?'w':b.v==='u'?'u':'n'}${on?' sel':''}" style="left:${x}px;top:${y}px" data-sel="${b.r-1}" aria-label="${label(b,n)}">${ic[b.v](13)}${chip(b)}${n>1?`<span class="x2">×${n}</span>`:''}</button>`);
+  const body = e.v==='u'
+    ? `<p class="reason">${e.reason}</p>`
+    : `<dl class="stats"><div><dt>Adds</dt><dd>10.8 kWh</dd></div><div><dt>Total</dt><dd>${e.total}</dd></div><div><dt>Per km</dt><dd>${e.km}<small>petrol €0.20</small></dd></div></dl>
+       <p class="win">${ic.win(16)}${e.win}</p><p class="price">${e.price}</p>`;
+  return mapSvg({land:'#edf0ec',road:'#ffffff',edge:'#d9dfda',park:'#d7ead2',water:'#cde2ef',label:'#8d9893'})+
+  `<div class="top"><div class="row">
+     <button class="batt" aria-label="Battery ${BATT}, change"><span class="lbl">Battery</span><b class="num">${BATT}</b></button>
+     <div class="stay"><button class="rb" aria-label="15 minutes shorter">−</button><div class="t"><b class="num">${STAY}</b><span>${EVL}</span></div><button class="rb" aria-label="15 minutes longer">+</button></div>
+     <button class="rb gear" aria-label="Settings">${ic.gear(16)}</button></div>
+     <div class="spot">${ic.pin(11)}<b>Your location</b> · <span class="num">${SPOT}</span></div></div>
+   ${pins}
+   <section class="card" aria-live="polite">
+     <div class="vrow"><span class="verdict ${cls}">${ic[cls](18)}${VT[cls]}</span>${e.s!==undefined?`<span class="amt"><b class="num ${e.s>0?'w':'n'}">${e.s>0?eur(e.s):'+'+eur(e.s)}</b><small>${e.s>0?'saved vs petrol':'more than petrol'}</small></span>`:''}</div>
+     <p class="name">${e.op}</p><p class="addr">${e.st}, Nuenen · <span class="num">${m(e.m)}</span></p>
+     ${body}
+     <div class="foot"><span>Tariff data ${DATA}</span><span class="nav"><button data-step="-1" aria-label="Previous charger">‹</button><span class="num">${e.r} / ${E.length}</span><button data-step="1" aria-label="Next charger">›</button></span></div>
+   </section>`;
+}
+
+/* ---------- B ---------- */
+function wbar(e){
+  if(!e.w) return '';
+  const pct=t=>Math.min(100,t/720*100), a=pct(e.w[0]), b=pct(e.w[1]), open=e.w[1]>=1440;
+  return `<div class="wbar"><div class="lab"><span>${e.win}</span></div>
+    <div class="track" role="img" aria-label="${e.win}; your stay is 3h"><span class="seg${open?' open':''}" style="left:${a}%;width:${b-a}%"></span><span class="mk" style="left:25%"></span></div>
+    <div class="ticks"><span>0</span><span>3h · you</span><span>6h</span><span>9h</span><span>12h+</span></div></div>`;
+}
+function renderB(sel){
+  const e=E[sel];
+  const pins=pinsHtml(sel,84,0.6,(b,x,y,n,on)=>`<button class="pin ${b.v==='w'?'w':b.v==='u'?'u':'n'}${on?' sel':''}" style="left:${x}px;top:${y}px" data-sel="${b.r-1}" aria-label="${label(b,n)}">${ic[b.v](12)}${chip(b)}${n>1?`<span class="x2">×${n}</span>`:''}</button>`);
+  const sub = e.v==='u' ? '' : `<p class="sub">${e.s>0?`Saves <b>${eur(e.s)}</b>`:`Costs <b>${eur(e.s)} more</b>`} than €8.64 of petrol</p>`;
+  const body = e.v==='u' ? `<p class="reason">${e.reason}</p>` :
+    `${e.w?wbar(e):`<p class="reason" style="margin-bottom:0">${ic.x(14)} ${e.win}</p>`}
+     <dl class="stats"><div><dt>Adds</dt><dd>10.8 kWh</dd></div><div><dt>Total</dt><dd>${e.total}</dd></div><div><dt>Per km</dt><dd>${e.km}<small>petrol €0.20</small></dd></div></dl>
+     <p class="price">${e.price}</p>`;
+  const strip = E.map((x,i)=>`<button data-sel="${i}" aria-current="${i===sel}"><b class="${x.v==='w'?'w':x.v==='u'?'u':'n'}">${ic[x.v](12)}${x.v==='u'?'Unknown':(x.s>0?eur(x.s):'−'+eur(x.s))}</b>${x.r}. ${x.st}</button>`).join('');
+  return mapSvg({land:'#111816',road:'#212c29',edge:'#0b100f',park:'#13231b',water:'#0f1f2a',label:'#4c5d58'})+
+  `<div class="top"><div class="row">
+     <button class="pill" aria-label="Battery ${BATT}, change"><small>Battery</small>${BATT}</button>
+     <div class="pill stp"><button aria-label="15 minutes shorter">−</button><div class="t"><b class="num">${STAY}</b><small>${EVL}</small></div><button aria-label="15 minutes longer">+</button></div>
+     <button class="pill gear" aria-label="Settings">${ic.gear(16)}</button></div>
+     <div class="spot">YOUR LOCATION · ${SPOT}</div></div>
+   ${pins}
+   <section class="sheet" aria-live="polite"><div class="grab"></div>
+     <div class="rk"><span>#${e.r} of ${E.length} · best saving first</span><span>${m(e.m)}</span></div>
+     <div class="verdict ${e.v}">${ic[e.v](e.v==='n'?24:30)}${VT[e.v]}</div>
+     ${sub}
+     <p class="name">${e.op}</p><p class="addr">${e.st}, Nuenen</p>
+     ${body}
+     <div class="strip" aria-label="All chargers">${strip}</div>
+     <p class="foot">Tariff data ${DATA} · prices incl. VAT and card fees</p>
+   </section>`;
+}
+
+/* ---------- C ---------- */
+function renderC(sel){
+  const k=v=>v==='w'?'w':v==='u'?'u':'nn';
+  const pins=pinsHtml(sel,6,0.57,(b,x,y,n,on)=>`<button class="pin ${b.v}${on?' sel':''}" style="left:${x}px;top:${y}px" data-sel="${b.r-1}" aria-label="${label(b,n)}">${b.v==='u'?'?':b.r}</button>`);
+  const rows=E.map((e,i)=>{
+    const on=i===sel;
+    const res = e.v==='u' ? `<b class="u">—</b><span class="u">${ic.u(12)}Price unknown</span>`
+      : `<b class="num ${e.s>0?'w':'nn'}">${e.s>0?eur(e.s):'+'+eur(e.s)}</b><span class="${k(e.v)}">${ic[e.v](12)}${e.v==='w'?'Worth it':e.v==='n'?'Not this stay':'Never'}</span>`;
+    const more = !on?'' : e.v==='u' ? `<div class="more"><span class="vt u">${ic.u(16)}Price unknown</span><p>${e.reason}</p></div>`
+      : `<div class="more"><span class="vt ${k(e.v)}">${ic[e.v](16)}${VT[e.v]} · ${amtLong(e)}</span>
+         <dl><dt>Adds</dt><dd>10.8 kWh</dd><dt>Total</dt><dd>${e.total}</dd><dt>Per km</dt><dd>${e.km} <span style="color:#6b716e">vs €0.20</span></dd></dl>
+         <p style="font-weight:700">${e.win}</p><p class="pr">${e.price}</p></div>`;
+    return `<li class="${on?'sel':''}"><button class="r" data-sel="${i}" aria-expanded="${on}"><span class="n">${String(e.r).padStart(2,'0')}</span><span class="who"><b>${e.op}</b><span>${e.st} · <span class="num">${m(e.m)}</span></span></span><span class="res">${res}</span></button>${more}</li>`;
+  }).join('');
+  return `<div class="top">
+     <div class="brand"><span>Plug or Not</span><button aria-label="Settings">Settings</button></div>
+     <div class="ctl"><button class="box" aria-label="Battery ${BATT}, change"><small>Battery</small><b class="num">${BATT}</b></button>
+       <div class="box stp"><button aria-label="15 minutes shorter">−</button><div class="t"><b class="num">${STAY}</b><small>${EVL}</small></div><button aria-label="15 minutes longer">+</button></div></div>
+   </div>
+   <div class="mapbox">${mapSvg({land:'#f1f2ef',road:'#ffffff',edge:'#dfe2de',park:'#e2ecdd',water:'#dbe7ee',label:'#a1a8a4'}).replace('class="map"','class="map" style="height:780px;top:-200px"')}
+     ${pins}
+     <div class="legend"><span><i style="background:#0b7a55;border-radius:50%"></i>Worth it</span><span><i style="box-shadow:inset 0 0 0 2px #b8291a;border-radius:50%"></i>Not this stay</span><span><i style="background:#b8291a;border-radius:2px"></i>Never</span><span><i style="outline:1.5px dashed #8c938f;outline-offset:-1.5px;border-radius:50%"></i>Unknown</span></div>
+   </div>
+   <div class="lhead"><h3>Best saving first</h3><span>Your location · ${SPOT}<br>Tariff data ${DATA}</span></div>
+   <ol>${rows}</ol>`;
+}
+
+/* ---------- wiring ---------- */
+const V={A:{el:vA,r:renderA,sel:0},B:{el:vB,r:renderB,sel:0},C:{el:vC,r:renderC,sel:0}};
+function draw(k){const v=V[k]; v.el.innerHTML=v.r(v.sel);}
+for(const k in V){
+  draw(k);
+  V[k].el.addEventListener('click',ev=>{
+    const b=ev.target.closest('[data-sel],[data-step]'); if(!b) return;
+    const v=V[k];
+    if(b.dataset.step) v.sel=(v.sel+Number(b.dataset.step)+E.length)%E.length; else v.sel=Number(b.dataset.sel);
+    draw(k);
+  });
+}
+document.querySelectorAll('.tabs button').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===t));
+  document.querySelectorAll('.col').forEach(c=>c.hidden=c.dataset.col!==t.dataset.tab);
+}));
+</script>
+</body>
+</html>
