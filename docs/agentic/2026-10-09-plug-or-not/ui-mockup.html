@@ -135,6 +135,9 @@ h1{font:800 30px/1.08 var(--f-ui);letter-spacing:-.03em;margin:10px 0 6px;text-w
 .coords .gobtn{border:0;margin:5px;border-radius:10px;background:var(--ink);color:var(--bg);font-weight:700;padding:0 18px}
 .coords.highlight .inwrap{border-color:var(--focus);box-shadow:0 0 0 3px rgba(125,165,255,.22)}
 
+.datadate{display:flex;gap:8px;align-items:flex-start;margin:20px 0 0;font-size:13px;color:var(--muted)}
+.datadate b{color:var(--soft)}
+.datadate svg{margin-top:2px}
 /* sliders */
 .slider{background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:14px 14px 12px;margin-bottom:12px}
 .slider .stop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -346,7 +349,7 @@ const STATES = [
   {id:'setup-storage',  g:'1 · Setup', label:'Setup — storage unavailable notice', s:{screen:'setup', storage:true},
    note:'<p><b>G1-AC3.</b> Private browsing or blocked storage: the page still works for this visit.</p>'},
   {id:'setup-reopen',   g:'1 · Setup', label:'Setup — reopened from settings', s:{screen:'setup', reopen:true},
-   note:'<p><b>PRD S1 scenario 3.</b> Opened from the settings button. Changing one value (e.g. petrol price to 2.459) leaves the rest untouched. <b>Cancel</b> returns without saving.</p>'},
+   note:'<p><b>PRD S1 scenario 3, FR-019.</b> Opened from the settings button. The tariff data date sits at the bottom (D-26). Changing one value (e.g. petrol price to 2.459) leaves the rest untouched. <b>Cancel</b> returns without saving.</p>'},
   {id:'parked-locating',g:'2 · Parked here now', label:'Parked — finding your location', s:{...P, gps:'locating'},
    note:'<p><b>FR-006.</b> The browser location is requested as soon as the screen opens. The map waits for it.</p>'},
   {id:'parked',         g:'2 · Parked here now', label:'Parked — default (battery not set, 1h30)', s:{...P},
@@ -463,7 +466,8 @@ function vSetup(){
         ${S.reopen?`<button type="button" class="btn btn-secondary" data-a="cancel">Cancel</button>`:''}
         <button type="submit" class="btn btn-primary">Save</button>
       </div>
-    </form></section>`;
+    </form>
+    <p class="datadate">${ic.info(14)}<span>Charger prices from NDW open data of <b>${DATA_TIME}</b>. Prices include VAT; your card fees are added.</span></p></section>`;
 }
 function field(f){
   const e=S.errs[f.k], id='f_'+f.k, fmt=n=>n.toFixed(f.d);
@@ -544,7 +548,7 @@ function pins(){
 function sheet(){
   const e=E[S.sel], others=E.filter(x=>x.loc===e.loc&&x!==e);
   const also = others.map(o=>`<button class="also" data-a="sel" data-i="${o.r-1}">${ic[o.v](14)}<span>Also here: <b>${o.v==='u'?'Price unknown':VT[o.v]}</b>${o.v==='u'?'':' · '+amtLong(o)}</span><span class="go2">Show</span></button>`).join('');
-  const sub = e.v==='u' ? '' : `<p class="sub">${e.s>0?`Saves <b>${eur(e.s)}</b>`:`Costs <b>${eur(e.s)} more</b>`} than €8.64 of petrol</p>
+  const sub = e.v==='u' ? '' : `<p class="sub">${e.s>0?`Saves <b>${eur(e.s)}</b> compared with`:`Costs <b>${eur(e.s)} more</b> than`} €8.64 of petrol</p>
     <p class="sub" style="margin-top:3px"><b>${e.price}</b> · total <b>${e.total}</b></p>`;
   const body = e.v==='u' ? `<p class="reason">${e.reason}</p>` :
     `<p class="never${e.w?' ok':''}">${e.w?ic.win(16):ic.x(16)}<span>${e.win}</span></p>

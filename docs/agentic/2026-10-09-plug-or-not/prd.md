@@ -3,10 +3,11 @@
 **Date:** 2026-10-09
 **Status:** Approved
 **Template version:** default/0.2.1
-**References:** User journey page "Worth-It Charging Journey" (https://claude.ai/artifact/QH6WeJ3mzufmZHDaAQ62VW); NDW open data (https://opendata.ndw.nu/): `charging_point_locations_ocpi.json.gz`, `charging_point_tariffs_ocpi.json.gz`; prior art: GE patent CN102529851A
+**References:** User journey page "Worth-It Charging Journey" (https://claude.ai/artifact/QH6WeJ3mzufmZHDaAQ62VW); NDW open data (https://opendata.ndw.nu/): `charging_point_locations_ocpi.json.gz`, `charging_point_tariffs_ocpi.json.gz`; prior art: GE patent CN102529851A; UI mockup [ui-mockup.html](ui-mockup.html) (https://claude.ai/artifact/2KXwYCWNdtrTs2viHkUAVW)
 **Plugin version:** 0.5.3
 **Agent Sessions:** claude-code: 5d4e9523-19b6-4b26-8e51-d031314dc40e
 **Self-review:** Review loop after user comments: CAP_REACHED — round-2 findings fixed, not re-reviewed. Finding: "Story 2, Scenario 5 has no battery level and no expected figure"; fixed by adding a 20% battery and the expected €6.80 total. (First loop also ended at CAP_REACHED; its round-2 findings on FR-013 wording and straight-line distance were fixed.)
+**Changes after approval:** UI mockup review, 2026-10-11: results on a map, sliders for battery and stay instead of event types, the spot moved by dragging the map, fewer figures per entry, the tariff data date on the settings screen, and a theme that follows the device (D-22–D-27; solution design D-22–D-29).
 
 ---
 
@@ -14,7 +15,7 @@
 
 ## TL;DR
 
-Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they park, it answers one question: is plugging in at a nearby public charger cheaper than driving the same distance on petrol? It lists the 10 nearest chargers, best saving first, and shows for each one how long the driver needs to stay for charging to pay off. Charging prices often mix kWh prices, time fees and start fees, so drivers can't work this out at the charger. One real session cost more than driving the same distance on petrol would have. Version 0.1 is a proof of concept for the Netherlands: the driver enters their car, card and battery details by hand. Planning ahead for a destination, car and card connections, and in-car use come later.
+Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they park, it answers one question: is plugging in at a nearby public charger cheaper than driving the same distance on petrol? It shows the 10 nearest chargers on a map, best saving first, and tells for each one how long the driver needs to stay for charging to pay off. Charging prices often mix kWh prices, time fees and start fees, so drivers can't work this out at the charger. One real session cost more than driving the same distance on petrol would have. Version 0.1 is a proof of concept for the Netherlands: the driver enters their car, card and battery details by hand. Planning ahead for a destination, car and card connections, and in-car use come later.
 
 ## Overview
 
@@ -28,7 +29,7 @@ Plug or Not is a web page for drivers of plug-in hybrid cars (PHEVs). When they 
 |-------|-------------|----------|
 | S1: Set up my car and costs | Enter car, charge card and petrol details once, and have them remembered | P1 |
 | S2: See which nearby chargers are worth it | Get the 10 nearest chargers ranked by saving compared with petrol, for my current spot | P1 |
-| S3: Tell the app how long I'll stay | Pick an event type that fills in a typical stay, and adjust it | P1 |
+| S3: Tell the app how long I'll stay | Set the stay with a slider (changed by UI mockup review, 2026-10-11: event types removed, D-23) | P1 |
 | S4: See the worth-it window | See for each charger the range of stay lengths for which charging beats petrol | P1 |
 | S5: Use a typed address instead of my location | Search for an address or place when location is unavailable or for a demo. **Withdrawn for v0.1** (solution design D-3, 2026-10-09) | P2 |
 
@@ -86,95 +87,96 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 **Scenario 1: Happy Path**
 - **Given** a driver with the example settings from Story 1 is parked on Parkstraat in Nuenen, and the stay is set to 45 minutes
 - **And** the nearest charger, Vattenfall Parkstraat 21 (74 m), has a tariff of €0.2691/kWh excluding VAT with no other fees, and the Allego charger at Kerkstraat 6 (266 m) charges €2.479/h excluding VAT with no kWh price
-- **When** they allow location, enter a current battery level of 20%, and request the answer
-- **Then** they see the 10 nearest public charging locations with an AC charging point, ordered by saving, biggest first
-- **And** each entry shows: operator, address, straight-line distance in metres, price summary, a verdict ("Worth it", "Not worth it for this stay" or "Never worth it"), the saving or extra cost in euros, the cost per km next to the petrol cost per km, the kWh added, and the worth-it window (Story 4)
-- **And** Vattenfall Parkstraat 21 shows "Worth it" with 2.7 kWh added, a total cost of €1.77 and a saving of €0.39, and the Allego charger at Kerkstraat 6 shows "Never worth it"
-- **And** the screen states the date and time of the tariff data used
+- **When** they allow location, set the battery level to 20%, and tap "Find chargers"
+- **Then** they see the 10 nearest public charging locations with an AC charging point as pins on a map, ranked by saving, biggest first, with the best one selected
+- **And** each entry shows: operator, address, straight-line distance in metres, a verdict ("Worth it", "Not worth it for this stay" or "Never worth it"), the saving or extra cost in euros next to the petrol cost for the same distance, the price summary with the total cost, and the worth-it window (Story 4) (changed by UI mockup review, 2026-10-11: kWh added and cost per km are no longer shown, D-25)
+- **And** Vattenfall Parkstraat 21 shows "Worth it", "Saves €0.39 compared with €2.16 of petrol" and "€0.33/kWh · total €1.77" (calculated for 2.7 kWh), and the Allego charger at Kerkstraat 6 shows "Never worth it"
+- **And** the settings screen states the date and time of the tariff data used (D-26)
 
 **Scenario 2: Error Path**
-- **Given** a driver requests the answer
+- **Given** a driver taps "Find chargers"
 - **When** the charger and tariff data can't be loaded (no connection, or the data service doesn't respond)
 - **Then** the page shows "Couldn't load charger prices. Check your connection and try again." with a "Try again" button, and shows no answer based on partial data
 
 **Scenario 3: Edge Case — battery already full**
 - **Given** a driver enters a current battery level of 100%
-- **When** they request the answer
+- **When** they tap "Find chargers"
 - **Then** the page says "Your battery is full, so there's nothing to charge here." and lists no savings
 
 **Scenario 4: Edge Case — card markup and VAT**
 - **Given** the example settings from Story 1, but with a card markup of €0.05/kWh, a battery at 20%, and a charger with a tariff of €0.30/kWh excluding VAT and no other fees
 - **When** the driver sets a stay of 1 hour
-- **Then** the entry shows 3.6 kWh added and a total cost of €2.38: €0.89 start fee + 3.6 kWh × (€0.30 + 21% VAT + €0.05 markup)
+- **Then** the cost is calculated for 3.6 kWh and the entry shows a total cost of €2.38: €0.89 start fee + 3.6 kWh × (€0.30 + 21% VAT + €0.05 markup)
 
 **Scenario 5: Edge Case — time-of-day prices**
 - **Given** the nearest charger is E-Flux Het Voorburg 6, Culemborg, with €0.5717/kWh from 16:00 to 22:00 and €0.5417/kWh at other times, plus €0.41/h
 - **When** a driver with a battery at 20% parks there at 15:30 with a stay of 2 hours
 - **Then** the cost applies the off-peak price from 15:30 to 16:00 and the peak price from 16:00 to 17:30
-- **And** the entry shows 7.2 kWh added and a total cost of €6.80: €0.89 start fee + 1.8 kWh × €0.5417 + 5.4 kWh × €0.5717 + 2 h × €0.41, with 21% VAT on the tariff parts
+- **And** the cost is calculated for 7.2 kWh and the entry shows a total cost of €6.80: €0.89 start fee + 1.8 kWh × €0.5417 + 5.4 kWh × €0.5717 + 2 h × €0.41, with 21% VAT on the tariff parts
 
 #### Edge Cases
 
 | Edge Case | Scenario | Expected Behavior |
 |-----------|----------|-------------------|
-| Pending: calculating | Driver requests the answer | A "Finding chargers near you…" state is shown. The answer replaces it, typically within a few seconds |
+| Pending: calculating | Driver taps "Find chargers" | A "Finding chargers near you…" state is shown. The answer replaces it, typically within a few seconds |
 | Charger without a published tariff | One of the 10 nearest has no tariff in the data | Listed last with "Price unknown". It still counts as one of the 10 |
-| Location with different tariffs per point | One location has AC points with different tariffs | Each distinct tariff appears as its own entry, with the same address and distance. The location still counts once towards the 10 |
+| Location with different tariffs per point | One location has AC points with different tariffs | Each distinct tariff appears as its own entry, with the same address and distance. The location still counts once towards the 10 and has one map pin, marked with its number of prices (changed by UI mockup review, 2026-10-11) |
 | Charger faster than the car | Charger supports 22 kW, the car 3.6 kW | The car's speed is used |
 | Car faster than the charger | Car 11 kW, charger 3.7 kW | The charger's maximum power is used |
 | Battery nearly full | Battery 90% of 15 kWh | kWh added stops at the room left in the battery (1.5 kWh); the start fee weighs heavily and the verdict reflects that |
 | Only DC fast chargers nearby | No AC charging points among nearby locations | DC-only locations are not listed. The 10 nearest locations with AC points are shown, however far |
 | Ties on saving | Two chargers save exactly the same | The nearer one comes first |
-| Location outside the Netherlands | GPS or typed coordinates place the driver in Belgium (address search withdrawn for v0.1) | "Charger prices are available for the Netherlands only for now." No list is shown |
+| Location outside the Netherlands | GPS or a spot moved on the map places the driver in Belgium (address search withdrawn for v0.1; changed by UI mockup review, 2026-10-11) | "Charger prices are available for the Netherlands only for now." No list is shown |
 
 #### Error Handling
 
 | Error Condition | User Message | System Action |
 |-----------------|--------------|---------------|
 | Charger data can't be loaded | "Couldn't load charger prices. Check your connection and try again." | Shows a "Try again" button. No partial answer |
-| Battery level missing or invalid | "Enter your current battery level (0–100%)." | Highlights the field and blocks the request |
-| Outside coverage | "Charger prices are available for the Netherlands only for now." | Shows no list. Offers the coordinates box (address search withdrawn for v0.1) |
+| Battery level not set | "Enter your current battery level (0–100%)." | Highlights the battery slider and blocks the request. The slider starts unset (changed by UI mockup review, 2026-10-11, D-23) |
+| Outside coverage | "Charger prices are available for the Netherlands only for now." | Shows no results. Keeps the map open so the spot can be moved (address search withdrawn for v0.1; changed by UI mockup review, 2026-10-11, D-24) |
 | Settings missing | "Set up your car first so we can calculate your costs." | Opens the setup (Story 1) |
 
 ### Story 3: Tell the app how long I'll stay
 
-- **As a** driver who knows what I'm parking for, but not exactly for how long
-- **I want to** pick what I'm doing and get a typical stay that I can adjust
-- **So that** I don't have to work out a duration before every stop
+> **Changed by UI mockup review (2026-10-11, D-23).** Event types are removed: the driver sets the stay with a slider. The original event-type scenarios (pick "Meeting" for 2h30; "Shopping (adjusted)") are replaced below.
+
+- **As a** driver who knows roughly how long I'll be parked
+- **I want to** set my stay with one slider
+- **So that** I don't have to type a duration before every stop
 
 #### Acceptance Scenarios
 
 **Scenario 1: Happy Path**
 - **Given** a driver is on the "parked here now" screen
-- **When** they pick the event type "Meeting"
+- **When** they drag the stay slider to 2h30
 - **Then** the stay is set to 2h30
-- **And** the ranking and every result update to that stay
+- **And** after "Find chargers" every result is calculated for that stay, and moving the same slider on the results screen updates the ranking and every result
 
 **Scenario 2: Error Path**
-- **Given** a driver adjusts the stay by hand
-- **When** they try to set it below 15 minutes or above 24 hours
-- **Then** the stay stops at the limit (15 min or 24 h) and a short note says the allowed range
+- **Given** a driver adjusts the stay
+- **When** they try to go below 15 minutes or above 24 hours
+- **Then** the stay stops at the limit (15 min or 24 h), and pressing − or + at the limit shows a short note with the allowed range
 
-**Scenario 3: Edge Case — adjusting after picking an event type**
-- **Given** the driver picked "Shopping" (1h30)
-- **When** they change the stay to 1h15
-- **Then** results update to 1h15 and the event type shows as "Shopping (adjusted)"
+**Scenario 3: Edge Case — stay not touched**
+- **Given** a driver opens the "parked here now" screen
+- **When** they don't move the stay slider
+- **Then** the stay is 1h30
 
 #### Edge Cases
 
 | Edge Case | Scenario | Expected Behavior |
 |-----------|----------|-------------------|
-| Pending: updating | Driver changes the stay | Results update without reloading the page. No spinner for recalculating already-loaded chargers |
-| No event type picked | Driver opens the screen and doesn't pick | The stay defaults to "Shopping" (1h30) in v0.1 (remembering the last used type is fast-follow, FR-023) |
-| Overnight across midnight | Driver picks "Overnight" at 21:00 | A 12-hour stay ending at 09:00 the next day, with time-of-day prices applied across midnight |
-| Event type list | Driver opens the picker | Options and default stays: Quick errand 30 min, Shopping 1h30, Café or restaurant 2h, Sports or leisure 2h, Meeting 2h30, Workday 8h, Overnight 12h |
+| Pending: updating | Driver changes the stay on the results screen | Results update when the slider is released, without reloading the page. No spinner for recalculating already-loaded chargers |
+| Precise stay on a phone | Driver wants exactly 1h15 | − and + buttons next to the slider on the "parked here now" screen move it by 15 minutes |
+| Overnight across midnight | Driver sets 12h at 21:00 | A 12-hour stay ending at 09:00 the next day, with time-of-day prices applied across midnight |
 
 #### Error Handling
 
 | Error Condition | User Message | System Action |
 |-----------------|--------------|---------------|
-| Stay below the minimum | "Stays can be 15 minutes to 24 hours." | Sets the stay to 15 min |
-| Stay above the maximum | "Stays can be 15 minutes to 24 hours." | Sets the stay to 24 h |
+| Stay below the minimum | "Stays can be 15 minutes to 24 hours." | Keeps the stay at 15 min |
+| Stay above the maximum | "Stays can be 15 minutes to 24 hours." | Keeps the stay at 24 h |
 
 ### Story 4: See the worth-it window
 
@@ -218,7 +220,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 
 ### Story 5: Use a typed address instead of my location
 
-> **Withdrawn for v0.1** (solution design D-3, edited 2026-10-09). No address search in v0.1: the spot comes from the browser location, or from "lat, lon" typed in a coordinates box (solution design D-4). Kept below for a later release.
+> **Withdrawn for v0.1** (solution design D-3, edited 2026-10-09). No address search in v0.1: the spot comes from the browser location, or from dragging the map (D-24; originally a coordinates box, solution design D-4). Kept below for a later release.
 
 - **As a** driver whose phone can't share its location, or a presenter demoing on a laptop
 - **I want to** type an address or place and get the answer for that spot
@@ -277,25 +279,28 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 - **FR-002**: Withdrawn. Charging losses are not modelled in v0.1 (see D-16).
 - **FR-003**: System MUST remember saved settings on the same device and browser between visits, without an account.
 - **FR-004**: System MUST validate each setting against its allowed range and block saving until all are valid. Ranges: usable battery 1–40 kWh; charging speed 1–22 kW; electric consumption 0.10–0.40 kWh/km; petrol consumption 5–30 km/L; petrol price €0.50–€5.00/L; card start fee €0–€5; card markup €0–€1/kWh.
-- **FR-005**: System MUST ask for the current battery level (0–100%) on the "parked here now" screen.
-- **FR-006**: System MUST use the phone's or laptop's location when the driver allows it.
-- **FR-007**: Withdrawn for v0.1 (solution design D-3, 2026-10-09); a coordinates box takes its place (solution design D-4). Original text: System MUST let the driver search for an address or place anywhere in the EU and the US, with up to 5 suggestions shown while typing, when location is denied, unavailable or approximate, or whenever the driver chooses to.
+- **FR-005**: System MUST ask for the current battery level (0–100%) on the "parked here now" screen, with a slider that starts unset, so the request is blocked until the driver sets it (changed by UI mockup review, 2026-10-11, D-23).
+- **FR-006**: System MUST ask for the phone's or laptop's location when the "parked here now" screen opens, and use it when the driver allows it, shown on a map (changed by UI mockup review, 2026-10-11, D-24).
+- **FR-007**: Withdrawn for v0.1 (solution design D-3, 2026-10-09); dragging the map takes its place (D-24; originally a coordinates box, solution design D-4). Original text: System MUST let the driver search for an address or place anywhere in the EU and the US, with up to 5 suggestions shown while typing, when location is denied, unavailable or approximate, or whenever the driver chooses to.
 - **FR-008**: System MUST, for a spot in the Netherlands, list the 10 nearest public charging locations that have at least one AC charging point, based on straight-line distance from the chosen spot.
 - **FR-009**: System MUST show the straight-line distance in metres from the chosen spot for each listed location.
-- **FR-010**: System MUST order the list by saving compared with petrol, biggest first; ties go to the nearer location; locations with an unknown price come last.
+- **FR-010**: System MUST rank the entries by saving compared with petrol, biggest first; ties go to the nearer location; locations with an unknown price come last. The ranking is shown as rank order in a ranked strip under the selected charger (changed by UI mockup review, 2026-10-11, D-22).
 - **FR-011**: System MUST calculate the cost of a session from the operator's published tariff, including energy, time, parking-after-full and per-session components, applied over the actual stay starting now, including time-of-day price changes. 21% VAT is added to every tariff component, and time-based components are charged per minute. Prices shown include VAT.
 - **FR-012**: System MUST add the charge card's start fee and markup per kWh to every session cost. Card fees are entered as shown on the card's price list, including VAT, so no VAT is added to them.
 - **FR-013**: System MUST calculate the energy added as the lower of: charging speed (the lower of the car's and the charger's maximum) × stay, or the room left in the battery from the current battery level. The energy billed and the energy that reaches the battery are treated as the same.
 - **FR-014**: System MUST calculate the petrol cost for the same distance the added energy covers, using the driver's electric consumption, petrol consumption and petrol price. The distance is the energy added divided by the electric consumption.
-- **FR-015**: System MUST show for each location: operator, address, straight-line distance, a short price summary, verdict, saving or extra cost (€), cost per km next to petrol cost per km, kWh added, and the worth-it window.
-- **FR-016**: System MUST show the worth-it window as the shortest and longest stay, between 15 minutes and 24 hours (15 minutes, then 10-minute steps from 20 minutes plus every 15-minute stay the stepper can reach; changed from 5-minute steps by solution design, 2026-10-09), for which charging is cheaper than petrol. It must show "at least X" when there's no upper limit, and "Never worth it" when no such stay exists.
-- **FR-017**: System MUST offer the event types Quick errand (30 min), Shopping (1h30), Café or restaurant (2h), Sports or leisure (2h), Meeting (2h30), Workday (8h) and Overnight (12h), each setting the stay to its typical duration.
-- **FR-018**: System MUST let the driver adjust the stay between 15 minutes and 24 hours in 15-minute steps, and update all results without reloading.
-- **FR-019**: System MUST show the date and time of the tariff data used.
+- **FR-015**: System MUST show for each entry: operator, address, straight-line distance, verdict, saving or extra cost (€) next to the petrol cost for the same distance, a short price summary with the total cost, and the worth-it window (changed by UI mockup review, 2026-10-11, D-25: kWh added and cost per km are no longer shown; the total cost is added).
+- **FR-016**: System MUST show the worth-it window as the shortest and longest stay, between 15 minutes and 24 hours (15 minutes, then 10-minute steps from 20 minutes plus every 15-minute stay the slider can reach; changed from 5-minute steps by solution design, 2026-10-09), for which charging is cheaper than petrol. It must show "at least X" when there's no upper limit, and "Never worth it" when no such stay exists.
+- **FR-017**: Withdrawn (changed by UI mockup review, 2026-10-11, D-23): no event types; the stay is set with a slider (FR-018). Original text: System MUST offer the event types Quick errand (30 min), Shopping (1h30), Café or restaurant (2h), Sports or leisure (2h), Meeting (2h30), Workday (8h) and Overnight (12h), each setting the stay to its typical duration.
+- **FR-018**: System MUST let the driver set the stay with a slider between 15 minutes and 24 hours in 15-minute steps, starting at 1h30, on the "parked here now" screen and on the results screen, and update all results without reloading (changed by UI mockup review, 2026-10-11, D-23).
+- **FR-019**: System MUST show the date and time of the tariff data used, on the settings screen (changed by UI mockup review, 2026-10-11, D-26).
 - **FR-020**: System MUST show "Price unknown" with no verdict, window or price calculation for chargers whose data is incomplete — tariff missing or unreadable, or charger power not published — and say briefly what's missing (changed by solution design D-18, 2026-10-09).
-- **FR-021**: System MUST show plain-language messages for: data that can't be loaded, a full battery, a spot outside the Netherlands, location denied, and invalid typed coordinates (see the story error tables; "no address match" withdrawn with FR-007, 2026-10-09).
+- **FR-021**: System MUST show plain-language messages for: data that can't be loaded, a full battery, a spot outside the Netherlands, and location denied (see the story error tables; "no address match" withdrawn with FR-007, 2026-10-09; "invalid typed coordinates" withdrawn with the coordinates box, 2026-10-11).
 - **FR-022**: System MUST show a separate entry for each distinct AC tariff at a location; the location counts once towards the 10 nearest.
-- **FR-023**: System SHOULD remember the last used event type and use it as the default next time.
+- **FR-023**: Withdrawn (changed by UI mockup review, 2026-10-11, D-23), together with the event types. Original text: System SHOULD remember the last used event type and use it as the default next time.
+- **FR-024**: System MUST show the results on a map: one pin per location, labelled with the saving or extra cost and marked by verdict with colour and icon (green with a tick for "Worth it", red with a clock for "Not worth it for this stay", red with a cross for "Never worth it", grey and dashed with a question mark for "Price unknown"). The best entry is selected first; tapping a pin or an item in the ranked strip shows that charger's details (added by UI mockup review, 2026-10-11, D-22).
+- **FR-025**: System MUST let the driver move the spot by dragging the map on the "parked here now" screen, with the spot under a fixed centre pin, and return to the current location in one tap (added by UI mockup review, 2026-10-11, D-24).
+- **FR-026**: System SHOULD follow the device's light or dark theme (added by UI mockup review, 2026-10-11, D-27).
 
 ## Success Metrics
 
@@ -310,8 +315,8 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 
 | Release | Contents (stories / FRs) | Rationale for this cut |
 |---------|--------------------------|------------------------|
-| v1 (v0.1 proof of concept) | S1–S4; FR-001–FR-022 except FR-007 (S5 and FR-007 withdrawn, 2026-10-09) | The smallest cut that answers "is it worth plugging in here?" end to end, with real NDW tariffs, for demos and the driver's own sessions |
-| fast-follow | FR-023; planning ahead for a destination (moment 1 from the journey page); live availability labels | Convenience and the second journey moment, both reusing the same calculation |
+| v1 (v0.1 proof of concept) | S1–S4; FR-001–FR-026 except the withdrawn FR-002, FR-007, FR-017 and FR-023 (S5 and FR-007 withdrawn 2026-10-09; FR-017 and FR-023 withdrawn 2026-10-11) | The smallest cut that answers "is it worth plugging in here?" end to end, with real NDW tariffs, for demos and the driver's own sessions |
+| fast-follow | Planning ahead for a destination (moment 1 from the journey page); live availability labels (FR-023 withdrawn, 2026-10-11) | Convenience and the second journey moment, both reusing the same calculation |
 | later | Stay estimate from calendar and own history; battery level from the Volvo API; charge card details from the card provider; Android Automotive in-car version; worth-it colouring in navigation; full electric cars (comparison against other chargers); charger coverage in the EU and the US; vehicle integration (possible IP, discussed separately) | Each needs an outside integration or partner, which the proof of concept should validate first |
 
 ## Non-Functional Requirements
@@ -319,7 +324,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 - Runs in current phone and laptop browsers (Safari on iOS, Chrome on Android, Chrome, Edge and Safari on desktop), opened from a link, with no install or app store.
 - Answer on screen within 30 seconds of opening the page with saved settings, on a normal mobile connection.
 - Tariff data from a snapshot refreshed by hand before demos and accuracy sessions; the data date is shown on screen (changed from "no older than 24 hours" by solution design D-1, 2026-10-09).
-- No accounts and no personal data stored outside the driver's own browser. Location is used only to find nearby chargers and isn't stored.
+- No accounts and no personal data stored outside the driver's own browser. Location is used only to find nearby chargers and isn't stored. Map tiles for the area around the spot are fetched from a public map tile service, which sees the requested map area (changed by UI mockup review, 2026-10-11, D-22).
 
 ## Dependencies
 
@@ -330,6 +335,7 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 | Address search service covering the EU and the US | Not needed in v0.1 | Withdrawn with FR-007 (solution design D-3, 2026-10-09) |
 | Free public web hosting reachable by a link | Required | Available |
 | Browser location access | Optional | Available (driver permission needed) |
+| Map library and free vector map tiles (MapLibre GL JS, OpenFreeMap; solution design D-22) | Required | Available, no account or key (added 2026-10-11) |
 
 ## Out of Scope
 
@@ -343,7 +349,8 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 - Hosting as a claude.ai artifact
 - Starting, stopping or paying for a charging session
 - Charger results outside the Netherlands
-- Address search (withdrawn for v0.1 by solution design D-3, 2026-10-09; typed coordinates instead)
+- Address search (withdrawn for v0.1 by solution design D-3, 2026-10-09; the spot is moved by dragging the map instead, 2026-10-11)
+- A place or street name for the spot (it is shown as coordinates)
 - Accounts, syncing settings between devices
 - Native apps and in-car versions
 
@@ -353,13 +360,13 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 |----|-------|---------|---------|--------|-----------|--------|-----------|--------------|
 | D-1 | Manual input for v0.1 | The Volvo API and ANWB data would give battery level and card fees automatically | Volvo-only with account linking; any brand with manual input; personal tool | Manual input of car, card, petrol and battery values | User: v0.1 is a proof of concept; integrations come later | internal | FR-001, FR-005, FR-012 | Works for any plug-in hybrid brand. Accuracy depends on what the driver enters |
 | D-2 | Only "parked here now" | The journey page has two moments: planning ahead and parked here | Both; planning only; parked only | Parked here now only | User reverted an earlier choice for both: the battery level is known once parked | internal | FR-005–FR-008 | Planning ahead moves to fast-follow. No route or arrival battery prediction needed |
-| D-3 | Stay from event type | Stay length drives every result and is the one unknown | Type a duration; event type with adjustable typical stay; window only | Event type sets a typical stay, adjustable, and the window is always shown | Tests the "guess from event type" idea without integrations; the window covers a wrong guess | internal | FR-016–FR-018 | Default durations are assumptions to validate (see D-18) |
+| D-3 | Stay from event type | Stay length drives every result and is the one unknown | Type a duration; event type with adjustable typical stay; window only | Event type sets a typical stay, adjustable, and the window is always shown | Tests the "guess from event type" idea without integrations; the window covers a wrong guess | internal | FR-016–FR-018 | Default durations are assumptions to validate (see D-18). **Superseded** by D-23 (2026-10-11): no event types, the stay is set with a slider |
 | D-4 | Petrol price entered by hand | No official open fuel price feed exists in the Netherlands | Manual; national average; nearest station | Manual, remembered | Fits the manual-input approach; scraping price sites is fragile and legally doubtful | internal | FR-001 | The driver must update it when prices change |
 | D-5 | Nearest 10 chargers | How many chargers to list around the spot | Fixed 500 m; adjustable radius; nearest 10 | Always the nearest 10 | User choice: simple and never empty | internal | FR-008 | In rural areas the 10th may be far away; the distance is shown |
 | D-6 | Rank by saving | Nearest isn't cheapest (Klokgebouw example) | By distance; by saving; by distance with highlight | By saving, biggest first | The product's promise is "worth it or not" | internal | FR-010 | The nearest charger may appear lower in the list |
 | D-7 | Ignore live availability | NDW includes live point status | Ignore; label; hide occupied | Ignore in v0.1 | User choice | internal | none | A recommended charger may be occupied; availability labels move to fast-follow |
 | D-8 | Current battery entered by hand | Battery level decides the kWh that fit | Arrival %; current % minus trip; assume empty | Current % entered by the driver | Follows from D-2: the driver is already parked | internal | FR-005 | No route data needed |
-| D-9 | GPS with address fallback | Where the driver is parked | GPS only; GPS plus address; address only | GPS by default, address search as fallback | One tap normally; works when location is denied and for laptop demos | internal | FR-006, FR-007 | Needs an address search service. **Superseded for v0.1** (solution design D-3/D-4, 2026-10-09): browser location plus a typed-coordinates box, no address search |
+| D-9 | GPS with address fallback | Where the driver is parked | GPS only; GPS plus address; address only | GPS by default, address search as fallback | One tap normally; works when location is denied and for laptop demos | internal | FR-006, FR-007 | Needs an address search service. **Superseded for v0.1** (solution design D-3/D-4, 2026-10-09): browser location plus a typed-coordinates box, no address search; the box was in turn replaced by dragging the map (D-24, 2026-10-11) |
 | D-10 | Card fees: start fee and markup | Card providers charge differently | Start fee only; start fee plus markup; plus subscription | Start fee plus optional markup per kWh | Covers most Dutch cards per session without error-prone subscription maths | internal | FR-001, FR-012 | Subscriptions aren't reflected |
 | D-11 | Normal web page, not a claude.ai artifact | User wanted easy laptop demos and sharing | claude.ai artifact; normal web page; both | Normal web page on free hosting | Artifacts can't use location or fetch live NDW data or addresses | internal | FR-006, FR-007, FR-019 | Laptop demos via the same link |
 | D-12 | Success criteria | How to judge the proof of concept | Accuracy only; accuracy, speed and PM reception; usage | Accuracy, speed and PM reception | Proves the calculation, usability at the charger, and the real goal: PM buy-in | internal | none | Requires 5 real invoices for comparison |
@@ -368,7 +375,13 @@ Unless a scenario says otherwise, every scenario with numbers uses the example s
 | D-15 | VAT added on top of feed prices (assumed) | The NDW feed often leaves VAT empty; real bills matched price + 21% VAT | Treat as excl. VAT; treat as incl. VAT | Treat feed prices as excluding VAT and add 21% | The E-Flux bill and the Vattenfall price text both matched this | internal (assumed, please confirm) | FR-011 | An operator publishing VAT-inclusive prices would be shown 21% too high; the accuracy metric checks this |
 | D-16 | No charging loss | Chargers bill energy before AC charging losses, but the real loss per car is unknown | No loss; fixed 10%; editable default | No loss modelled | User: the loss is unknown, so leave it out | internal | FR-002 (withdrawn), FR-013 | Savings are slightly optimistic (typically 8–12% of the energy cost); the accuracy metric will show whether this matters |
 | D-17 | Unknown tariffs listed last (assumed) | Some chargers have no or unreadable tariffs | Hide; list last as "Price unknown" | List last as "Price unknown" | Hiding would make the nearest-10 list look incomplete | internal (assumed, please confirm) | FR-020 | Fewer than 10 comparable chargers may be shown |
-| D-18 | Default stays per event type | FR-017 needs concrete durations | Fixed values; driver-defined values | Quick errand 30 min, Shopping 1h30, Café or restaurant 2h, Sports or leisure 2h, Meeting 2h30, Workday 8h, Overnight 12h | Common-sense durations; Shopping and Café or restaurant set by the user in review | internal | FR-017 | Easy to change later |
+| D-18 | Default stays per event type | FR-017 needs concrete durations | Fixed values; driver-defined values | Quick errand 30 min, Shopping 1h30, Café or restaurant 2h, Sports or leisure 2h, Meeting 2h30, Workday 8h, Overnight 12h | Common-sense durations; Shopping and Café or restaurant set by the user in review | internal | FR-017 | Easy to change later. **Superseded** by D-23 (2026-10-11): only 1h30 remains, as the stay slider's starting value |
 | D-19 | Stay range and steps (assumed) | Window and stay need limits | Fixed limits; unlimited | Stay 15 min–24 h in 15-minute steps; window in 10-minute steps plus the 15-minute stays (changed from 5-minute steps by solution design, 2026-10-09) | Covers a quick stop to a full day; 10-minute window steps read naturally (user, design review) | internal (assumed, please confirm) | FR-016, FR-018 | Stays over 24 h aren't supported |
 | D-20 | Setting ranges (assumed) | FR-004 needs testable limits | Fixed ranges; no validation | Ranges listed in FR-004 | Cover all current plug-in hybrids and Dutch price levels with margin, while catching typos | internal (assumed, please confirm) | FR-004 | Unusual cars outside the ranges can't be entered |
 | D-21 | Coverage: search anywhere, results in the Netherlands | User asked for EU/US, not just the Netherlands; NDW covers Dutch chargers only | Address search EU/US with NL results; full EU/US coverage; NL only with EU/US later | Address search works in the EU and the US; charger results stay Netherlands-only in v0.1 | A proof of concept needs one well-covered country; other countries lack a free feed like NDW | internal | FR-007, FR-008, FR-021 | EU/US charger coverage moves to "later". **Address search withdrawn for v0.1** (solution design D-3, 2026-10-09) |
+| D-22 | Results on a map | A ranked list made the driver read every entry; the UI mockup review asked for a map | Ranked list; map only; map with a details panel and a ranked strip | Map with one pin per location, a details panel for the selected charger, and a ranked strip | User: results are easier to judge on a map; the strip keeps "best saving first" (FR-010) | user (UI mockup review, 2026-10-11) | FR-010, FR-024 | Needs a map library and map tiles (solution design D-22). The full list is no longer visible at once |
+| D-23 | Sliders for battery and stay; no event types | Event types added a step before every stop | Event types with a stepper; sliders | A battery slider that starts unset and a stay slider (15 min–24 h, 15-minute steps, starting at 1h30) on the "parked here now" screen; the stay slider also on the results screen | User | user (UI mockup review, 2026-10-11) | FR-005, FR-017 (withdrawn), FR-018, FR-023 (withdrawn) | The "typical stay per event type" idea from D-3 is no longer tested in v0.1 |
+| D-24 | Spot from the map | The coordinates box was a typed fallback for denied location and demos | Coordinates box; drag the map; location only | The "parked here now" screen shows the spot on a map; dragging the map moves the spot under a fixed pin; "Find chargers" starts the search | User: no typing; covers denied or approximate location and laptop demos | user (UI mockup review, 2026-10-11) | FR-006, FR-007, FR-021, FR-025 | Location is asked for when the screen opens. The location-denied message points to the map. "Invalid coordinates" no longer exists |
+| D-25 | Fewer figures per entry | Entries showed kWh added, cost per km and separate boxes | Keep every figure; verdict, saving and total only | Verdict, saving or extra cost next to the petrol cost for the same distance, price summary with the total, and the worth-it window | User: the panel must read at a glance | user (UI mockup review, 2026-10-11) | FR-015 | kWh added and cost per km are still calculated but not shown |
+| D-26 | Tariff data date on the settings screen | The results panel had a footer with the data date | Results footer; settings screen; drop it | Settings screen | User removed the footer from results; the date must still be findable for the snapshot (solution design D-1) | user (UI mockup review, 2026-10-11) | FR-019 | The date isn't visible next to the answer |
+| D-27 | Theme follows the device | The mockup has a dark (Night) and a light (Day) version of the same design | Always dark; always light; follow the device | Follow the device's light or dark setting | User | user (UI mockup review, 2026-10-11) | FR-026 | Both versions need readable contrast; the light one is the one for sunlight |
