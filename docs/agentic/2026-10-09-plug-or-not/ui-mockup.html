@@ -143,16 +143,16 @@ h1{font:800 30px/1.08 var(--f-ui);letter-spacing:-.03em;margin:10px 0 6px;text-w
 .slider .val.unset{color:var(--faint);font-size:15px;font-weight:600;letter-spacing:0}
 .slider .srow{display:flex;align-items:center;gap:10px;margin-top:12px}
 .slider .nudge{width:36px;height:36px;border-radius:50%;border:0;background:var(--raised2);font-size:18px;flex:none}
-.slider input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:30px;background:transparent;margin:0;--p:50%}
-.slider input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--go) var(--p),var(--raised2) var(--p))}
-.slider input[type=range]::-moz-range-track{height:10px;border-radius:5px;background:var(--raised2)}
-.slider input[type=range]::-moz-range-progress{height:10px;border-radius:5px;background:var(--go)}
-.slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;border:4px solid var(--go);margin-top:-9px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-.slider input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:4px solid var(--go)}
-.slider.unset input[type=range]{--p:0%}
-.slider.unset input[type=range]::-webkit-slider-thumb{border-color:var(--faint)}
-.slider.unset input[type=range]::-moz-range-thumb{border-color:var(--faint)}
-.slider.unset input[type=range]::-moz-range-progress{background:transparent}
+input.range{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:30px;background:transparent;margin:0;--p:50%}
+input.range::-webkit-slider-runnable-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--go) var(--p),var(--raised2) var(--p))}
+input.range::-moz-range-track{height:10px;border-radius:5px;background:var(--raised2)}
+input.range::-moz-range-progress{height:10px;border-radius:5px;background:var(--go)}
+input.range::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;border:4px solid var(--go);margin-top:-9px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+input.range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:4px solid var(--go)}
+.slider.unset input.range{--p:0%}
+.slider.unset input.range::-webkit-slider-thumb{border-color:var(--faint)}
+.slider.unset input.range::-moz-range-thumb{border-color:var(--faint)}
+.slider.unset input.range::-moz-range-progress{background:transparent}
 .slider .scale{display:flex;justify-content:space-between;font:500 10px/1 var(--f-data);color:var(--faint);margin-top:6px}
 .slider.err{border-color:var(--no);background:var(--no-soft)}
 .slider .limitnote{text-align:left}
@@ -196,6 +196,10 @@ h1{font:800 30px/1.08 var(--f-ui);letter-spacing:-.03em;margin:10px 0 6px;text-w
 .rtop .row{display:flex;align-items:center;gap:8px}
 .pill{display:flex;align-items:center;gap:6px;height:44px;border-radius:999px;background:var(--raised);border:1px solid var(--line);padding:0 14px;font-weight:600;font-size:15px}
 .pill small{color:var(--muted);font-weight:400;font-size:11px}
+.pill.sl{flex:1;min-width:0;gap:10px;padding:0 14px 0 12px}
+.pill.sl .t{line-height:1.05;flex:none;min-width:34px}
+.pill.sl .t small{display:block}
+.pill.sl b{font-size:16px}
 .pill.stp{flex:1;justify-content:space-between;padding:0 5px;min-width:0}
 .pill.stp button{width:34px;height:34px;border-radius:50%;border:0;background:var(--raised2);font-size:18px;flex:none}
 .pill.stp .t{text-align:center;line-height:1.05;min-width:0}
@@ -369,7 +373,7 @@ const STATES = [
   {id:'loading',        g:'3 · Loading', label:'Loading — finding chargers', s:{screen:'loading'},
    note:'<p><b>G7-AC5.</b> Shown while the tiles and cost curves resolve. Entries then appear complete, window included.</p>'},
   {id:'results',        g:'4 · Results', label:'Results — map, Nuenen, 10%, 3h', s:{...R, sel:0},
-   note:'<p><b>Map view.</b> Pins show the saving (green, ✓) or the extra cost (red: clock = not for this stay, ✕ = never). Dashed grey = Price unknown. The blue dot is the spot.</p><p>The sheet opens on the best saving (#1). The verdict is the biggest thing on screen; below it the saving, the worth-it window as a timeline (white mark = your stay), kWh, total and cost per km.</p><p>The strip at the bottom is the ranked list (FR-010): tap to switch. Parkstraat 21 and Park 52 tie; the nearer comes first.</p><p><b>FR-015, FR-019, G6.</b> Every charger adds 10.8 kWh (43.2 km, €8.64 of petrol). Opcharge matches PRD S4 scenario 1 (1h30 to 7h30).</p>'},
+   note:'<p><b>Map view.</b> Pins show the saving (green, ✓) or the extra cost (red: clock = not for this stay, ✕ = never). Dashed grey = Price unknown. The blue dot is the spot.</p><p>The sheet opens on the best saving (#1). The verdict is the biggest thing on screen; below it the saving, one line with the price and the total, and the worth-it window as a timeline (white mark = your stay).</p><p>The stay slider in the top bar works like the one on the parked screen; release it to update the sheet. The strip at the bottom is the ranked list (FR-010): tap to switch. Parkstraat 21 and Park 52 tie; the nearer comes first.</p><p><b>FR-015, FR-019, G6.</b> Every charger adds 10.8 kWh (43.2 km, €8.64 of petrol). Opcharge matches PRD S4 scenario 1 (1h30 to 7h30).</p>'},
   {id:'results-shell',  g:'4 · Results', label:'Results — not worth it for this stay (Shell)', s:{...R, sel:6},
    note:'<p><b>G6-AC2.</b> A window exists but the stay is outside it. The timeline shows it at a glance: the white mark (3h) sits just before the green part (from 3h10).</p>'},
   {id:'results-never',  g:'4 · Results', label:'Results — never worth it (Allego Kerkstraat)', s:{...R, sel:8},
@@ -432,7 +436,7 @@ function battSlider(){
   const set = S.battery!=='', v = set?Number(S.battery):50;
   return `<div class="slider${set?'':' unset'}${S.battErr?' err':''}">
     <div class="stop"><label for="batt">Battery now</label><span class="val num${set?'':' unset'}" id="battVal">${set?v+'%':'Slide to set'}</span></div>
-    <div class="srow"><input type="range" id="batt" min="0" max="100" step="1" value="${v}" style="--p:${set?pct(v,0,100):'0%'}" aria-valuetext="${set?v+' percent':'not set'}" ${S.battErr?'aria-invalid="true" aria-describedby="batt_e"':''}></div>
+    <div class="srow"><input type="range" class="range" id="batt" min="0" max="100" step="1" value="${v}" style="--p:${set?pct(v,0,100):'0%'}" aria-valuetext="${set?v+' percent':'not set'}" ${S.battErr?'aria-invalid="true" aria-describedby="batt_e"':''}></div>
     <div class="scale" aria-hidden="true"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
     ${S.battErr?`<div class="errmsg" id="batt_e">${ic.warn(16)}<span>Enter your current battery level (0–100%).</span></div>`:''}
   </div>`;
@@ -441,7 +445,7 @@ function staySlider(){
   return `<div class="slider">
     <div class="stop"><label for="stay">How long you’ll stay</label><span class="val num" id="stayVal">${dur(S.stay)}</span></div>
     <div class="srow"><button class="nudge" data-a="stay-" aria-label="15 minutes shorter">−</button>
-      <input type="range" id="stay" min="15" max="1440" step="15" value="${S.stay}" style="--p:${pct(S.stay,15,1440)}" aria-valuetext="${dur(S.stay)}">
+      <input type="range" class="range" id="stay" min="15" max="1440" step="15" value="${S.stay}" style="--p:${pct(S.stay,15,1440)}" aria-valuetext="${dur(S.stay)}">
       <button class="nudge" data-a="stay+" aria-label="15 minutes longer">+</button></div>
     <div class="scale" aria-hidden="true" style="margin-inline:46px"><span>15 min</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
     ${S.limit?`<div class="limitnote" role="status">Stays can be 15 minutes to 24 hours.</div>`:''}
@@ -551,11 +555,11 @@ function wbar(e){
 function sheet(){
   const e=E[S.sel], others=E.filter(x=>x.loc===e.loc&&x!==e);
   const also = others.map(o=>`<button class="also" data-a="sel" data-i="${o.r-1}">${ic[o.v](14)}<span>Also here: <b>${o.v==='u'?'Price unknown':VT[o.v]}</b>${o.v==='u'?'':' · '+amtLong(o)}</span><span class="go2">Show</span></button>`).join('');
-  const sub = e.v==='u' ? '' : `<p class="sub">${e.s>0?`Saves <b>${eur(e.s)}</b>`:`Costs <b>${eur(e.s)} more</b>`} than €8.64 of petrol</p>`;
+  const sub = e.v==='u' ? '' : `<p class="sub">${e.s>0?`Saves <b>${eur(e.s)}</b>`:`Costs <b>${eur(e.s)} more</b>`} than €8.64 of petrol</p>
+    <p class="sub" style="margin-top:3px"><b>${e.price}</b> · total <b>${e.total}</b></p>`;
   const body = e.v==='u' ? `<p class="reason">${e.reason}</p>` :
     `${e.w?wbar(e):`<p class="never">${ic.x(16)}<span>${e.win}</span></p>`}
-     <dl class="stats"><div><dt>Adds</dt><dd>10.8 kWh</dd></div><div><dt>Total</dt><dd>${e.total}</dd></div><div><dt>Per km</dt><dd>${e.km}<small>petrol €0.20/km</small></dd></div></dl>
-     <p class="price">${e.price}</p>`;
+`;
   const strip = E.map((x,i)=>`<button data-a="sel" data-i="${i}" aria-current="${i===S.sel}"><b class="${kind(x.v)}">${ic[x.v](12)}${x.v==='u'?'Unknown':chipTxt(x)}</b>${x.r}. ${x.st}</button>`).join('');
   return `<section class="sheet" aria-label="Charger details"><div class="grab"></div><div class="sbody">
     <div class="rk"><span>#${e.r} of ${E.length} · best saving first</span><span class="num">${metres(e.m)}</span></div>
@@ -564,16 +568,14 @@ function sheet(){
     <p class="name">${e.op}</p><p class="addr">${e.st}, Nuenen</p>
     ${also}${body}</div>
     <div class="strip" aria-label="All chargers, best saving first">${strip}</div>
-    <p class="foot">Tariff data ${DATA_TIME} · prices incl. VAT and card fees · straight-line distances</p>
   </section>`;
 }
 const LEG = `<div class="legend" aria-hidden="true"><span><i style="background:var(--go);color:var(--go-ink)">${ic.w(11)}</i>Saves</span><span><i style="background:var(--no);color:var(--no-ink)">${ic.n(11)}</i>Not this stay</span><span><i style="background:var(--no);color:var(--no-ink)">${ic.x(11)}</i>Never</span><span><i style="outline:1.5px dashed var(--dash);color:var(--unknown)">${ic.u(11)}</i>Unknown</span></div>`;
 function vResults(){
   const top = `<div class="rtop"><div class="row">
       <button class="pill" data-a="back" aria-label="Battery ${esc(S.battery)}%, change"><small>Battery</small><span class="num">${esc(S.battery)}%</span></button>
-      <div class="pill stp" role="group" aria-label="Length of stay"><button data-a="stay-" aria-label="15 minutes shorter">−</button><div class="t"><b class="num">${dur(S.stay)}</b><small>Stay</small></div><button data-a="stay+" aria-label="15 minutes longer">+</button></div>
+      <label class="pill sl"><span class="t"><small>Stay</small><b class="num" id="rStayVal">${dur(S.stay)}</b></span><input type="range" class="range" id="rstay" min="15" max="1440" step="15" value="${S.stay}" style="--p:${pct(S.stay,15,1440)}" aria-label="Length of stay" aria-valuetext="${dur(S.stay)}"></label>
       <button class="pill round" data-a="settings" aria-label="Settings">${ic.gear(17)}</button></div>
-      ${S.limit?`<div class="limitnote" role="status">Stays can be 15 minutes to 24 hours.</div>`:''}
       <div class="spot"><span>${S.spot.toUpperCase()} · ${S.spotCoords}</span><button class="linkbtn" data-a="back">Change spot</button></div>
       ${S.msg||S.approx||S.stay!==180?'':LEG}</div>`;
   if (S.msg==='load') return `<div class="rwrap">${mapSvg()}${top}<div class="rmsg" role="alert"><div class="big" style="background:var(--no-soft);color:var(--no-text)">${ic.wifi()}</div><p>Couldn't load charger prices. Check your connection and try again.</p><button class="btn btn-primary" data-a="retry">Try again</button></div></div>`;
@@ -646,8 +648,13 @@ app.addEventListener('input', ev=>{
     document.getElementById('stayVal').textContent=dur(S.stay);
     app.querySelector('.slider .limitnote')?.remove();
   }
+  else if (t.id==='rstay'){
+    S.stay=+t.value; t.style.setProperty('--p',pct(S.stay,15,1440)); t.setAttribute('aria-valuetext',dur(S.stay));
+    document.getElementById('rStayVal').textContent=dur(S.stay);
+  }
   else if (t.name && S.vals && t.name in S.vals){ S.vals[t.name]=t.value; }
 });
+app.addEventListener('change', ev=>{ if (ev.target.id==='rstay'){ render(); syncSwitcher(); document.getElementById('rstay')?.focus(); } });
 // Drag the spot map: the map moves under a fixed pin.
 let drag=null;
 app.addEventListener('pointerdown', ev=>{
