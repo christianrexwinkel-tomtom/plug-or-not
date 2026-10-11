@@ -2,222 +2,225 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Plug or Not Mockup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-/* Plug or Not v0.1 — clickable UI mockup. Layout and visual design only; all data is fake and hard-coded.
-   Phone-first at ~390 px; on a laptop the app sits in a phone frame with a notes panel beside it. */
+/* Plug or Not v0.1 — clickable UI mockup, style B "Night". Layout and visual design only; all data is fake.
+   Phone-first at ~390 px; on a laptop the app sits in a phone frame with a notes panel beside it.
+   Deliberately a single dark look (car-dashboard feel), so no light-theme block. */
 :root{
-  --bg:#eef2f1; --surface:#ffffff; --ink:#0f1f1c; --muted:#4f625e; --line:#cfdad7; --field:#f7faf9;
-  --charge:#086b57; --charge-ink:#ffffff; --charge-soft:#dcf0ea;
-  --warn:#8a4b00; --warn-soft:#fff1d9; --warn-line:#c27a12;
-  --bad:#a51d12; --bad-ink:#ffffff; --bad-soft:#fbe3df;
-  --unknown:#4f5b59; --unknown-soft:#eef1f0;
-  --focus:#1d5fd1;
-  --map-land:#e8ebe4; --map-road:#ffffff; --map-edge:#cdd4cd; --map-park:#cde5c4; --map-water:#b6d6ea; --map-label:#66746f;
+  --bg:#0c1211; --surface:#121a18; --raised:#18211f; --raised2:#25302d; --line:#26312e;
+  --ink:#e8efec; --soft:#c9d4d0; --muted:#8b9a95; --faint:#6f7e79;
+  --go:#2fd39a; --go-ink:#04150e; --go-soft:#10291f;
+  --no:#ff6f5e; --no-text:#ff7d6d; --no-ink:#2a0703; --no-soft:#2a1513;
+  --info:#f2c14e; --info-soft:#2a2410;
+  --unknown:#a7b4b0; --focus:#7da5ff; --me:#4f86ff;
+  --map-land:#111816; --map-road:#212c29; --map-edge:#0b100f; --map-park:#13231b; --map-water:#0f1f2a; --map-label:#4c5d58;
+  --stage:#070b0a; --frame:#000; --ring:#ffffff; --dash:#6c7b76; --glow:.55;
   --mock:#2b2440; --mock-ink:#f3efff; --mock-accent:#c9b8ff;
-  --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
-  --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-ui:"Sora","Avenir Next",system-ui,sans-serif;
   --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0b1312; --surface:#141f1d; --ink:#e6efed; --muted:#9db0ab; --line:#2b3b38; --field:#0f1917;
-  --charge:#3cc9a2; --charge-ink:#04201a; --charge-soft:#123a31;
-  --warn:#ffc061; --warn-soft:#3a2a10; --warn-line:#d8962e;
-  --bad:#ff8b7b; --bad-ink:#2b0703; --bad-soft:#3d1a16;
-  --unknown:#b3c0bd; --unknown-soft:#1c2826;
-  --focus:#7aa7ff; --map-land:#18221f; --map-road:#2c3a36; --map-edge:#121a18; --map-park:#1d3324; --map-water:#173246; --map-label:#8fa29d; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0b1312; --surface:#141f1d; --ink:#e6efed; --muted:#9db0ab; --line:#2b3b38; --field:#0f1917;
-  --charge:#3cc9a2; --charge-ink:#04201a; --charge-soft:#123a31;
-  --warn:#ffc061; --warn-soft:#3a2a10; --warn-line:#d8962e;
-  --bad:#ff8b7b; --bad-ink:#2b0703; --bad-soft:#3d1a16;
-  --unknown:#b3c0bd; --unknown-soft:#1c2826;
-  --focus:#7aa7ff; --map-land:#18221f; --map-road:#2c3a36; --map-edge:#121a18; --map-park:#1d3324; --map-water:#173246; --map-label:#8fa29d; color-scheme:dark}
-
+/* Day: the same style B, tuned for daylight (mockup toggle; the product could follow the system theme). */
+:root[data-mode="day"]{
+  --bg:#f3f5f4; --surface:#ffffff; --raised:#eef2f0; --raised2:#e0e6e3; --line:#d3dbd7;
+  --ink:#0f1715; --soft:#2c3835; --muted:#56625e; --faint:#75817d;
+  --go:#0a8a5f; --go-ink:#ffffff; --go-soft:#dcf2e8;
+  --no:#d23b28; --no-text:#b42616; --no-ink:#ffffff; --no-soft:#fde8e4;
+  --info:#9a6200; --info-soft:#fff3d6;
+  --unknown:#56625e; --focus:#2a62d6; --me:#2a62d6;
+  --map-land:#eceeea; --map-road:#ffffff; --map-edge:#d4d9d4; --map-park:#d7e9d1; --map-water:#cde2ee; --map-label:#97a29d;
+  --stage:#dfe4e2; --frame:#101514; --ring:#0f1715; --dash:#8a9692; --glow:0;
+  color-scheme:light;
+}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.45 var(--f-body)}
+body{margin:0;background:var(--stage);color:var(--ink);font:400 16px/1.45 var(--f-ui)}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.num{font-family:var(--f-data);font-variant-numeric:tabular-nums;font-weight:500}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-data);font-weight:500}
+.ico{display:inline-block;flex:none}
 
 /* ---------- Mockup state switcher (not part of the product) ---------- */
-.mockbar{position:sticky;top:0;z-index:20;background:var(--mock);color:var(--mock-ink);
-  border-bottom:3px dashed var(--mock-accent);padding:8px 16px;font:500 13px/1.3 var(--f-data)}
+.mockbar{position:sticky;top:0;z-index:20;background:var(--mock);color:var(--mock-ink);border-bottom:3px dashed var(--mock-accent);padding:8px 16px;font:500 13px/1.3 var(--f-data)}
 .mockbar .row{display:flex;gap:8px;align-items:center;max-width:1080px;margin:0 auto;flex-wrap:wrap}
-.mockbar .tag{background:var(--mock-accent);color:var(--mock);padding:3px 7px;border-radius:4px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:11px}
+.mockbar .tag{background:var(--mock-accent);color:var(--mock);padding:3px 7px;border-radius:4px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:11px}
 .mockbar select{flex:1 1 200px;min-width:0;background:#3a3156;color:var(--mock-ink);border:1px solid #5b5080;border-radius:6px;padding:7px 8px;font:inherit}
-.mockbar button{background:#3a3156;color:var(--mock-ink);border:1px solid #5b5080;border-radius:6px;padding:6px 10px;font:inherit}
-.mockbar details{max-width:1080px;margin:6px auto 0;font:400 13px/1.4 var(--f-body);color:#d9d2f2}
+.mockbar button{white-space:nowrap;background:#3a3156;color:var(--mock-ink);border:1px solid #5b5080;border-radius:6px;padding:6px 10px;font:inherit}
+.mockbar details{max-width:1080px;margin:6px auto 0;font:400 13px/1.45 var(--f-ui);color:#d9d2f2}
 .mockbar summary{cursor:pointer;font-family:var(--f-data)}
+@media (max-width:759px){.mockbar .row{flex-wrap:nowrap}.mockbar .tag{display:none}.mockbar select{flex:1 1 auto}}
+.mockbar details p{margin:6px 0 0}
 
-/* ---------- Stage: full-bleed on a phone, phone frame + notes on a laptop ---------- */
-.stage{display:flex;justify-content:center;gap:40px;padding:0}
-.phone{width:100%;max-width:430px;min-height:calc(100vh - 52px);background:var(--bg);position:relative}
+/* ---------- Stage ---------- */
+.stage{display:flex;justify-content:center;gap:40px}
+.phone{width:100%;max-width:430px;min-height:calc(100dvh - var(--mockh,0px));background:var(--bg);position:relative}
 .notes{display:none}
 @media (min-width:760px){
   .stage{padding:32px 24px 64px;align-items:flex-start}
-  .phone{width:390px;min-height:780px;border-radius:36px;border:10px solid #111a18;overflow:clip;
-    box-shadow:0 30px 60px -20px rgba(0,0,0,.35)}
-  .notes{display:block;width:300px;position:sticky;top:84px;font-size:15px;color:var(--muted)}
-  .notes h2{font:700 13px/1 var(--f-data);text-transform:uppercase;letter-spacing:.1em;color:var(--ink);margin:0 0 10px}
-  .notes .nbox{background:var(--surface);border:2px dashed var(--line);border-radius:12px;padding:16px}
+  .phone{width:390px;min-height:780px;border-radius:36px;border:10px solid var(--frame);overflow:clip;box-shadow:0 30px 70px -25px rgba(0,0,0,.8),0 0 0 1px var(--line)}
+  .notes{display:block;width:310px;position:sticky;top:84px;font-size:14px;color:var(--muted)}
+  .notes h2{font:600 12px/1 var(--f-data);text-transform:uppercase;letter-spacing:.12em;color:var(--soft);margin:0 0 10px}
+  .notes .nbox{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:16px}
   .notes p{margin:0 0 10px}
+  .notes b{color:var(--ink)}
   .mockbar details{display:none}
 }
 
 /* ---------- App chrome ---------- */
-.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
-.brand{font:800 20px/1 var(--f-display);letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
-.brand .plug{width:26px;height:26px;border-radius:8px;background:var(--charge);color:var(--charge-ink);display:grid;place-items:center}
-.iconbtn{display:inline-flex;align-items:center;gap:6px;background:none;border:2px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:600;font-size:15px}
-.screen{padding:4px 16px 32px}
-h1{font:800 28px/1.1 var(--f-display);letter-spacing:-.015em;margin:8px 0 4px}
-.lede{color:var(--muted);margin:0 0 18px}
-h2.sec{font:700 13px/1 var(--f-data);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:22px 0 10px}
+.appbar{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 6px}
+.brand{font:800 18px/1 var(--f-ui);letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
+.brand .plug{width:28px;height:28px;border-radius:9px;background:var(--go);color:var(--go-ink);display:grid;place-items:center}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--raised);border:1px solid var(--line)}
+.screen{padding:6px 16px 36px}
+h1{font:800 30px/1.08 var(--f-ui);letter-spacing:-.03em;margin:10px 0 6px;text-wrap:balance}
+.lede{color:var(--muted);margin:0 0 20px;font-size:15px}
+.sec{font:600 11px/1 var(--f-data);text-transform:uppercase;letter-spacing:.14em;color:var(--faint);margin:26px 0 10px}
 
 /* ---------- Forms ---------- */
-.field{margin-bottom:14px}
-.field label{display:block;font-weight:700;margin-bottom:4px}
-.field .hint{display:block;color:var(--muted);font-size:14px;margin:-2px 0 6px}
-.inwrap{display:flex;align-items:stretch;border:2px solid var(--line);border-radius:12px;background:var(--field);overflow:hidden}
-.inwrap:focus-within{border-color:var(--focus)}
-.inwrap input{flex:1;min-width:0;border:0;background:transparent;padding:12px 14px;font:500 19px/1.2 var(--f-data);outline:none}
-.inwrap .unit{display:flex;align-items:center;padding:0 14px;color:var(--muted);font-weight:600;border-left:2px solid var(--line);white-space:nowrap}
-.field.err .inwrap{border-color:var(--bad);background:var(--bad-soft)}
-.errmsg{display:flex;gap:6px;align-items:flex-start;color:var(--bad);font-weight:700;margin-top:6px;font-size:15px}
-.errmsg svg{flex:none;margin-top:2px}
-.btn{display:flex;width:100%;align-items:center;justify-content:center;gap:10px;border-radius:14px;padding:15px 18px;font-weight:700;font-size:18px;border:2px solid transparent}
-.btn-primary{background:var(--charge);color:var(--charge-ink)}
-.btn-secondary{background:var(--surface);border-color:var(--ink);color:var(--ink)}
-.btn-row{display:flex;gap:10px;margin-top:6px}
-.btn-small{width:auto;padding:9px 16px;font-size:16px;border-radius:10px}
+.field{margin-bottom:12px}
+.field label{display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:var(--soft)}
+.field .hint{display:block;color:var(--muted);font-size:13px;margin:-2px 0 6px}
+.inwrap{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:14px;background:var(--raised);overflow:hidden;transition:border-color .15s}
+.inwrap:focus-within{border-color:var(--focus);box-shadow:0 0 0 3px rgba(125,165,255,.18)}
+.inwrap input{flex:1;min-width:0;border:0;background:transparent;padding:13px 14px;font:500 18px/1.2 var(--f-data);outline:none;color:var(--ink)}
+.inwrap input::placeholder{color:var(--faint)}
+.inwrap .unit{display:flex;align-items:center;padding:0 14px;color:var(--muted);font-size:13px;font-weight:600;white-space:nowrap}
+.field.err .inwrap{border-color:var(--no);background:var(--no-soft)}
+.errmsg{display:flex;gap:7px;align-items:flex-start;color:var(--no-text);font-weight:600;margin-top:7px;font-size:14px}
+.errmsg svg{margin-top:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.grid2 .field{min-width:0}
+.btn{display:flex;width:100%;align-items:center;justify-content:center;gap:10px;border-radius:16px;padding:16px 18px;font-weight:700;font-size:17px;border:1px solid transparent;letter-spacing:-.01em}
+.btn-primary{background:var(--go);color:var(--go-ink);box-shadow:0 10px 30px -12px rgba(47,211,154,.6)}
+.btn-secondary{background:var(--raised);border-color:var(--line);color:var(--ink)}
+.btn-row{display:flex;gap:10px;margin-top:18px}
+.btn-small{width:auto;padding:10px 16px;font-size:15px;border-radius:12px}
 
-.notice{display:flex;gap:10px;border-radius:12px;padding:12px 14px;margin:0 0 16px;font-weight:600;border:2px solid}
-.notice svg{flex:none;margin-top:2px}
-.notice.info{background:var(--warn-soft);border-color:var(--warn-line);color:var(--ink)}
-.notice.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--ink)}
+.notice{display:flex;gap:10px;border-radius:14px;padding:13px 14px;margin:0 0 14px;font-weight:600;font-size:15px;border:1px solid}
+.notice svg{margin-top:2px}
+.notice.info{background:var(--info-soft);border-color:rgba(242,193,78,.55);color:var(--ink)}
+.notice.info svg{color:var(--info)}
+.notice.bad{background:var(--no-soft);border-color:rgba(255,111,94,.6);color:var(--ink)}
+.notice.bad svg{color:var(--no-text)}
 .notice p{margin:0}
-.notice .acts{margin-top:10px}
+.notice .acts{margin-top:12px}
 
 /* event picker + stepper */
 .chips{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.chip{text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 12px;line-height:1.2}
-.chip b{display:block;font-weight:700}
-.chip span{color:var(--muted);font-size:14px}
-.chip[aria-pressed="true"]{border-color:var(--charge);background:var(--charge-soft);box-shadow:inset 0 0 0 1px var(--charge)}
-.chip[aria-pressed="true"] span{color:var(--ink)}
-.stepper{display:flex;align-items:center;border:2px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
-.stepper button{width:56px;align-self:stretch;border:0;background:var(--field);font:700 26px/1 var(--f-body)}
-.stepper button:disabled{opacity:.35;cursor:default}
-.stepper .val{flex:1;text-align:center;padding:10px 4px}
-.stepper .val b{display:block;font:800 24px/1.1 var(--f-display)}
-.stepper .val span{color:var(--muted);font-size:14px;font-weight:600}
-.limitnote{color:var(--warn);font-weight:700;font-size:15px;margin-top:6px}
-.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-weight:600;margin:14px 0}
-.divider::before,.divider::after{content:"";flex:1;border-top:2px solid var(--line)}
-.coords .inwrap input{font-size:17px}
-.coords .gobtn{border:0;border-left:2px solid var(--line);background:var(--ink);color:var(--surface);font-weight:700;padding:0 18px}
-.coords.highlight .inwrap{border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 25%,transparent)}
+.chip{text-align:left;border:1px solid var(--line);background:var(--raised);border-radius:14px;padding:10px 12px;line-height:1.2}
+.chip b{display:block;font-weight:600;font-size:14px}
+.chip span{color:var(--muted);font-size:12px;font-family:var(--f-data)}
+.chip[aria-pressed="true"]{border-color:var(--go);background:var(--go-soft);box-shadow:inset 0 0 0 1px var(--go)}
+.chip[aria-pressed="true"] span{color:var(--go)}
+.stepper{display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--raised);border:1px solid var(--line);border-radius:999px;padding:5px}
+.stepper button{width:44px;height:44px;border-radius:50%;border:0;background:var(--raised2);font:600 22px/1 var(--f-ui);flex:none}
+.stepper .val{flex:1;text-align:center;min-width:0;line-height:1.1}
+.stepper .val b{display:block;font:800 24px/1.1 var(--f-ui);letter-spacing:-.02em}
+.stepper .val span{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.limitnote{color:var(--info);font-weight:600;font-size:14px;margin-top:8px;text-align:center}
+.battwrap{display:flex;align-items:center;gap:12px}
+.battwrap .inwrap{width:150px}
+.battwrap .inwrap input{font-size:26px;font-weight:600;padding:10px 14px}
+.battbar{flex:1;height:12px;border-radius:6px;background:var(--raised2);overflow:hidden}
+.battbar i{display:block;height:100%;background:var(--go);border-radius:6px}
+.divider{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:13px;margin:14px 0}
+.divider::before,.divider::after{content:"";flex:1;border-top:1px solid var(--line)}
+.coords .inwrap input{font-size:16px}
+.coords .gobtn{border:0;margin:5px;border-radius:10px;background:var(--ink);color:var(--bg);font-weight:700;padding:0 18px}
+.coords.highlight .inwrap{border-color:var(--focus);box-shadow:0 0 0 3px rgba(125,165,255,.22)}
 
 /* ---------- Loading ---------- */
-.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px;min-height:60vh}
-.loading p{font:700 22px/1.25 var(--f-display);margin:0}
-.pulse{width:64px;height:64px;border-radius:50%;background:var(--charge-soft);display:grid;place-items:center;position:relative}
-.pulse::after{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid var(--charge);animation:ring 1.4s ease-out infinite}
-@keyframes ring{from{transform:scale(.7);opacity:1}to{transform:scale(1.5);opacity:0}}
-@media (prefers-reduced-motion:reduce){.pulse::after{animation:none}}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:22px;min-height:62vh}
+.loading p{font:700 21px/1.25 var(--f-ui);margin:0;letter-spacing:-.01em}
+.loading small{color:var(--muted)}
+.pulse{width:72px;height:72px;border-radius:50%;background:var(--go-soft);color:var(--go);display:grid;place-items:center;position:relative}
+.pulse::after,.pulse::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--go);animation:ring 1.8s ease-out infinite}
+.pulse::before{animation-delay:.9s}
+@keyframes ring{from{transform:scale(.8);opacity:.9}to{transform:scale(1.9);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pulse::after,.pulse::before{animation:none;opacity:.4}}
 
-/* ---------- Results ---------- */
-.ctx{position:sticky;top:var(--mockh,0px);z-index:5;background:var(--bg);padding:8px 16px 10px;border-bottom:2px solid var(--line)}
-.ctxrow{display:flex;gap:8px;align-items:stretch}
-.batt{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:4px 12px;text-align:left}
-.batt small{color:var(--muted);font-size:12px;font-weight:600}
-.batt b{font:800 20px/1.1 var(--f-display)}
-.ctx .stepper{flex:1;border-radius:12px}
-.ctx .stepper button{width:44px;font-size:22px}
-.ctx .stepper .val{padding:4px}
-.ctx .stepper .val b{font-size:20px}
-.ctx .stepper .val span{font-size:13px}
-.spot{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:8px;font-size:14px;color:var(--muted)}
-.spot b{color:var(--ink)}
-.linkbtn{background:none;border:0;padding:2px 0;color:var(--focus);font-weight:700;text-decoration:underline;text-underline-offset:3px;font-size:inherit}
-.mocknote{margin:8px 0 0;font:500 12px/1.3 var(--f-data);color:var(--mock);background:var(--mock-accent);border-radius:6px;padding:5px 8px}
-.listhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:14px 0 4px}
-.listhead h1{font-size:22px;margin:0}
-.meta{color:var(--muted);font-size:14px;margin:0 0 12px}
-.meta b{color:var(--ink)}
-
-.entries{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
-.entry{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:12px 14px 14px;position:relative}
-.entry.v-worth{border-color:var(--charge)}
-.entry.v-never{border-color:var(--bad)}
-.entry.v-unknown{border-style:dashed}
-.etop{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
-.verdict{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:7px 12px 7px 9px;font:800 20px/1.05 var(--f-display);letter-spacing:-.005em}
-.verdict svg{flex:none}
-.v-worth .verdict{background:var(--charge);color:var(--charge-ink)}
-.v-notstay .verdict{background:var(--warn-soft);color:var(--warn);box-shadow:inset 0 0 0 2px var(--warn-line)}
-.v-never .verdict{background:var(--bad);color:var(--bad-ink)}
-.v-unknown .verdict{background:var(--unknown-soft);color:var(--unknown);box-shadow:inset 0 0 0 2px var(--unknown);outline:2px dashed transparent}
-.amount{text-align:right;font-weight:700;line-height:1.1}
-.amount b{display:block;font:800 22px/1.1 var(--f-display)}
-.amount small{font-size:13px;color:var(--muted);font-weight:600}
-.v-worth .amount b{color:var(--charge)}
-.v-notstay .amount b,.v-never .amount b{color:var(--bad)}
-.rank{position:absolute;top:-11px;left:12px;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--surface);font:700 12px/24px var(--f-data);text-align:center}
-.op{font:700 18px/1.2 var(--f-body);margin:0}
-.addr{margin:1px 0 0;color:var(--muted)}
-.addr .num{color:var(--ink)}
-.price{margin:8px 0 0;font:500 15px/1.35 var(--f-data);background:var(--field);border-radius:8px;padding:6px 9px;display:inline-block}
-.stats{display:grid;grid-template-columns:auto auto 1fr;gap:4px 14px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line)}
-.stats dt{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-.stats dd{margin:0;font:500 16px/1.2 var(--f-data);grid-row:2}
-.stats dd small{color:var(--muted);font-size:13px}
-.window{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;font-weight:700}
-.window svg{flex:none;margin-top:2px}
-.reason{margin:10px 0 0;font-weight:600}
-.message{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:22px 18px;text-align:center;margin-top:18px}
-.message svg{margin-bottom:8px}
-.message p{font:700 20px/1.3 var(--f-display);margin:0 0 14px}
-.message p:last-child{margin-bottom:0}
-.message .btn{max-width:240px;margin:0 auto}
-/* ---------- Results map + bottom sheet ---------- */
-.rwrap{display:flex;flex-direction:column;height:calc(100dvh - var(--mockh,0px))}
+/* ---------- Results: map + sheet ---------- */
+.rwrap{position:relative;height:calc(100dvh - var(--mockh,0px));overflow:hidden;background:var(--map-land)}
 @media (min-width:760px){.rwrap{height:760px}}
-.rwrap .ctx{position:relative;top:auto}
-.mapwrap{position:relative;flex:1;overflow:hidden;background:var(--map-land)}
-svg.map{position:absolute;inset:0;width:100%;height:100%;display:block}
-.pin{cursor:pointer}
-.pin:focus{outline:none}
-.pin:focus-visible .pinbody{stroke:var(--focus);stroke-width:4}
-.legend{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
-.legend span{background:var(--surface);border-radius:999px;padding:3px 9px 3px 4px;font-size:13px;font-weight:700;display:inline-flex;gap:5px;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.22)}
-.overlay{position:absolute;top:44px;left:10px;right:10px;display:flex;flex-direction:column;gap:6px}
-.overlay .notice{margin:0;padding:8px 10px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-.overlay .mocknote{margin:0}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.2);display:flex;flex-direction:column;max-height:84%}
-.sheet.s-list{height:84%}
-.sheet.s-detail{max-height:62%}
-.grab{border:0;background:none;padding:8px 0 4px;width:100%}
-.grab span{display:block;width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto}
-.sheethead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 16px 8px}
-.sheethead h2{font:800 20px/1.15 var(--f-display);margin:0}
-.sheetbody{overflow:auto;padding:12px 16px 18px}
-.sheet .meta{margin:0 16px 10px}
-.best{display:flex;align-items:center;gap:10px;width:calc(100% - 32px);margin:0 16px 12px;line-height:1.2;text-align:left;border:2px solid var(--charge);background:var(--charge-soft);border-radius:12px;padding:9px 12px}
-.best b{display:block}
-.best small{color:var(--muted);font-weight:600}
-.best .go{margin-left:auto;font-weight:700;color:var(--charge);white-space:nowrap}
-.closebtn{border:2px solid var(--line);background:var(--surface);border-radius:999px;width:36px;height:36px;font:700 20px/1 var(--f-body);flex:none}
-.entries.click .entry{cursor:pointer}
-.entries.click .entry:hover{box-shadow:0 0 0 3px var(--line)}
-.foot{color:var(--muted);font-size:13px;margin:18px 0 0;text-align:center}
+.map{position:absolute;inset:0;width:100%;height:100%;display:block}
+.rtop{position:absolute;top:0;left:0;right:0;z-index:3;padding:14px 14px 30px;background:linear-gradient(var(--bg) 58%,color-mix(in srgb,var(--bg) 0%,transparent))}
+.rtop .row{display:flex;align-items:center;gap:8px}
+.pill{display:flex;align-items:center;gap:6px;height:44px;border-radius:999px;background:var(--raised);border:1px solid var(--line);padding:0 14px;font-weight:600;font-size:15px}
+.pill small{color:var(--muted);font-weight:400;font-size:11px}
+.pill.stp{flex:1;justify-content:space-between;padding:0 5px;min-width:0}
+.pill.stp button{width:34px;height:34px;border-radius:50%;border:0;background:var(--raised2);font-size:18px;flex:none}
+.pill.stp .t{text-align:center;line-height:1.05;min-width:0}
+.pill.stp .t b{display:block;font-size:16px}
+.pill.stp .t small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill.round{width:44px;justify-content:center;padding:0}
+.rtop .spot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font:500 11px/1.2 var(--f-data);color:var(--muted);letter-spacing:.04em;gap:8px}
+.linkbtn{background:none;border:0;padding:2px 0;color:var(--focus);font-weight:600;text-decoration:underline;text-underline-offset:3px;font-size:inherit;font-family:var(--f-ui);letter-spacing:0}
+.rtop .limitnote{text-align:left;margin-top:6px;font-size:13px}
+.overlay{position:absolute;top:128px;left:12px;right:12px;z-index:3;display:flex;flex-direction:column;gap:6px}
+.overlay .notice{margin:0;padding:9px 11px;font-size:13px}
+.mocknote{margin:0;font:500 11px/1.3 var(--f-data);color:var(--mock);background:var(--mock-accent);border-radius:6px;padding:5px 8px}
+.canvas{position:absolute;left:50%;width:360px;margin-left:-180px}
+.me{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--me);border:3px solid #fff;box-shadow:0 0 0 9px rgba(79,134,255,.2)}
+.pin{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 9px 0 6px;border-radius:9px;font:700 12.5px/1 var(--f-ui);white-space:nowrap;border:0;transition:transform .15s}
+.pin.w{background:var(--go);color:var(--go-ink);box-shadow:0 0 18px -2px color-mix(in srgb,var(--go) calc(var(--glow)*100%),transparent),0 3px 8px -3px rgba(0,0,0,.35)}
+.pin.n{background:var(--no);color:var(--no-ink);box-shadow:0 0 18px -4px color-mix(in srgb,var(--no) calc(var(--glow)*100%),transparent),0 3px 8px -3px rgba(0,0,0,.35)}
+.pin.u{background:var(--surface);color:var(--unknown);outline:1.5px dashed var(--dash);outline-offset:-2px;padding:0 6px}
+.pin.sel{transform:translate(-50%,-50%) scale(1.2);z-index:2;outline:2px solid var(--ring);outline-offset:2px}
+.pin .x2{opacity:.75;font-size:10px}
+@media (prefers-reduced-motion:reduce){.pin{transition:none}}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.legend span{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--soft)}
+.legend i{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:5px}
+
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;background:var(--surface);border-top:1px solid var(--line);border-radius:28px 28px 0 0;padding:10px 18px 14px;box-shadow:0 -20px 40px -10px rgba(0,0,0,calc(.2 + var(--glow)*.7));display:flex;flex-direction:column;max-height:66%}
+.sbody{overflow-y:auto;min-height:0;flex:1 1 auto;margin:0 -18px;padding:0 18px}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--raised2);margin:0 auto 12px}
+.rk{font:500 10.5px/1.2 var(--f-data);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;display:flex;justify-content:space-between}
+.verdict{display:flex;align-items:center;gap:10px;font-weight:800;font-size:32px;letter-spacing:-.035em;line-height:1.05;margin:7px 0 4px}
+.verdict.w{color:var(--go)}.verdict.n,.verdict.x{color:var(--no-text)}.verdict.u{color:var(--unknown)}
+.verdict.n{font-size:25px}
+.sub{font-size:15px;color:var(--soft);margin:0}
+.sub b{color:var(--ink)}
+.name{margin:12px 0 0;font-weight:600;font-size:15px}
+.addr{margin:0;color:var(--muted);font-size:13px}
+.also{display:flex;align-items:center;gap:8px;width:100%;margin:10px 0 0;background:var(--raised);border:1px dashed var(--faint);border-radius:12px;padding:8px 10px;text-align:left;font-size:12.5px;color:var(--soft)}
+.also b{color:var(--ink)}
+.also .go2{margin-left:auto;color:var(--focus);font-weight:600;white-space:nowrap}
+.wbar{margin:14px 0 0}
+.wbar .lab{font-size:12.5px;color:var(--soft);font-weight:600;margin-bottom:8px}
+.track{position:relative;height:10px;border-radius:5px;background:var(--raised2)}
+.seg{position:absolute;top:0;bottom:0;border-radius:5px;background:var(--go)}
+.seg.open{border-radius:5px 0 0 5px;background:linear-gradient(90deg,var(--go) 82%,color-mix(in srgb,var(--go) 20%,transparent))}
+.mk{position:absolute;top:-5px;width:3px;height:20px;margin-left:-1.5px;border-radius:2px;background:var(--ring)}
+.ticks{display:flex;justify-content:space-between;font:500 10px/1 var(--f-data);color:var(--faint);margin-top:6px}
+.never{display:flex;gap:8px;align-items:flex-start;margin:14px 0 0;font-size:13.5px;color:var(--soft);font-weight:600}
+.never svg{color:var(--no-text);margin-top:1px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 0}
+.stats div{background:var(--raised);border-radius:12px;padding:8px 10px;min-width:0}
+.stats dt{font:500 9.5px/1.2 var(--f-data);color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.stats dd{margin:4px 0 0;font:500 14px/1.15 var(--f-data);color:var(--ink)}
+.stats dd small{display:block;font:400 10px/1.25 var(--f-ui);color:var(--muted);margin-top:2px}
+.price{margin:10px 0 0;font:500 12px/1.4 var(--f-data);color:var(--muted)}
+.reason{margin:12px 0 0;font-size:15px;color:var(--soft)}
+.strip{display:flex;gap:8px;overflow-x:auto;margin:14px -18px 0;padding:0 18px 2px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.strip button{flex:none;border:1px solid var(--line);background:var(--raised);border-radius:12px;padding:7px 10px;text-align:left;font-size:11.5px;line-height:1.3;color:var(--soft)}
+.strip button[aria-current="true"]{border-color:var(--ink);background:var(--raised2);color:var(--ink)}
+.strip b{display:flex;align-items:center;gap:4px;font-size:13px}
+.strip .w{color:var(--go)}.strip .n{color:var(--no-text)}.strip .u{color:var(--unknown)}
+.foot{font:500 10px/1.4 var(--f-data);color:var(--faint);margin:10px 0 0;letter-spacing:.02em}
+
+.rmsg{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-35%);z-index:3;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:28px 20px;text-align:center}
+.rmsg .big{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;margin:0 auto 14px}
+.rmsg p{font:700 19px/1.3 var(--f-ui);margin:0 0 18px;letter-spacing:-.01em}
+.rmsg p:last-child{margin-bottom:0}
+.rmsg .btn{max-width:220px;margin:0 auto}
 </style>
 </head>
 <body>
@@ -228,6 +231,7 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block}
     <button type="button" id="mPrev" aria-label="Previous state">‹</button>
     <select id="mSelect" aria-label="Jump to screen or state"></select>
     <button type="button" id="mNext" aria-label="Next state">›</button>
+    <button type="button" id="mMode" aria-pressed="false" title="Switch between the Night and Day style">☾ Night</button>
   </div>
   <details><summary>About this state</summary><div id="mNoteSmall"></div></details>
 </div>
@@ -237,25 +241,24 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block}
   <aside class="notes" aria-label="Mockup notes">
     <h2>Mockup notes</h2>
     <div class="nbox" id="mNote"></div>
-    <p style="margin-top:14px;font-size:13px">Fake, hard-coded data. No real location, data loading or cost engine. Results figures are fixed for battery 10% and a 3-hour stay at the PRD settings.</p>
+    <p style="margin-top:14px;font-size:12.5px">Fake, hard-coded data. No real location, data loading or cost engine. Results figures are fixed for battery 10% and a 3-hour stay at the PRD settings. The map is a hand-drawn stand-in.</p>
   </aside>
 </div>
 
 <script>
 /* ---------- Icons ---------- */
-const I = {
-  check:'<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor" opacity=".22"/><path d="M6.5 12.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  clock:'<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 7v5.5l3.5 2" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>',
-  cross:'<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor" opacity=".22"/><path d="M8 8l8 8M16 8l-8 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
-  q:'<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="3 2.4"/><path d="M9.5 9.5a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.9-1.1 1.6v.5" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="17" r="1.3" fill="currentColor"/></svg>',
-  win:'<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-  warn:'<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="18" r="1.3" fill="currentColor"/></svg>',
-  info:'<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 11v6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1.3" fill="currentColor"/></svg>',
-  pin:'<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.6 7-12.2A7 7 0 0 0 5 9.8C5 15.4 12 22 12 22z" fill="none" stroke="currentColor" stroke-width="2.3"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/></svg>',
-  gear:'<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
-  bolt:'<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="currentColor"/></svg>',
-  wifi:'<svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-  full:'<svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4.5" y="9.5" width="13" height="5" rx="1" fill="currentColor"/><path d="M22 10.5v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+const ic = {
+  w:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  n:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+  x:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`,
+  u:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9.2a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 1.8v.6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="18.2" r="1.5" fill="currentColor"/></svg>`,
+  warn:(s=18)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="18" r="1.3" fill="currentColor"/></svg>`,
+  info:(s=18)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 11v6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1.3" fill="currentColor"/></svg>`,
+  pin:(s=20)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.6 7-12.2A7 7 0 0 0 5 9.8C5 15.4 12 22 12 22z" fill="none" stroke="currentColor" stroke-width="2.3"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/></svg>`,
+  gear:(s=18)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+  bolt:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="currentColor"/></svg>`,
+  wifi:(s=32)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+  full:(s=32)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4.5" y="9.5" width="13" height="5" rx="1" fill="currentColor"/><path d="M22 10.5v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`
 };
 
 /* ---------- Fixed product data (from the PRD / solution design) ---------- */
@@ -265,7 +268,7 @@ const FIELDS = [
   {k:'euse',   grp:'car',    label:'Electric use',         unit:'kWh/km',       v:'0.25',  min:0.10, max:0.40,d:2, empty:'electric use',         name:'Electric use'},
   {k:'puse',   grp:'petrol', label:'Petrol use',           unit:'km/L',         v:'12',    min:5,    max:30,  d:0, empty:'petrol use',           name:'Petrol use'},
   {k:'pprice', grp:'petrol', label:'Petrol price',         unit:'€/L',          v:'2.399', min:0.50, max:5.00,d:2, empty:'petrol price',         name:'Petrol price'},
-  {k:'start',  grp:'card',   label:'Start fee',            unit:'€ per session',v:'0.89',  min:0,    max:5,   d:2, empty:'card start fee',       name:'Card start fee', munit:'€'},
+  {k:'start',  grp:'card',   label:'Start fee',            unit:'€ / session',  v:'0.89',  min:0,    max:5,   d:2, empty:'card start fee',       name:'Card start fee', munit:'€'},
   {k:'markup', grp:'card',   label:'Markup',               unit:'€/kWh',        v:'0.00',  min:0,    max:1,   d:2, empty:'card markup',          name:'Card markup'}
 ];
 const EVENTS = [
@@ -279,33 +282,31 @@ const EVENTS = [
 ];
 const DATA_TIME = '9 Oct 2026, 08:12';
 // Fake results for battery 10%, stay 3h, PRD example settings: 10.8 kWh = 43.2 km, petrol €8.64. Already ranked (FR-010).
-const ENTRIES = [
-  {v:'worth',  op:'Vattenfall',     loc:'parkstraat', addr:'Parkstraat 21, Nuenen',     m:74,   price:'€0.33/kWh', amt:'saves €4.23', kwh:'10.8', total:'€4.41', km:'€0.10', win:'Worth it if you stay at least 40 min'},
-  {v:'worth',  op:'Vattenfall',     loc:'park52', addr:'Park 52, Nuenen',               m:980,  price:'€0.33/kWh', amt:'saves €4.23', kwh:'10.8', total:'€4.41', km:'€0.10', win:'Worth it if you stay at least 40 min'},
-  {v:'worth',  op:'Equans',         loc:'berg', addr:'Berg 14, Nuenen',                 m:412,  price:'€0.38/kWh', amt:'saves €3.64', kwh:'10.8', total:'€4.99', km:'€0.12', win:'Worth it if you stay at least 40 min'},
-  {v:'worth',  op:'Equans',         loc:'hoog', addr:'Hoogstraat 1, Nuenen',            m:1120, price:'€0.45/kWh', amt:'saves €2.89', kwh:'10.8', total:'€5.75', km:'€0.13', win:'Worth it if you stay at least 45 min'},
-  {v:'worth',  op:'Allego',         loc:'boord', addr:'Boordseweg 7, Nuenen',           m:1310, price:'€0.47/kWh', amt:'saves €2.68', kwh:'10.8', total:'€5.95', km:'€0.14', win:'Worth it if you stay at least 45 min'},
-  {v:'worth',  op:'Opcharge',       loc:'vvg', addr:'Vincent van Goghstraat 10, Nuenen', m:693, price:'€0.52/kWh · €0.61/h after full · €0.61 start', amt:'saves €1.52', kwh:'10.8', total:'€7.11', km:'€0.16', win:'Worth it if you stay 1h30 to 7h30'},
-  {v:'notstay',op:'Shell Recharge', loc:'gerwen', addr:'Gerwenseweg 32, Nuenen',        m:548,  price:'€0.72/kWh', amt:'costs €0.03 more', kwh:'10.8', total:'€8.67', km:'€0.20', win:'Worth it if you stay at least 3h10'},
-  {v:'never',  op:'E-Flux',         loc:'europa', addr:'Europalaan 2, Nuenen',          m:811,  price:'€0.66/kWh · €0.50/h charging', amt:'costs €0.82 more', kwh:'10.8', total:'€9.46', km:'€0.22', win:'Never worth it: always more expensive than petrol for your car'},
-  {v:'never',  op:'Allego',         loc:'kerk', addr:'Kerkstraat 6, Nuenen',            m:266,  price:'€3.00/h charging', amt:'costs €1.25 more', kwh:'10.8', total:'€9.89', km:'€0.23', win:'Never worth it: always more expensive than petrol for your car'},
-  {v:'unknown',op:'Equans',         loc:'berg', addr:'Berg 14, Nuenen',                  m:412,  reason:'No price published for this charger.'},
-  {v:'unknown',op:'Last Mile Solutions', loc:'molen', addr:'Molenstraat 5, Nuenen',       m:902,  reason:"Charging power isn't published for this charger."}
+// v: w = Worth it, n = Not worth it for this stay, x = Never worth it, u = Price unknown. w = worth-it window in minutes.
+const E = [
+  {loc:'parkstraat',v:'w',op:'Vattenfall',st:'Parkstraat 21',m:74,s:4.23,total:'€4.41',km:'€0.10',price:'€0.33/kWh',win:'Worth it if you stay at least 40 min',w:[40,1440]},
+  {loc:'park52',v:'w',op:'Vattenfall',st:'Park 52',m:980,s:4.23,total:'€4.41',km:'€0.10',price:'€0.33/kWh',win:'Worth it if you stay at least 40 min',w:[40,1440]},
+  {loc:'berg',v:'w',op:'Equans',st:'Berg 14',m:412,s:3.64,total:'€4.99',km:'€0.12',price:'€0.38/kWh',win:'Worth it if you stay at least 40 min',w:[40,1440]},
+  {loc:'hoog',v:'w',op:'Equans',st:'Hoogstraat 1',m:1120,s:2.89,total:'€5.75',km:'€0.13',price:'€0.45/kWh',win:'Worth it if you stay at least 45 min',w:[45,1440]},
+  {loc:'boord',v:'w',op:'Allego',st:'Boordseweg 7',m:1310,s:2.68,total:'€5.95',km:'€0.14',price:'€0.47/kWh',win:'Worth it if you stay at least 45 min',w:[45,1440]},
+  {loc:'vvg',v:'w',op:'Opcharge',st:'Vincent van Goghstraat 10',m:693,s:1.52,total:'€7.11',km:'€0.16',price:'€0.52/kWh · €0.61/h after full · €0.61 start',win:'Worth it if you stay 1h30 to 7h30',w:[90,450]},
+  {loc:'gerwen',v:'n',op:'Shell Recharge',st:'Gerwenseweg 32',m:548,s:-0.03,total:'€8.67',km:'€0.20',price:'€0.72/kWh',win:'Worth it if you stay at least 3h10',w:[190,1440]},
+  {loc:'europa',v:'x',op:'E-Flux',st:'Europalaan 2',m:811,s:-0.82,total:'€9.46',km:'€0.22',price:'€0.66/kWh · €0.50/h charging',win:'Never worth it: always more expensive than petrol for your car',w:null},
+  {loc:'kerk',v:'x',op:'Allego',st:'Kerkstraat 6',m:266,s:-1.25,total:'€9.89',km:'€0.23',price:'€3.00/h charging',win:'Never worth it: always more expensive than petrol for your car',w:null},
+  {loc:'berg',v:'u',op:'Equans',st:'Berg 14',m:412,reason:'No price published for this charger.'},
+  {loc:'molen',v:'u',op:'Last Mile Solutions',st:'Molenstraat 5',m:902,reason:"Charging power isn't published for this charger."}
 ];
-// MOCKUP ONLY: hand-placed pin positions on the fake map (viewBox 390 × 620); the spot is at 195,280.
-const PINS = {parkstraat:[211,266], kerk:[150,226], berg:[268,214], gerwen:[302,322], vvg:[86,318],
-  europa:[236,140], molen:[66,178], park52:[346,150], hoog:[76,446], boord:[322,452]};
-const VERDICT = {
-  worth:  {t:'Worth it', i:'check'},
-  notstay:{t:'Not worth it for this stay', i:'clock'},
-  never:  {t:'Never worth it', i:'cross'},
-  unknown:{t:'Price unknown', i:'q'}
-};
+E.forEach((e,i)=>e.r=i+1);
+const VT={w:'Worth it',n:'Not worth it for this stay',x:'Never worth it',u:'Price unknown'};
+// MOCKUP ONLY: hand-placed pin positions on a 360 × 420 layout; the spot is at 180,232.
+const POS={parkstraat:[205,198],park52:[312,62],berg:[282,160],hoog:[78,345],boord:[290,352],vvg:[72,252],gerwen:[292,268],europa:[208,96],kerk:[108,168],molen:[58,104]};
+const ME=[180,232], PIN_TOP=112, PIN_YS=0.6;
 
 /* ---------- Mockup states ---------- */
+const R = {screen:'results', battery:'10', stay:180, ev:'cafe'};
 const STATES = [
   {id:'setup',          g:'1 · Setup', label:'Setup — first visit (prefilled)', s:{screen:'setup'},
-   note:'<p><b>FR-001, FR-004.</b> The seven settings with units, prefilled with the PRD example. Comma decimals are accepted (G1-AC2).</p><p>Try: clear a field or type an out-of-range value, then <b>Save</b>. Validation is live in the mockup using the FR-004 ranges and the G1-AC1 message pattern.</p>'},
+   note:'<p><b>FR-001, FR-004.</b> The seven settings with units, prefilled with the PRD example. Comma decimals are accepted (G1-AC2).</p><p>Try: clear a field or type an out-of-range value, then <b>Save</b>. Validation is live using the FR-004 ranges and the G1-AC1 message pattern.</p>'},
   {id:'setup-error',    g:'1 · Setup', label:'Setup — charging speed out of range', s:{screen:'setup', vals:{speed:'0'}, errs:{speed:'range'}},
    note:'<p><b>PRD S1 scenario 2 / G1-AC1.</b> The field is marked, the message names the allowed range, and saving is blocked until corrected.</p>'},
   {id:'setup-storage',  g:'1 · Setup', label:'Setup — storage unavailable notice', s:{screen:'setup', storage:true},
@@ -313,7 +314,7 @@ const STATES = [
   {id:'setup-reopen',   g:'1 · Setup', label:'Setup — reopened from settings', s:{screen:'setup', reopen:true},
    note:'<p><b>PRD S1 scenario 3.</b> Opened from the settings button. Changing one value (e.g. petrol price to 2.459) leaves the rest untouched. <b>Cancel</b> returns without saving.</p>'},
   {id:'parked',         g:'2 · Parked here now', label:'Parked — default (Shopping, 1h30)', s:{screen:'parked'},
-   note:'<p><b>FR-005, FR-017, FR-018, D-4.</b> No event picked yet, so the stay defaults to Shopping 1h30.</p><p><b>Use my location</b> and the coordinates <b>Go</b> both start the search (no separate button). Try 51.4436, 5.5519 (Nuenen), 50.8467, 4.3525 (Brussels), 100 as battery, or nonsense coordinates.</p>'},
+   note:'<p><b>FR-005, FR-017, FR-018, D-4.</b> No event picked yet, so the stay defaults to Shopping 1h30.</p><p><b>Use my location</b> and the coordinates <b>Go</b> both start the search. Try 51.4436, 5.5519 (Nuenen), 50.8467, 4.3525 (Brussels), 100 as battery, or nonsense coordinates.</p>'},
   {id:'parked-adjusted',g:'2 · Parked here now', label:'Parked — stay adjusted to 3h, battery 10%', s:{screen:'parked', battery:'10', ev:'cafe', stay:180},
    note:'<p><b>PRD S3 scenario 3 / G7-AC2.</b> After Café or restaurant (2h) the stay was stepped up to 3h, so the label reads “Café or restaurant (adjusted)”.</p>'},
   {id:'parked-limit',   g:'2 · Parked here now', label:'Parked — stay at the 15 min limit', s:{screen:'parked', battery:'10', stay:15, limit:true},
@@ -327,20 +328,22 @@ const STATES = [
   {id:'msg-coords',     g:'2 · Parked here now', label:'Message — invalid coordinates', s:{screen:'parked', battery:'10', coords:'Parkstraat Nuenen', coordErr:true},
    note:'<p><b>G3-AC3.</b> Only “lat, lon” in decimal degrees is accepted. No results are shown.</p>'},
   {id:'loading',        g:'3 · Loading', label:'Loading — finding chargers', s:{screen:'loading'},
-   note:'<p><b>G7-AC5.</b> Shown while the spot, tiles and cost curves resolve. Entries then appear complete, window included — no skeleton cards with partial data.</p>'},
-  {id:'results',        g:'4 · Results', label:'Results — map, Nuenen, 10%, 3h', s:{screen:'results', battery:'10', stay:180, ev:'cafe'},
-   note:'<p><b>Map view.</b> Green pin = Worth it (✓). Red pin = Not worth it for this stay (clock) or Never worth it (✕). Grey dashed pin = Price unknown (?). The small number is the rank. The blue dot is the spot.</p><p>The sheet shows the best pick and the tariff data time (FR-019). Tap a pin for details.</p><p><b>FR-015, FR-019, G6.</b> Battery 10%, stay 3h: every charger adds 10.8 kWh (43.2 km, €8.64 of petrol). Opcharge matches PRD S4 scenario 1 (window 1h30 to 7h30). Shell Recharge is just short: worth it from 3h10.</p><p> 10 nearest locations → 11 entries: Berg 14 has a priced and a tariff-less connector (FR-022, entry rule c), so it appears twice.</p><p>Parkstraat 21 and Park 52 tie on saving; the nearer one comes first. Price unknown entries come last, by distance.</p><p>The stepper in the top bar changes the stay in place (G7-AC4); tapping the battery returns to “parked here now”.</p>'},
-  {id:'results-pin',    g:'4 · Results', label:'Results — pin tapped (Parkstraat 21)', s:{screen:'results', battery:'10', stay:180, ev:'cafe', sheet:'detail', loc:'parkstraat'},
-   note:'<p><b>FR-015.</b> Tapping a pin opens its full entry in the bottom sheet: verdict first, then saving, price summary, kWh, cost per km and the window.</p><p><b>‹ All chargers</b> opens the ranked list; <b>×</b> or tapping the map closes it.</p>'},
-  {id:'results-pin-two',g:'4 · Results', label:'Results — pin with two prices (Berg 14)', s:{screen:'results', battery:'10', stay:180, ev:'cafe', sheet:'detail', loc:'berg'},
-   note:'<p><b>FR-022.</b> One location, two entries (a priced connector and a tariff-less one). One pin, coloured by its best entry; the sheet shows both.</p>'},
-  {id:'results-list',   g:'4 · Results', label:'Results — ranked list sheet pulled up', s:{screen:'results', battery:'10', stay:180, ev:'cafe', sheet:'list'},
-   note:'<p><b>FR-010.</b> The ranked list stays one swipe (tap) away. Tapping an entry shows it on the map.</p>'},
-  {id:'results-approx', g:'4 · Results', label:'Message — location is approximate', s:{screen:'results', battery:'10', stay:180, ev:'cafe', approx:true},
+   note:'<p><b>G7-AC5.</b> Shown while the spot, tiles and cost curves resolve. Entries then appear complete, window included.</p>'},
+  {id:'results',        g:'4 · Results', label:'Results — map, Nuenen, 10%, 3h', s:{...R, sel:0},
+   note:'<p><b>Map view.</b> Pins show the saving (green, ✓) or the extra cost (red: clock = not for this stay, ✕ = never). Dashed grey = Price unknown. The blue dot is the spot.</p><p>The sheet opens on the best saving (#1). The verdict is the biggest thing on screen; below it the saving, the worth-it window as a timeline (white mark = your stay), kWh, total and cost per km.</p><p>The strip at the bottom is the ranked list (FR-010): tap to switch. Parkstraat 21 and Park 52 tie; the nearer comes first.</p><p><b>FR-015, FR-019, G6.</b> Every charger adds 10.8 kWh (43.2 km, €8.64 of petrol). Opcharge matches PRD S4 scenario 1 (1h30 to 7h30).</p>'},
+  {id:'results-shell',  g:'4 · Results', label:'Results — not worth it for this stay (Shell)', s:{...R, sel:6},
+   note:'<p><b>G6-AC2.</b> A window exists but the stay is outside it. The timeline shows it at a glance: the white mark (3h) sits just before the green part (from 3h10).</p>'},
+  {id:'results-never',  g:'4 · Results', label:'Results — never worth it (Allego Kerkstraat)', s:{...R, sel:8},
+   note:'<p><b>PRD S2 scenario 1 / S4 scenario 3.</b> No window, so no timeline: the sheet states “Never worth it: always more expensive than petrol for your car”.</p>'},
+  {id:'results-berg',   g:'4 · Results', label:'Results — pin with two prices (Berg 14)', s:{...R, sel:2},
+   note:'<p><b>FR-022.</b> One location, two entries (a priced connector and a tariff-less one). One pin with ×2, coloured by its best entry; the sheet links to the other price.</p>'},
+  {id:'results-unknown',g:'4 · Results', label:'Results — price unknown (Molenstraat 5)', s:{...R, sel:10},
+   note:'<p><b>FR-020 / G6-AC7.</b> No verdict, window, cost or saving: only “Price unknown” and what is missing. Unknown entries come last in the ranking.</p>'},
+  {id:'results-approx', g:'4 · Results', label:'Message — location is approximate', s:{...R, sel:0, approx:true},
    note:'<p><b>G3-AC2.</b> Accuracy worse than 1,000 m: results are still shown for the reported position, with a pointer to the coordinates box.</p>'},
-  {id:'msg-full',       g:'4 · Results', label:'Message — battery full', s:{screen:'results', battery:'100', stay:180, ev:'cafe', msg:'full'},
+  {id:'msg-full',       g:'4 · Results', label:'Message — battery full', s:{...R, battery:'100', msg:'full'},
    note:'<p><b>PRD S2 scenario 3 / G6-AC4.</b> Battery at 100%: no savings listed.</p>'},
-  {id:'msg-load',       g:'4 · Results', label:'Message — data couldn’t load', s:{screen:'results', battery:'10', stay:180, ev:'cafe', msg:'load'},
+  {id:'msg-load',       g:'4 · Results', label:'Message — data couldn’t load', s:{...R, msg:'load'},
    note:'<p><b>G4-AC3.</b> Any failed manifest or tile fetch: no partial list. <b>Try again</b> repeats the request.</p>'}
 ];
 
@@ -351,24 +354,21 @@ function defaults(){
     vals:Object.fromEntries(FIELDS.map(f=>[f.k,f.v])), errs:{}, storage:false, reopen:false,
     battery:'', ev:'shopping', stay:90, limit:false, battErr:false,
     coords:'', coordErr:false, banner:null, hl:false,
-    spot:'Your location', spotCoords:'51.4436, 5.5519', approx:false, msg:null, sheet:'peek', loc:null};
+    spot:'Your location', spotCoords:'51.4436, 5.5519', approx:false, msg:null, sel:0};
 }
 function applyState(id){
   clearTimeout(timer);
   const st = STATES.find(x=>x.id===id) || STATES[0];
   S = Object.assign(defaults(), JSON.parse(JSON.stringify(st.s)));
   if (st.s.vals) S.vals = Object.assign(defaults().vals, st.s.vals);
-  if (id==='setup') S.storage = false;
-  if (S.coords && S.banner==='outside'){ S.spot='Typed spot'; }
   sel.value = id; showNote(id); render();
 }
 function go(screen, extra){ clearTimeout(timer); Object.assign(S, {screen}, extra||{}); syncSwitcher(); render(); window.scrollTo(0,0); }
 function syncSwitcher(){
-  if (S.screen==='results') window.scrollTo(0,0);
   let id = null;
   if (S.screen==='setup') id = S.reopen?'setup-reopen':(S.storage?'setup-storage':'setup');
   else if (S.screen==='loading') id='loading';
-  else if (S.screen==='results') id = S.msg==='full'?'msg-full':S.msg==='load'?'msg-load':S.approx?'results-approx':S.sheet==='list'?'results-list':S.sheet==='detail'?(S.loc==='berg'?'results-pin-two':S.loc==='parkstraat'?'results-pin':null):'results';
+  else if (S.screen==='results') id = S.msg==='full'?'msg-full':S.msg==='load'?'msg-load':S.approx?'results-approx':({0:'results',6:'results-shell',8:'results-never',2:'results-berg',9:'results-berg',10:'results-unknown'})[S.sel]||null;
   else if (S.screen==='parked') id = S.banner==='denied'?'msg-denied':S.banner==='outside'?'msg-outside':S.coordErr?'msg-coords':S.battErr?'parked-battery':'parked';
   if (id){ sel.value=id; showNote(id); }
 }
@@ -377,32 +377,35 @@ function syncSwitcher(){
 const evOf = k => EVENTS.find(e=>e.k===k);
 function dur(min){ if (min<60) return min+' min'; const h=Math.floor(min/60), m=min%60; return m? h+'h'+String(m).padStart(2,'0') : h+'h'; }
 function stayLabel(){ const e=evOf(S.ev); return e.label + (S.stay!==e.min?' (adjusted)':''); }
-function metres(m){ return m.toLocaleString('en-GB')+' m'; }
+const metres = m => m.toLocaleString('en-GB')+' m';
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur = n => '€'+Math.abs(n).toFixed(2);
+const amtLong = e => e.s>0 ? 'saves '+eur(e.s) : 'costs '+eur(e.s)+' more';
+const chipTxt = e => e.v==='u' ? '' : (e.s>0 ? eur(e.s) : '−'+eur(e.s));
+const kind = v => v==='w'?'w':v==='u'?'u':'n';
 function appbar(gear){
-  return `<header class="appbar"><div class="brand"><span class="plug">${I.bolt}</span>Plug or Not</div>${gear?`<button class="iconbtn" data-a="settings">${I.gear}Settings</button>`:''}</header>`;
+  return `<header class="appbar"><div class="brand"><span class="plug">${ic.bolt(16)}</span>Plug or Not</div>${gear?`<button class="iconbtn" data-a="settings" aria-label="Settings">${ic.gear(18)}</button>`:''}</header>`;
 }
-function stepper(compact){
-  const lo=S.stay<=15, hi=S.stay>=1440;
+function stepper(){
   return `<div class="stepper" role="group" aria-label="Length of stay">
-    <button data-a="stay-" aria-label="15 minutes shorter" ${lo?'aria-disabled="true"':''}>−</button>
-    <div class="val"><b class="num" style="font-family:var(--f-display)">${dur(S.stay)}</b><span>${esc(stayLabel())}</span></div>
-    <button data-a="stay+" aria-label="15 minutes longer" ${hi?'aria-disabled="true"':''}>+</button></div>
+    <button data-a="stay-" aria-label="15 minutes shorter">−</button>
+    <div class="val"><b class="num">${dur(S.stay)}</b><span>${esc(stayLabel())}</span></div>
+    <button data-a="stay+" aria-label="15 minutes longer">+</button></div>
     ${S.limit?`<div class="limitnote" role="status">Stays can be 15 minutes to 24 hours.</div>`:''}`;
 }
 
 /* ---------- Views ---------- */
 function vSetup(){
-  const grp=(g,title,hint)=>`<h2 class="sec">${title}</h2>${hint?`<p class="lede" style="margin:-4px 0 10px;font-size:15px">${hint}</p>`:''}`+
-    FIELDS.filter(f=>f.grp===g).map(field).join('');
+  const grp=(g,title,hint,two)=>`<h2 class="sec">${title}</h2>${hint?`<p class="lede" style="margin:-2px 0 12px;font-size:13px">${hint}</p>`:''}`+
+    `<div class="${two?'grid2':''}">${FIELDS.filter(f=>f.grp===g).map(field).join('')}</div>`;
   return appbar(false)+`<section class="screen">
     <h1>${S.reopen?'Settings':'Set up your car'}</h1>
     <p class="lede">${S.reopen?'Change what you need. Everything else stays as it is.':'Enter these once. They’re saved in this browser only.'}</p>
-    ${S.storage?`<div class="notice info" role="status">${I.info}<p>Your settings won't be remembered in this browser. You can still use Plug or Not now.</p></div>`:''}
+    ${S.storage?`<div class="notice info" role="status">${ic.info()}<p>Your settings won't be remembered in this browser. You can still use Plug or Not now.</p></div>`:''}
     <form id="setupForm" novalidate>
       ${grp('car','Your car')}
-      ${grp('petrol','Petrol')}
-      ${grp('card','Your charge card','As on your card’s price list, including VAT. Leave at 0 if your card has no fees.')}
+      ${grp('petrol','Petrol','',true)}
+      ${grp('card','Your charge card','As on your card’s price list, including VAT. Leave at 0 if your card has no fees.',true)}
       <div class="btn-row">
         ${S.reopen?`<button type="button" class="btn btn-secondary" data-a="cancel">Cancel</button>`:''}
         <button type="submit" class="btn btn-primary">Save</button>
@@ -410,174 +413,144 @@ function vSetup(){
     </form></section>`;
 }
 function field(f){
-  const e=S.errs[f.k], id='f_'+f.k;
-  const fmt=n=>n.toFixed(f.d);
+  const e=S.errs[f.k], id='f_'+f.k, fmt=n=>n.toFixed(f.d);
   const msg = e==='empty' ? `Enter your ${f.empty} (${f.munit||f.unit}) to continue.` : e==='range' ? `${f.name} must be between ${fmt(f.min)} and ${fmt(f.max)} ${f.munit||f.unit}.` : '';
   return `<div class="field${e?' err':''}">
     <label for="${id}">${f.label}</label>
     <div class="inwrap"><input id="${id}" name="${f.k}" inputmode="decimal" autocomplete="off" value="${esc(S.vals[f.k])}" ${e?`aria-invalid="true" aria-describedby="${id}_e"`:''}><span class="unit">${f.unit}</span></div>
-    ${e?`<div class="errmsg" id="${id}_e">${I.warn}<span>${msg}</span></div>`:''}</div>`;
+    ${e?`<div class="errmsg" id="${id}_e">${ic.warn(16)}<span>${msg}</span></div>`:''}</div>`;
 }
 function coordsBox(){
   return `<div class="field coords${S.coordErr?' err':''}${S.hl?' highlight':''}">
     <label for="coords">Use a different spot</label>
     <span class="hint">Type latitude, longitude</span>
     <div class="inwrap"><input id="coords" inputmode="decimal" autocomplete="off" placeholder="51.4436, 5.5519" value="${esc(S.coords)}" ${S.coordErr?'aria-invalid="true" aria-describedby="coords_e"':''}><button class="gobtn" data-a="coords">Go</button></div>
-    ${S.coordErr?`<div class="errmsg" id="coords_e">${I.warn}<span>Enter coordinates as latitude, longitude — for example 51.4436, 5.5519.</span></div>`:''}</div>`;
+    ${S.coordErr?`<div class="errmsg" id="coords_e">${ic.warn(16)}<span>Enter coordinates as latitude, longitude — for example 51.4436, 5.5519.</span></div>`:''}</div>`;
 }
 function vParked(){
+  const b = Number(S.battery);
   const banner = S.banner==='denied'
-    ? `<div class="notice bad" role="alert">${I.warn}<div><p>We couldn't get your location. Allow location access in your browser and try again, or enter coordinates below.</p><div class="acts"><button class="btn btn-secondary btn-small" data-a="locate">Try again</button></div></div></div>`
+    ? `<div class="notice bad" role="alert">${ic.warn()}<div><p>We couldn't get your location. Allow location access in your browser and try again, or enter coordinates below.</p><div class="acts"><button class="btn btn-secondary btn-small" data-a="locate">Try again</button></div></div></div>`
     : S.banner==='outside'
-    ? `<div class="notice bad" role="alert">${I.warn}<p>Charger prices are available for the Netherlands only for now.</p></div>` : '';
+    ? `<div class="notice bad" role="alert">${ic.warn()}<p>Charger prices are available for the Netherlands only for now.</p></div>` : '';
   return appbar(true)+`<section class="screen">
     <h1>Parked here now</h1>
     <p class="lede">We’ll rank the 10 nearest chargers by what they save you compared with petrol.</p>
     <div class="field${S.battErr?' err':''}">
       <label for="batt">Battery now</label>
-      <div class="inwrap" style="max-width:180px"><input id="batt" inputmode="numeric" autocomplete="off" placeholder="0–100" value="${esc(S.battery)}" ${S.battErr?'aria-invalid="true" aria-describedby="batt_e"':''}><span class="unit">%</span></div>
-      ${S.battErr?`<div class="errmsg" id="batt_e">${I.warn}<span>Enter your current battery level (0–100%).</span></div>`:''}
+      <div class="battwrap"><div class="inwrap"><input id="batt" inputmode="numeric" autocomplete="off" placeholder="0–100" value="${esc(S.battery)}" ${S.battErr?'aria-invalid="true" aria-describedby="batt_e"':''}><span class="unit">%</span></div>
+        <div class="battbar" aria-hidden="true"><i style="width:${S.battery!==''&&isFinite(b)?Math.max(0,Math.min(100,b)):0}%"></i></div></div>
+      ${S.battErr?`<div class="errmsg" id="batt_e">${ic.warn(16)}<span>Enter your current battery level (0–100%).</span></div>`:''}
     </div>
     <h2 class="sec">What are you here for?</h2>
     <div class="chips" role="group" aria-label="Event type">
       ${EVENTS.map(e=>`<button class="chip" data-a="ev" data-k="${e.k}" aria-pressed="${S.ev===e.k}"><b>${e.label}</b><span>${dur(e.min)}</span></button>`).join('')}
     </div>
     <h2 class="sec">How long you’ll stay</h2>
-    ${stepper(false)}
+    ${stepper()}
     <h2 class="sec">Where are you?</h2>
     ${banner}
-    ${S.banner==='denied'?'':`<button class="btn btn-primary" data-a="locate">${I.pin}Use my location</button><div class="divider">or</div>`}
+    ${S.banner==='denied'?'':`<button class="btn btn-primary" data-a="locate">${ic.pin(20)}Use my location</button><div class="divider">or</div>`}
     ${coordsBox()}
   </section>`;
 }
 function vLoading(){
   return appbar(false)+`<section class="screen"><div class="loading" role="status">
-    <div class="pulse">${I.pin}</div><p>Finding chargers near you…</p></div></section>`;
+    <div class="pulse">${ic.pin(28)}</div><p>Finding chargers near you…</p></div></section>`;
 }
-function ctxBar(){
-  return `<div class="ctx">
-    <div class="ctxrow">
-      <button class="batt" data-a="back" aria-label="Battery ${esc(S.battery)}%, change"><small>Battery</small><b class="num" style="font-family:var(--f-display)">${esc(S.battery)}%</b></button>
-      ${stepper(true)}
-    </div>
-    <div class="spot"><span>${I.pin.replace('width="22" height="22"','width="14" height="14"')} <b>${S.spot}</b> · <span class="num">${S.spotCoords}</span></span><button class="linkbtn" data-a="back">Change spot</button></div>
-  </div>`;
-}
-function entry(e,i,clickable){
-  i = ENTRIES.indexOf(e);
-  const vd=VERDICT[e.v];
-  const top = `<div class="etop"><span class="verdict">${I[vd.i]}${vd.t}</span>${e.amt?`<span class="amount"><b>${e.amt.replace(/^(saves|costs) /,'$1&nbsp;')}</b><small>${e.v==='worth'?'vs petrol':'vs petrol, this stay'}</small></span>`:''}</div>`;
-  const place = `<h3 class="op">${e.op}</h3><p class="addr">${e.addr} · <span class="num">${metres(e.m)}</span></p>`;
-  const click = clickable?` data-a="pin" data-loc="${e.loc}" tabindex="0" role="button" aria-label="Show ${esc(e.op)}, ${esc(e.addr)} on the map"`:'';
-  if (e.v==='unknown') return `<li class="entry v-unknown"${click}><span class="rank">${i+1}</span>${top}${place}<p class="reason">${e.reason}</p></li>`;
-  return `<li class="entry v-${e.v}"${click}><span class="rank">${i+1}</span>${top}${place}
-    <p class="price">${e.price}</p>
-    <dl class="stats">
-      <dt>Adds</dt><dd>${e.kwh} kWh</dd>
-      <dt>Total</dt><dd>${e.total}</dd>
-      <dt>Per km</dt><dd>${e.km}/km <small>vs €0.20/km petrol</small></dd>
-    </dl>
-    <p class="window">${I.win}<span>${e.win}</span></p></li>`;
-}
-const Y = y => 80 + (y-110)*0.86;   // squeeze the hand-placed layout into the area above the sheet
-const PIN_COL = {worth:'var(--charge)', notstay:'var(--bad)', never:'var(--bad)', unknown:'var(--unknown)'};
-function glyph(v){
-  if (v==='worth') return '<path d="M-6.5 -28 l4.5 4.5 l8.5 -9.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>';
-  if (v==='never') return '<path d="M-5.5 -33.5 l11 11 M5.5 -33.5 l-11 11" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>';
-  if (v==='notstay') return '<circle cx="0" cy="-28" r="7" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M0 -32 v4.5 l3 2" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>';
-  return '<text x="0" y="-22.5" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-weight="800" font-size="17" fill="#fff">?</text>';
-}
-function pin(lid){
-  const list=ENTRIES.filter(e=>e.loc===lid), best=list[0], x=PINS[lid][0], y=Y(PINS[lid][1]), sel=S.sheet==='detail'&&S.loc===lid;
-  const rank=ENTRIES.indexOf(best)+1, vd=VERDICT[best.v];
-  const label=`${rank}. ${best.op}, ${best.addr}: ${vd.t}${best.amt?', '+best.amt:''}${list.length>1?', and '+(list.length-1)+' more price':''}`;
-  return `<g class="pin" data-a="pin" data-loc="${lid}" role="button" tabindex="0" aria-label="${esc(label)}" transform="translate(${x} ${y}) scale(${sel?1.3:1})">
-    ${sel?'<ellipse cx="0" cy="0" rx="10" ry="4" fill="rgba(0,0,0,.25)"/>':''}
-    <path class="pinbody" d="M0 0 C-4 -9 -16 -15 -16 -28 A16 16 0 1 1 16 -28 C16 -15 4 -9 0 0Z" fill="${PIN_COL[best.v]}" stroke="${sel?'var(--ink)':'#fff'}" stroke-width="${sel?3:2.2}" ${best.v==='unknown'?'stroke-dasharray="4 3"':''}/>
-    ${glyph(best.v)}
-    <circle cx="13" cy="-43" r="8.5" fill="var(--ink)" stroke="#fff" stroke-width="1.5"/>
-    <text x="13" y="-39.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" font-size="10" fill="var(--surface)">${rank}</text>
-    ${list.length>1?`<circle cx="-13" cy="-43" r="8.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/><text x="-13" y="-39.5" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-weight="800" font-size="10" fill="var(--ink)">×${list.length}</text>`:''}
-  </g>`;
-}
+
+/* ---------- Results ---------- */
 function mapSvg(){
-  const road=(d,w)=>`<path d="${d}" fill="none" stroke="var(--map-edge)" stroke-width="${w+3}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="var(--map-road)" stroke-width="${w}" stroke-linecap="round"/>`;
-  const lbl=(x,y,r,t)=>`<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" font-family="Source Sans 3, sans-serif" font-size="10.5" font-weight="600" fill="var(--map-label)" letter-spacing=".04em">${t}</text>`;
+  const road=(d,w)=>`<path d="${d}" fill="none" stroke="var(--map-edge)" stroke-width="${w+2}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="var(--map-road)" stroke-width="${w}" stroke-linecap="round"/>`;
+  const lbl=(x,y,r,t)=>`<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" font-family="Sora, sans-serif" font-size="9" font-weight="600" fill="var(--map-label)" letter-spacing=".08em">${t}</text>`;
   // MOCKUP ONLY: a hand-drawn stand-in for a real map.
-  return `<svg class="map" viewBox="0 0 390 540" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of the 10 nearest chargers around your spot">
-    <rect data-a="mapbg" width="390" height="540" fill="var(--map-land)"/>
-    <g data-a="mapbg" transform="matrix(1 0 0 0.86 0 -14.6)">
-      <path d="M40 360 C70 330 150 335 170 370 C190 410 150 450 100 445 C55 440 25 400 40 360Z" fill="var(--map-park)"/>
-      <path d="M300 520 C320 505 360 510 372 530 C380 550 350 570 320 562 C300 556 290 535 300 520Z" fill="var(--map-water)"/>
-      <path d="M-10 560 C80 540 140 600 230 640" fill="none" stroke="var(--map-water)" stroke-width="10"/>
-      ${road('M-10 300 C110 292 260 276 400 266',9)}
-      ${road('M196 -10 C202 150 188 400 206 640',9)}
-      ${road('M30 112 L196 238',6)}
-      ${road('M202 300 C262 318 330 330 400 352',7)}
-      ${road('M110 70 L400 128',7)}
-      ${road('M226 640 C262 540 330 480 400 446',7)}
-      ${road('M-10 200 C60 190 120 160 150 120',5)}
-      ${road('M120 300 C110 360 90 420 60 640',5)}
-      ${road('M270 120 C275 180 280 240 300 330',5)}
-      ${lbl(18,290,-1.5,'PARKSTRAAT')}${lbl(206,560,86,'BERG')}${lbl(78,146,37,'KERKSTRAAT')}${lbl(320,330,15,'GERWENSEWEG')}${lbl(290,105,11,'EUROPALAAN')}${lbl(276,500,-30,'BOORDSEWEG')}
-      ${lbl(66,400,0,'PARK')}
-    </g>
-    <circle cx="195" cy="${Y(280)}" r="20" fill="var(--focus)" opacity=".18"/>
-    <circle cx="195" cy="${Y(280)}" r="8" fill="var(--focus)" stroke="#fff" stroke-width="3"/>
-    ${Object.keys(PINS).map(pin).join('')}
+  return `<svg class="map" viewBox="0 0 390 780" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="390" height="780" fill="var(--map-land)"/>
+    <path d="M30 470 C70 430 160 438 180 480 C200 525 150 575 95 568 C45 560 15 515 30 470Z" fill="var(--map-park)"/>
+    <path d="M290 640 C315 620 362 628 374 652 C382 676 348 700 316 690 C294 682 282 660 290 640Z" fill="var(--map-water)"/>
+    <path d="M-10 720 C90 690 150 760 250 800" fill="none" stroke="var(--map-water)" stroke-width="12"/>
+    ${road('M-10 380 C110 372 260 352 400 340',10)}
+    ${road('M196 -10 C204 200 186 520 208 800',10)}
+    ${road('M20 150 L196 306',7)}
+    ${road('M202 382 C262 404 330 418 400 446',8)}
+    ${road('M100 90 L400 160',8)}
+    ${road('M226 800 C262 690 330 610 400 570',8)}
+    ${road('M-10 262 C60 250 120 210 150 160',6)}
+    ${road('M118 382 C108 460 88 540 58 800',6)}
+    ${road('M272 160 C278 240 284 310 304 420',6)}
+    ${lbl(16,372,-1.5,'PARKSTRAAT')}${lbl(60,196,41,'KERKSTRAAT')}${lbl(316,424,15,'GERWENSEWEG')}${lbl(282,138,13,'EUROPALAAN')}
   </svg>`;
 }
-const LEG = (v,t)=>`<span><svg width="22" height="22" viewBox="-17 -46 34 48" aria-hidden="true"><path d="M0 0 C-4 -9 -16 -15 -16 -28 A16 16 0 1 1 16 -28 C16 -15 4 -9 0 0Z" fill="${PIN_COL[v]}" stroke="#fff" stroke-width="2" ${v==='unknown'?'stroke-dasharray="4 3"':''}/>${glyph(v)}</svg>${t}</span>`;
+function pins(){
+  const cur=E[S.sel].loc;
+  return `<div class="canvas" style="top:${PIN_TOP}px;height:${420*PIN_YS}px">
+    <span class="me" data-y="${ME[1]}" style="left:${ME[0]}px;top:${ME[1]*PIN_YS}px" role="img" aria-label="Your spot"></span>
+    ${Object.keys(POS).map(loc=>{
+      const list=E.filter(e=>e.loc===loc), b=list[0], [x,y]=POS[loc], n=list.length;
+      const lab=`${b.r}. ${b.op}, ${b.st}: ${VT[b.v]}${b.s!==undefined?', '+amtLong(b):''}${n>1?', and '+(n-1)+' more price here':''}`;
+      return `<button class="pin ${kind(b.v)}${loc===cur?' sel':''}" style="left:${x}px;top:${y*PIN_YS}px" data-y="${y}" data-a="pin" data-loc="${loc}" aria-label="${esc(lab)}">${ic[b.v](13)}${chipTxt(b)}${n>1?`<span class="x2">×${n}</span>`:''}</button>`;
+    }).join('')}
+  </div>`;
+}
+function wbar(e){
+  const pct=t=>Math.min(100,t/720*100), a=pct(e.w[0]), b=pct(e.w[1]), open=e.w[1]>=1440, mk=pct(S.stay);
+  return `<div class="wbar"><div class="lab">${e.win}</div>
+    <div class="track" role="img" aria-label="${e.win}. Your stay: ${dur(S.stay)}."><span class="seg${open?' open':''}" style="left:${a}%;width:${b-a}%"></span><span class="mk" style="left:${mk}%"></span></div>
+    <div class="ticks" aria-hidden="true"><span>0</span><span>3h</span><span>6h</span><span>9h</span><span>12h+</span></div></div>`;
+}
 function sheet(){
-  if (S.sheet==='detail'){
-    const list=ENTRIES.filter(e=>e.loc===S.loc);
-    return `<section class="sheet s-detail" aria-label="Charger details">
-      <button class="grab" data-a="tolist" aria-label="Show all chargers"><span></span></button>
-      <div class="sheethead"><button class="linkbtn" data-a="tolist">‹ All chargers</button><button class="closebtn" data-a="close" aria-label="Close details">×</button></div>
-      ${list.length>1?`<p class="meta"><b>${list.length} prices at this location.</b> Different charging points here use different tariffs.</p>`:''}
-      <div class="sheetbody" style="padding-top:12px"><ol class="entries">${list.map(e=>entry(e)).join('')}</ol></div></section>`;
-  }
-  if (S.sheet==='list'){
-    return `<section class="sheet s-list" aria-label="Ranked list">
-      <button class="grab" data-a="close" aria-label="Back to the map"><span></span></button>
-      <div class="sheethead"><h2>Best saving first</h2><button class="closebtn" data-a="close" aria-label="Back to the map">×</button></div>
-      <p class="meta">10 nearest chargers · prices include VAT and your card fees · <b>Tariff data from ${DATA_TIME}</b></p>
-      <div class="sheetbody"><ol class="entries click">${ENTRIES.map(e=>entry(e,0,true)).join('')}</ol>
-      <p class="foot">Distances are straight-line. Prices from NDW open data, ${DATA_TIME}.</p></div></section>`;
-  }
-  const b=ENTRIES[0];
-  return `<section class="sheet s-peek" aria-label="Summary">
-    <button class="grab" data-a="tolist" aria-label="Show the ranked list"><span></span></button>
-    <div class="sheethead"><h2>10 nearest chargers</h2><button class="linkbtn" data-a="tolist">List ▲</button></div>
-    <p class="meta" style="font-size:13px;margin-bottom:8px">Incl. VAT and card fees · <b>Tariff data from ${DATA_TIME}</b></p>
-    <button class="best" data-a="pin" data-loc="${b.loc}"><span style="color:var(--charge)">${I.check}</span><span><b>Best: ${b.op}, ${b.addr.split(',')[0]}</b><small>${b.amt} · ${metres(b.m)}</small></span><span class="go">Details</span></button>
+  const e=E[S.sel], others=E.filter(x=>x.loc===e.loc&&x!==e);
+  const also = others.map(o=>`<button class="also" data-a="sel" data-i="${o.r-1}">${ic[o.v](14)}<span>Also here: <b>${o.v==='u'?'Price unknown':VT[o.v]}</b>${o.v==='u'?'':' · '+amtLong(o)}</span><span class="go2">Show</span></button>`).join('');
+  const sub = e.v==='u' ? '' : `<p class="sub">${e.s>0?`Saves <b>${eur(e.s)}</b>`:`Costs <b>${eur(e.s)} more</b>`} than €8.64 of petrol</p>`;
+  const body = e.v==='u' ? `<p class="reason">${e.reason}</p>` :
+    `${e.w?wbar(e):`<p class="never">${ic.x(16)}<span>${e.win}</span></p>`}
+     <dl class="stats"><div><dt>Adds</dt><dd>10.8 kWh</dd></div><div><dt>Total</dt><dd>${e.total}</dd></div><div><dt>Per km</dt><dd>${e.km}<small>petrol €0.20/km</small></dd></div></dl>
+     <p class="price">${e.price}</p>`;
+  const strip = E.map((x,i)=>`<button data-a="sel" data-i="${i}" aria-current="${i===S.sel}"><b class="${kind(x.v)}">${ic[x.v](12)}${x.v==='u'?'Unknown':chipTxt(x)}</b>${x.r}. ${x.st}</button>`).join('');
+  return `<section class="sheet" aria-label="Charger details"><div class="grab"></div><div class="sbody">
+    <div class="rk"><span>#${e.r} of ${E.length} · best saving first</span><span class="num">${metres(e.m)}</span></div>
+    <div class="verdict ${e.v}">${ic[e.v](e.v==='n'?24:30)}${VT[e.v]}</div>
+    ${sub}
+    <p class="name">${e.op}</p><p class="addr">${e.st}, Nuenen</p>
+    ${also}${body}</div>
+    <div class="strip" aria-label="All chargers, best saving first">${strip}</div>
+    <p class="foot">Tariff data ${DATA_TIME} · prices incl. VAT and card fees · straight-line distances</p>
   </section>`;
 }
+const LEG = `<div class="legend" aria-hidden="true"><span><i style="background:var(--go);color:var(--go-ink)">${ic.w(11)}</i>Saves</span><span><i style="background:var(--no);color:var(--no-ink)">${ic.n(11)}</i>Not this stay</span><span><i style="background:var(--no);color:var(--no-ink)">${ic.x(11)}</i>Never</span><span><i style="outline:1.5px dashed var(--dash);color:var(--unknown)">${ic.u(11)}</i>Unknown</span></div>`;
 function vResults(){
-  let body;
-  if (S.msg==='load') body = `<section class="screen"><div class="message" role="alert"><span style="color:var(--bad)">${I.wifi}</span><p>Couldn't load charger prices. Check your connection and try again.</p><button class="btn btn-primary" data-a="retry">Try again</button></div></section>`;
-  else if (S.msg==='full') body = `<section class="screen"><div class="message" role="status"><span style="color:var(--charge)">${I.full}</span><p>Your battery is full, so there's nothing to charge here.</p></div></section>`;
-  else body = `<div class="mapwrap">
-    ${mapSvg()}
-    <div class="legend">${LEG('worth','Worth it')}${LEG('notstay','Not worth it')}${LEG('unknown','Price unknown')}</div>
+  const top = `<div class="rtop"><div class="row">
+      <button class="pill" data-a="back" aria-label="Battery ${esc(S.battery)}%, change"><small>Battery</small><span class="num">${esc(S.battery)}%</span></button>
+      <div class="pill stp" role="group" aria-label="Length of stay"><button data-a="stay-" aria-label="15 minutes shorter">−</button><div class="t"><b class="num">${dur(S.stay)}</b><small>${esc(stayLabel())}</small></div><button data-a="stay+" aria-label="15 minutes longer">+</button></div>
+      <button class="pill round" data-a="settings" aria-label="Settings">${ic.gear(17)}</button></div>
+      ${S.limit?`<div class="limitnote" role="status">Stays can be 15 minutes to 24 hours.</div>`:''}
+      <div class="spot"><span>${S.spot.toUpperCase()} · ${S.spotCoords}</span><button class="linkbtn" data-a="back">Change spot</button></div>
+      ${S.msg||S.approx||S.stay!==180?'':LEG}</div>`;
+  if (S.msg==='load') return `<div class="rwrap">${mapSvg()}${top}<div class="rmsg" role="alert"><div class="big" style="background:var(--no-soft);color:var(--no-text)">${ic.wifi()}</div><p>Couldn't load charger prices. Check your connection and try again.</p><button class="btn btn-primary" data-a="retry">Try again</button></div></div>`;
+  if (S.msg==='full') return `<div class="rwrap">${mapSvg()}${top}<div class="rmsg" role="status"><div class="big" style="background:var(--go-soft);color:var(--go)">${ic.full()}</div><p>Your battery is full, so there's nothing to charge here.</p></div></div>`;
+  return `<div class="rwrap">${mapSvg()}${top}${pins()}
     <div class="overlay">
-      ${S.approx?`<div class="notice info" role="status">${I.info}<div><p>Your location is approximate</p><p style="font-weight:400"><button class="linkbtn" data-a="precise">Enter coordinates</button> for a precise spot.</p></div></div>`:''}
+      ${S.approx?`<div class="notice info" role="status">${ic.info(16)}<div><p>Your location is approximate</p><p style="font-weight:400"><button class="linkbtn" data-a="precise">Enter coordinates</button> for a precise spot.</p></div></div>`:''}
       ${S.stay!==180?`<p class="mocknote">MOCKUP: figures stay fixed at 3h. The real page re-ranks instantly here.</p>`:''}
     </div>
-    ${sheet()}
-  </div>`;
-  return `<div class="rwrap">${appbar(true)}${ctxBar()}${body}</div>`;
+    ${sheet()}</div>`;
 }
 
 const app = document.getElementById('app');
-function render(){
-  app.innerHTML = {setup:vSetup, parked:vParked, loading:vLoading, results:vResults}[S.screen]();
+function render(){ app.innerHTML = {setup:vSetup, parked:vParked, loading:vLoading, results:vResults}[S.screen](); fitPins(); }
+// MOCKUP ONLY: squeeze the hand-placed pin layout into the map area left above the sheet.
+function fitPins(){
+  const cv=app.querySelector('.canvas'), sh=app.querySelector('.sheet'); if(!cv||!sh) return;
+  const ys=Math.max(0.38,Math.min(0.6,(sh.offsetTop-PIN_TOP-24)/420));
+  cv.style.height=420*ys+'px';
+  cv.querySelectorAll('[data-y]').forEach(el=>el.style.top=el.dataset.y*ys+'px');
 }
+addEventListener('resize',fitPins);
 
 /* ---------- Interactions ---------- */
 function startSearch(extra){
   go('loading');
-  timer = setTimeout(()=>go('results', Object.assign({msg:null, approx:false, sheet:'peek', loc:null}, extra)), 1300);
+  timer = setTimeout(()=>go('results', Object.assign({msg:null, approx:false, sel:0}, extra)), 1300);
 }
 function batteryOk(){
   const b=S.battery.trim(); const n=Number(b.replace(',','.'));
@@ -606,8 +579,8 @@ app.addEventListener('click', ev=>{
   else if (a==='locate'){
     S.banner=null; S.hl=false; S.coordErr=false;
     if(!batteryOk()){ go('parked'); return; }
-    if(Number(S.battery)===100){ S.spot='Your location'; S.spotCoords='51.4436, 5.5519'; startSearch({msg:'full'}); return; }
-    S.spot='Your location'; S.spotCoords='51.4436, 5.5519'; startSearch();
+    S.spot='Your location'; S.spotCoords='51.4436, 5.5519';
+    startSearch(Number(S.battery)===100?{msg:'full'}:{});
   }
   else if (a==='coords'){
     const p=parseCoords(S.coords); S.banner=null; S.hl=false;
@@ -616,26 +589,22 @@ app.addEventListener('click', ev=>{
     if(!batteryOk()){ go('parked'); return; }
     if(!inNL(p)){ go('parked',{banner:'outside', hl:true}); return; }
     S.spot='Typed spot'; S.spotCoords=p.lat+', '+p.lon;
-    if(Number(S.battery)===100){ startSearch({msg:'full'}); return; }
-    startSearch();
+    startSearch(Number(S.battery)===100?{msg:'full'}:{});
   }
   else if (a==='back'){ go('parked',{msg:null, approx:false}); }
   else if (a==='precise'){ go('parked',{msg:null, approx:false, hl:true}); setTimeout(()=>document.getElementById('coords')?.focus(),50); }
   else if (a==='retry'){ startSearch(); }
-  else if (a==='pin'){ S.sheet='detail'; S.loc=b.dataset.loc; render(); syncSwitcher(); }
-  else if (a==='tolist'){ S.sheet='list'; render(); syncSwitcher(); }
-  else if (a==='close' || a==='mapbg'){ S.sheet='peek'; S.loc=null; render(); syncSwitcher(); }
+  else if (a==='pin'){ S.sel=E.findIndex(e=>e.loc===b.dataset.loc); render(); syncSwitcher(); }
+  else if (a==='sel'){ S.sel=Number(b.dataset.i); render(); syncSwitcher(); app.querySelector('.strip [aria-current="true"]')?.scrollIntoView({block:'nearest',inline:'nearest'}); }
 });
 app.addEventListener('input', ev=>{
   const t=ev.target;
-  if (t.id==='batt'){ S.battery=t.value; }
+  if (t.id==='batt'){ S.battery=t.value; const bar=app.querySelector('.battbar i'); const n=Number(t.value); if(bar) bar.style.width=(t.value!==''&&isFinite(n)?Math.max(0,Math.min(100,n)):0)+'%'; }
   else if (t.id==='coords'){ S.coords=t.value; }
   else if (t.name && S.vals && t.name in S.vals){ S.vals[t.name]=t.value; }
 });
 app.addEventListener('keydown', ev=>{
-  if(ev.key==='Enter' && ev.target.id==='coords'){ ev.preventDefault(); app.querySelector('[data-a="coords"]').click(); return; }
-  const r=ev.target.closest('[role="button"][data-a]');   // SVG pins and list cards
-  if(r && (ev.key==='Enter'||ev.key===' ')){ ev.preventDefault(); r.dispatchEvent(new MouseEvent('click',{bubbles:true})); }
+  if(ev.key==='Enter' && ev.target.id==='coords'){ ev.preventDefault(); app.querySelector('[data-a="coords"]').click(); }
 });
 app.addEventListener('submit', ev=>{
   ev.preventDefault();
@@ -659,7 +628,7 @@ for (const st of STATES){
   const o=document.createElement('option'); o.value=st.id; o.textContent=st.label; og.appendChild(o);
 }
 function showNote(id){
-  const st=STATES.find(x=>x.id===id); const html=st?`<p style="color:var(--ink);font-weight:700">${st.label}</p>${st.note}`:'';
+  const st=STATES.find(x=>x.id===id); const html=st?`<p><b>${st.label}</b></p>${st.note}`:'';
   document.getElementById('mNote').innerHTML=html; document.getElementById('mNoteSmall').innerHTML=html;
 }
 sel.addEventListener('change',()=>applyState(sel.value));
@@ -669,6 +638,10 @@ document.getElementById('mNext').onclick=()=>step(1);
 const mb=document.querySelector('.mockbar');
 const setMh=()=>document.documentElement.style.setProperty('--mockh',mb.offsetHeight+'px');
 new ResizeObserver(setMh).observe(mb); setMh();
+const mode=document.getElementById('mMode');
+mode.onclick=()=>{ const day=document.documentElement.dataset.mode!=='day';
+  if(day) document.documentElement.dataset.mode='day'; else delete document.documentElement.dataset.mode;
+  mode.textContent=day?'☀ Day':'☾ Night'; mode.setAttribute('aria-pressed',day); };
 applyState('setup');
 </script>
 </body>
