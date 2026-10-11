@@ -239,15 +239,9 @@ input.range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgroun
 .also{display:flex;align-items:center;gap:8px;width:100%;margin:10px 0 0;background:var(--raised);border:1px dashed var(--faint);border-radius:12px;padding:8px 10px;text-align:left;font-size:12.5px;color:var(--soft)}
 .also b{color:var(--ink)}
 .also .go2{margin-left:auto;color:var(--focus);font-weight:600;white-space:nowrap}
-.wbar{margin:14px 0 0}
-.wbar .lab{font-size:12.5px;color:var(--soft);font-weight:600;margin-bottom:8px}
-.track{position:relative;height:10px;border-radius:5px;background:var(--raised2)}
-.seg{position:absolute;top:0;bottom:0;border-radius:5px;background:var(--go)}
-.seg.open{border-radius:5px 0 0 5px;background:linear-gradient(90deg,var(--go) 82%,color-mix(in srgb,var(--go) 20%,transparent))}
-.mk{position:absolute;top:-5px;width:3px;height:20px;margin-left:-1.5px;border-radius:2px;background:var(--ring)}
-.ticks{display:flex;justify-content:space-between;font:500 10px/1 var(--f-data);color:var(--faint);margin-top:6px}
 .never{display:flex;gap:8px;align-items:flex-start;margin:14px 0 0;font-size:13.5px;color:var(--soft);font-weight:600}
 .never svg{color:var(--no-text);margin-top:1px}
+.never.ok svg{color:var(--go)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 0}
 .stats div{background:var(--raised);border-radius:12px;padding:8px 10px;min-width:0}
 .stats dt{font:500 9.5px/1.2 var(--f-data);color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
@@ -302,6 +296,7 @@ const ic = {
   warn:(s=18)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="18" r="1.3" fill="currentColor"/></svg>`,
   info:(s=18)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 11v6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1.3" fill="currentColor"/></svg>`,
   pin:(s=20)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.6 7-12.2A7 7 0 0 0 5 9.8C5 15.4 12 22 12 22z" fill="none" stroke="currentColor" stroke-width="2.3"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/></svg>`,
+  win:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`,
   gear:(s=18)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`,
   bolt:(s=16)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="currentColor"/></svg>`,
   wifi:(s=32)=>`<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
@@ -373,11 +368,11 @@ const STATES = [
   {id:'loading',        g:'3 · Loading', label:'Loading — finding chargers', s:{screen:'loading'},
    note:'<p><b>G7-AC5.</b> Shown while the tiles and cost curves resolve. Entries then appear complete, window included.</p>'},
   {id:'results',        g:'4 · Results', label:'Results — map, Nuenen, 10%, 3h', s:{...R, sel:0},
-   note:'<p><b>Map view.</b> Pins show the saving (green, ✓) or the extra cost (red: clock = not for this stay, ✕ = never). Dashed grey = Price unknown. The blue dot is the spot.</p><p>The sheet opens on the best saving (#1). The verdict is the biggest thing on screen; below it the saving, one line with the price and the total, and the worth-it window as a timeline (white mark = your stay).</p><p>The stay slider in the top bar works like the one on the parked screen; release it to update the sheet. The strip at the bottom is the ranked list (FR-010): tap to switch. Parkstraat 21 and Park 52 tie; the nearer comes first.</p><p><b>FR-015, FR-019, G6.</b> Every charger adds 10.8 kWh (43.2 km, €8.64 of petrol). Opcharge matches PRD S4 scenario 1 (1h30 to 7h30).</p>'},
+   note:'<p><b>Map view.</b> Pins show the saving (green, ✓) or the extra cost (red: clock = not for this stay, ✕ = never). Dashed grey = Price unknown. The blue dot is the spot.</p><p>The sheet opens on the best saving (#1). The verdict is the biggest thing on screen; below it the saving, one line with the price and the total, and the worth-it window sentence.</p><p>The stay slider in the top bar works like the one on the parked screen; release it to update. The strip at the bottom is the ranked list (FR-010): tap to switch. Parkstraat 21 and Park 52 tie; the nearer comes first.</p><p><b>FR-015, FR-019, G6.</b> Every charger adds 10.8 kWh (43.2 km, €8.64 of petrol). Opcharge matches PRD S4 scenario 1 (1h30 to 7h30).</p>'},
   {id:'results-shell',  g:'4 · Results', label:'Results — not worth it for this stay (Shell)', s:{...R, sel:6},
-   note:'<p><b>G6-AC2.</b> A window exists but the stay is outside it. The timeline shows it at a glance: the white mark (3h) sits just before the green part (from 3h10).</p>'},
+   note:'<p><b>G6-AC2.</b> A window exists but the stay is outside it: “Worth it if you stay at least 3h10”, just past the 3h stay.</p>'},
   {id:'results-never',  g:'4 · Results', label:'Results — never worth it (Allego Kerkstraat)', s:{...R, sel:8},
-   note:'<p><b>PRD S2 scenario 1 / S4 scenario 3.</b> No window, so no timeline: the sheet states “Never worth it: always more expensive than petrol for your car”.</p>'},
+   note:'<p><b>PRD S2 scenario 1 / S4 scenario 3.</b> No window: the sheet states “Never worth it: always more expensive than petrol for your car”.</p>'},
   {id:'results-berg',   g:'4 · Results', label:'Results — pin with two prices (Berg 14)', s:{...R, sel:2},
    note:'<p><b>FR-022.</b> One location, two entries (a priced connector and a tariff-less one). One pin with ×2, coloured by its best entry; the sheet links to the other price.</p>'},
   {id:'results-unknown',g:'4 · Results', label:'Results — price unknown (Molenstraat 5)', s:{...R, sel:10},
@@ -546,19 +541,13 @@ function pins(){
     }).join('')}
   </div>`;
 }
-function wbar(e){
-  const pct=t=>Math.min(100,t/720*100), a=pct(e.w[0]), b=pct(e.w[1]), open=e.w[1]>=1440, mk=pct(S.stay);
-  return `<div class="wbar"><div class="lab">${e.win}</div>
-    <div class="track" role="img" aria-label="${e.win}. Your stay: ${dur(S.stay)}."><span class="seg${open?' open':''}" style="left:${a}%;width:${b-a}%"></span><span class="mk" style="left:${mk}%"></span></div>
-    <div class="ticks" aria-hidden="true"><span>0</span><span>3h</span><span>6h</span><span>9h</span><span>12h+</span></div></div>`;
-}
 function sheet(){
   const e=E[S.sel], others=E.filter(x=>x.loc===e.loc&&x!==e);
   const also = others.map(o=>`<button class="also" data-a="sel" data-i="${o.r-1}">${ic[o.v](14)}<span>Also here: <b>${o.v==='u'?'Price unknown':VT[o.v]}</b>${o.v==='u'?'':' · '+amtLong(o)}</span><span class="go2">Show</span></button>`).join('');
   const sub = e.v==='u' ? '' : `<p class="sub">${e.s>0?`Saves <b>${eur(e.s)}</b>`:`Costs <b>${eur(e.s)} more</b>`} than €8.64 of petrol</p>
     <p class="sub" style="margin-top:3px"><b>${e.price}</b> · total <b>${e.total}</b></p>`;
   const body = e.v==='u' ? `<p class="reason">${e.reason}</p>` :
-    `${e.w?wbar(e):`<p class="never">${ic.x(16)}<span>${e.win}</span></p>`}
+    `<p class="never${e.w?' ok':''}">${e.w?ic.win(16):ic.x(16)}<span>${e.win}</span></p>
 `;
   const strip = E.map((x,i)=>`<button data-a="sel" data-i="${i}" aria-current="${i===S.sel}"><b class="${kind(x.v)}">${ic[x.v](12)}${x.v==='u'?'Unknown':chipTxt(x)}</b>${x.r}. ${x.st}</button>`).join('');
   return `<section class="sheet" aria-label="Charger details"><div class="grab"></div><div class="sbody">
