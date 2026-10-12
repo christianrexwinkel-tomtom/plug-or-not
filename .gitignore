@@ -1,0 +1,5 @@
+node_modules/
+dist/
+public/data.next/
+*.json.gz
+.DS_Store

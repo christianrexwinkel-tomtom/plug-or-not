@@ -1,0 +1,472 @@
+[
+ {
+  "id": "AC_ONLY",
+  "party_id": "AAA",
+  "country_code": "NL",
+  "publish": true,
+  "name": "AC_ONLY",
+  "address": "Street AC_ONLY",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "51.4436",
+   "longitude": "5.5519"
+  },
+  "operator": {
+   "name": "Vattenfall"
+  },
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "AC_ONLY-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_3_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 11000,
+      "tariff_ids": [
+       "T1"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "DC_ONLY",
+  "party_id": "AAA",
+  "country_code": "NL",
+  "publish": true,
+  "name": "DC_ONLY",
+  "address": "Street DC_ONLY",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "51.444",
+   "longitude": "5.552"
+  },
+  "operator": {
+   "name": "Op X"
+  },
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "DC_ONLY-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "DC",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 50000,
+      "tariff_ids": [
+       "T2"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "MIXED",
+  "party_id": "AAA",
+  "country_code": "NL",
+  "publish": true,
+  "name": "MIXED",
+  "address": "Street MIXED",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "51.445",
+   "longitude": "5.553"
+  },
+  "operator": {
+   "name": "Op X"
+  },
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "MIXED-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_3_PHASE",
+      "max_voltage": 230,
+      "max_amperage": 16,
+      "max_electric_power": null,
+      "tariff_ids": [
+       "T1"
+      ]
+     }
+    ]
+   },
+   {
+    "uid": "MIXED-1",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "DC",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 50000,
+      "tariff_ids": [
+       "T2"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "HALF_PRICED",
+  "party_id": "AAA",
+  "country_code": "NL",
+  "publish": true,
+  "name": "HALF_PRICED",
+  "address": "Street HALF_PRICED",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "51.446",
+   "longitude": "5.554"
+  },
+  "operator": {
+   "name": "Op X"
+  },
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "HALF_PRICED-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_1_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 7400,
+      "tariff_ids": [
+       "T1"
+      ]
+     }
+    ]
+   },
+   {
+    "uid": "HALF_PRICED-1",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_1_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 7400,
+      "tariff_ids": []
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "ONE_UNRESOLVED",
+  "party_id": "AAA",
+  "country_code": "NL",
+  "publish": true,
+  "name": "ONE_UNRESOLVED",
+  "address": "Street ONE_UNRESOLVED",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "51.447",
+   "longitude": "5.555"
+  },
+  "operator": {
+   "name": "Op X"
+  },
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "ONE_UNRESOLVED-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_3_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 11000,
+      "tariff_ids": [
+       "T1",
+       "NOPE"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "NO_POWER",
+  "party_id": "AAA",
+  "country_code": "NL",
+  "publish": true,
+  "name": "NO_POWER",
+  "address": "Street NO_POWER",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "51.448",
+   "longitude": "5.556"
+  },
+  "operator": {
+   "name": "Op X"
+  },
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "NO_POWER-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_3_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": null,
+      "tariff_ids": [
+       "T2"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "HIDDEN",
+  "party_id": "AAA",
+  "country_code": "NL",
+  "publish": false,
+  "name": "HIDDEN",
+  "address": "Street HIDDEN",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "51.449",
+   "longitude": "5.557"
+  },
+  "operator": {
+   "name": "Op X"
+  },
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "HIDDEN-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_3_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 11000,
+      "tariff_ids": [
+       "T1"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "COLLIDE",
+  "party_id": "BBB",
+  "country_code": "NL",
+  "publish": true,
+  "name": "COLLIDE",
+  "address": "Street COLLIDE",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "51.45",
+   "longitude": "5.558"
+  },
+  "operator": null,
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "COLLIDE-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_3_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 11000,
+      "tariff_ids": [
+       "T1"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "SHARED",
+  "party_id": "AAA",
+  "country_code": "NL",
+  "publish": true,
+  "name": "SHARED",
+  "address": "Street SHARED",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "52.37",
+   "longitude": "4.9"
+  },
+  "operator": {
+   "name": "Op X"
+  },
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "SHARED-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_1_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 3700,
+      "tariff_ids": [
+       "T1"
+      ]
+     }
+    ]
+   },
+   {
+    "uid": "SHARED-1",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_3_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 11000,
+      "tariff_ids": [
+       "T1"
+      ]
+     }
+    ]
+   },
+   {
+    "uid": "SHARED-2",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_3_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": null,
+      "tariff_ids": [
+       "T2"
+      ]
+     }
+    ]
+   },
+   {
+    "uid": "SHARED-3",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_1_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 7400,
+      "tariff_ids": [
+       "T2"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "NULL_TARIFFS",
+  "party_id": "AAA",
+  "country_code": "NL",
+  "publish": true,
+  "name": "NULL_TARIFFS",
+  "address": "Street NULL_TARIFFS",
+  "city": "Nuenen",
+  "postal_code": "5671",
+  "coordinates": {
+   "latitude": "52.371",
+   "longitude": "4.901"
+  },
+  "operator": {
+   "name": "Op X"
+  },
+  "suboperator": null,
+  "owner": null,
+  "time_zone": "Europe/Amsterdam",
+  "evses": [
+   {
+    "uid": "NULL_TARIFFS-0",
+    "connectors": [
+     {
+      "id": "1",
+      "standard": "IEC_62196_T2",
+      "format": "SOCKET",
+      "power_type": "AC_1_PHASE",
+      "max_voltage": null,
+      "max_amperage": null,
+      "max_electric_power": 7400,
+      "tariff_ids": null
+     }
+    ]
+   }
+  ]
+ }
+]
