@@ -762,6 +762,41 @@ Task 33 step 5 (dev server, `http://localhost:5173/plug-or-not/`, browser pane; 
 
 Before a57c825, check 1 failed with `Error: Worker failed to load. Check that the worker URL is correct.` and "Map couldn't load.". Check 3 showed "No location yet · 52.0862, 5.2900": the coordinates came from the attach-time resize. Both are fixed in a57c825; see deviation rows 4 and 5. The `vite preview` production build was also checked after the fix: the map loaded, the attribution was spelled out, and there were no console errors.
 
+### Chunk 2: End-Review round 1 fixes
+
+- **Issues fixed:** 1, 2, 3, 4, 5, 6, 7, 8 (and the optional `themeFor`)
+- **Tests added or changed:** src/ui/map-core.test.ts ("fails once on error … also after load" replaced by "fails once on error events before load, tile errors included", "after load, a tile error does not fail", "after load, a style error (no source or tile) still fails, once"; added "a load after the timeout recovers, once", "a load after an error does not recover, and a load in time reports no recovery"; new `isDriverMove` block, 4 tests); src/app.test.ts (+1: a map that loads late recovers via `reportMapRecovered`, keeps the browser position, allows moves again; the first test awaits `app.findChargers()` again, with `locate` mocked to a promise that hasn't answered, because a found location now answers the refused tap); src/ui/map-style.test.ts (+1, `themeFor`); src/ui/messages.test.ts (+1, `SPOT_MAP_LABEL`); test/acceptance/flows.test.ts and src/ui/spot-view.test.ts drop `approximate` from `LocationState.found` (issue 4: the field is removed, `spotOf` decides; the approximate-location flow now asserts `spotFor(...)`). Suite: 246 → 257 tests. Issues 3 and 7 (`src/ui/parked.ts`: "Moved spot" in the live drag listener; MapLibre via a cached dynamic `import('./map.ts')`, a failed import calling `reportMapFailure`) are DOM code with no DOM test dependency; checked by `tsc --noEmit`, the build and the browser pane
+- **Build (issue 7):** entry chunk `index-*.js` 43.07 kB (was ≈1,060 kB); MapLibre is in the lazily loaded `map-*.js` (1,019 kB / 276 kB gz), which is the only chunk the 500 kB warning still names
+- **Browser pane (dev server, location denied):** the parked map loaded (no "Map couldn't load.", no console errors), a real drag turned the chip into "Moved spot · 52.5182, 6.0330". The mid-drag chip and a late `load` after the 8 s timeout could not be forced in the pane (synthetic pointer events don't drive MapLibre's drag); both are covered by unit tests and left for the manual device pass
+- **Worker reported peak context:** ≈75k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** bc0ed95 (fixes); this log entry in the following docs commit
+- **Deviations:** rows 6–7 in the Deviations from Plan table
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  22 passed (22)
+      Tests  257 passed (257)
+   Start at  09:47:34
+   Duration  790ms (tests 45%, transform 28%, import 24%, worker 3%)
+
+$ npm run build
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-DYvrgcMw.css                                       20.25 kB │ gzip:   4.53 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-lnsROtTx.js                                        43.07 kB │ gzip:  16.40 kB
+dist/assets/map-RXyRFVM2.js                                       1,019.22 kB │ gzip: 276.26 kB
+
+✓ built in 622ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
 ---
 
 ## Deviations from Plan
@@ -773,6 +808,8 @@ Before a57c825, check 1 failed with `Error: Worker failed to load. Check that th
 | 3   | Task 32 / Chunk 1 | change | Slice 3: `src/ui/map.ts` uses `import * as maplibregl from 'maplibre-gl'`, because maplibre-gl 6.11.2 is ESM-only with no default export (TS1192). `last` is typed `{ lat: number; lon: number }`, because `NL_CENTRE` is `as const`. The Task 32 grep still finds exactly one import, at `src/ui/map.ts:3` | no | pending | 2026-10-12 |
 | 4   | Task 32 / Chunk 1 | gap | Slice 3: with the plan's wrapper the map never loads, in dev or build ("Worker failed to load"). MapLibre 6 looks for `maplibre-gl-worker.mjs` next to its own module file, and Vite doesn't put it there. The wrapper now imports `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` and calls `maplibregl.setWorkerUrl()`. The build emits `assets/maplibre-gl-worker-*.js` (≈509 kB) | no | pending | 2026-10-12 |
 | 5   | Task 32 / Chunk 1 | gap | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | no | pending | 2026-10-12 |
+| 6   | Task 29 / Chunk 2 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails; after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | no | pending | 2026-10-12 |
+| 7   | Task 29 / Chunk 2 | change | Slice 3: the fixed 8 s timeout is no longer final. A `load` after a timeout-only failure calls a new `onRecover`; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot (End-Review round 1, issue 2) | no | pending | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
