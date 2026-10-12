@@ -612,6 +612,36 @@ dist/assets/index-CZihSCAV.js                                     37.47 kB │ g
 
 Task 25 step 3 (`gh run list --workflow deploy.yml --branch main --limit 1` after merge) and step 4 (manual checks on iPhone Safari, Android Chrome, desktop Chrome/Edge/Safari: window line in Night and Day, results slider drag/release, desktop keyboard focus, shared stay, G8-AC2 stopwatch ×5): pending — owned by the user after merge.
 
+### End-Review (Slice 2)
+
+Range reviewed: `be1da03..4f7f3f6`. Opus reviewer, given no worker narrative and with the implementation log excluded.
+
+- **Verdict:** APPROVED (round 1)
+- **Issues found:** none blocking. Part A ✅ (G6-AC1, G6-AC5, G6-AC7, G6-AC8/D-30, G7-AC2, G7-AC4, FR-018, PRD S4 and S3 scenario 1 all covered, nothing extra). Part B ✅ with three optional Minor notes left open:
+  - `src/app.ts:183-186`: `setStay` calls `set()` twice, once for `stayMin` and once inside `rerank()`. The results DOM is rebuilt twice per release, and the first build briefly pairs the new stay label with the old ranking.
+  - `src/ui/format.ts:55-60`: degenerate windows read oddly, e.g. "40 min to 40 min" or "for any stay up to 15 min". The spec doesn't cover these.
+  - `src/ui/entry-view.ts:39-40`: `hasWindow` only picks an icon. Acceptable.
+- **Tests-vs-spec audit:** the tests check specified behaviour, not the code that was written. The reviewer re-derived every hand-worked PRD figure independently and all match: the 1h10 window start (3.80 kWh at minute 64), −€0.52 at 45 min, the 1h upper limit at battery 90%, Opcharge at 70% never covering its fixed fees, and Cheapkwh against Vattenfall (−€1.48/+€0.39 at 45 min, €5.85/€5.51 at 4h). G7-AC4 is pinned four ways: one `findNearest` call, no 'loading' view, the same `entry` objects, and kWh moving from 5.4 to 2.7. The D-30 test really reorders the results, so a "jump to the new #1" implementation would fail. Remaining gap, within the plan (D-17): the slider wiring (input vs change) and the S4 "Pending" edge case have no DOM test and rely on the Task 25 manual checks. Minor lock-in: `hasWindow` in the entry-view tests.
+- **Reviewer rounds:** 1
+- **Cap outcome:** none. The reviewer approved in round 1.
+
+#### Final full verify output (verbatim)
+
+Command: `npm test 2>&1 | tail -6; npm run build 2>&1 | tail -3; grep -rnE "pill grow|\bfill\(" src/`
+
+```
+ Test Files  18 passed (18)
+      Tests  197 passed (197)
+   Start at  08:18:03
+   Duration  654ms (tests 42%, transform 32%, import 23%, worker 3%)
+
+dist/assets/index-CZihSCAV.js                                     37.47 kB │ gzip: 14.26 kB
+
+✓ built in 483ms
+$ grep -rnE "pill grow|fill\(" src/
+(exit 1)
+```
+
 ---
 
 ## Deviations from Plan
@@ -619,6 +649,8 @@ Task 25 step 3 (`gh run list --workflow deploy.yml --branch main --limit 1` afte
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
 | --- | ---------- | ----------------- | ----------- | ------------- | ------ | ---- |
 | 1   | Task 14 / Chunk 4 | change | Slice 1: build drops locations outside a NL-and-neighbours bounding box (`DATA_BOUNDS`, lat 50.0–54.0, lon 2.5–7.5, edges kept) in `scripts/build-data.ts`, so bogus feed coordinates (0,0, swapped, Asia/US) no longer reach the snapshot or stretch the `coversAll` bounds. Snapshot: 580 tiles, 72516 locations | yes — plan §Task 14 edited 2026-10-12 | approved | 2026-10-12 |
+
+Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
 <!-- If there are no deviations, write "None." below the table and confirm verbally with the user. -->
 

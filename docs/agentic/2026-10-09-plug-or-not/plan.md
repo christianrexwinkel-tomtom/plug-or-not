@@ -49,7 +49,7 @@ Slice 1 has 19 tasks and Slice 2 has 6 (Tasks 20–25). Each title names the com
 | Slice | Name | Use case ref(s) | Status |
 |-------|------|-----------------|--------|
 | 1 | Answer for my location (no map) | S1; S2 (scenarios 1–5, battery full, outside the Netherlands, load error, approximate notice, location denied + Try again); S3 (parked-screen slider, − and +, limits) | done |
-| 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | todo |
+| 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | done |
 | 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | todo (separate plan run) |
 | 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | todo (separate plan run) |
 
