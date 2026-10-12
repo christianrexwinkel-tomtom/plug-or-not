@@ -37,6 +37,9 @@ function staySlider(app: App) {
     dragging = false;
     app.setStay(Number(input.value));
   });
+  // A drag that ends on its starting value fires no `change`: end it here too, or `sync` stays off for the visit.
+  const endDrag = () => { dragging = false; };
+  for (const type of ['pointerup', 'pointercancel', 'blur']) input.addEventListener(type, endDrag);
   return {
     box: h('label', { class: 'pill sl' }, h('span', { class: 't' }, h('small', {}, 'Stay'), value), input),
     /** Shows the app's value unless the driver is dragging. */
@@ -45,8 +48,9 @@ function staySlider(app: App) {
 }
 
 /**
- * G6-AC8: Battery, the stay slider and Settings, built once; under them the spot the results are for, with
- * "Change spot", and the approximate-position notice, which `update` replaces.
+ * G6-AC8: Battery, the stay slider and Settings; under them the spot the results are for, with "Change spot", and the
+ * approximate-position notice. All built once and patched in place, so "Change spot" keeps its focus across an update
+ * and the notice isn't announced again on every stay change.
  */
 function topBar(app: App) {
   const stay = staySlider(app);
@@ -57,20 +61,24 @@ function topBar(app: App) {
     stay.box,
     h('button', { type: 'button', class: 'pill round', 'aria-label': 'Settings', onclick: () => app.openSettings() }, icon('gear', 17)),
   );
-  const el = h('div', { class: 'rtop' }, row);
+  const spotName = h('b', {});
+  const spotCoords = document.createTextNode('');
+  const spot = h('div', { class: 'spot' },
+    h('span', { class: 'num' }, spotName, spotCoords),
+    // Like the Battery pill, back to the parked view, where the spot can be moved.
+    h('button', { type: 'button', class: 'linkbtn', onclick: () => app.backToParked() }, CHANGE_SPOT));
+  const approximate = notice('info', 'status', h('p', {}, APPROXIMATE), h('p', { class: 'plain' }, APPROXIMATE_RESULTS));
+  const el = h('div', { class: 'rtop' }, row, spot, approximate);
   return {
     el,
     update(state: AppState, v: ResultsMapView): void {
       batteryNum.textContent = `${state.battery}%`;
       battery.setAttribute('aria-label', `Battery ${state.battery}%, change`);
       stay.sync(state.stayMin);
-      replaceAfter(row,
-        v.spotLabel !== null && h('div', { class: 'spot' },
-          h('span', { class: 'num' }, h('b', {}, v.spotLabel), ` · ${v.spotCoords ?? ''}`),
-          // Like the Battery pill, back to the parked view, where the spot can be moved.
-          h('button', { type: 'button', class: 'linkbtn', onclick: () => app.backToParked() }, CHANGE_SPOT)),
-        state.approximateResults && notice('info', 'status', h('p', {}, APPROXIMATE), h('p', { class: 'plain' }, APPROXIMATE_RESULTS)),
-      );
+      spot.hidden = v.spotLabel === null;
+      spotName.textContent = v.spotLabel ?? '';
+      spotCoords.data = ` · ${v.spotCoords ?? ''}`;
+      approximate.hidden = !state.approximateResults;
     },
   };
 }
@@ -168,12 +176,30 @@ export function mountResults(root: HTMLElement, app: App): (state: AppState) => 
   const wrap = h('div', { class: 'rwrap' }, layer, content);
   root.replaceChildren(wrap);
   let map: MapHandle | null = null;
-  /** The last view and the panel height measured with it, for a map that arrives after the first update. */
-  let last: { v: ResultsMapView; panelPx: number } | null = null;
+  /** The last view, its entries and the panel height measured with it, for a map that arrives after the first update. */
+  let last: { v: ResultsMapView; views: EntryView[]; panelPx: number } | null = null;
   /** The frameKey last framed: a stay change keeps it, so the map isn't reframed under the driver. */
   let framed: string | null = null;
 
-  function applyMap(m: MapHandle, v: ResultsMapView, panelPx: number): void {
+  /**
+   * G6-AC8: the tallest details panel any entry renders, each built off-screen in the panel's own place (same width
+   * and max-height), measured and removed at once. Hidden from assistive tech and focus while it exists.
+   */
+  function tallestPanelPx(views: EntryView[]): number {
+    let tallest = 0;
+    for (const e of views) {
+      const probe = panel(e, views, app);
+      probe.setAttribute('aria-hidden', 'true');
+      probe.inert = true;
+      probe.style.cssText = 'position:absolute;visibility:hidden;inset:auto 0 0 0';
+      content.append(probe);
+      tallest = Math.max(tallest, probe.offsetHeight);
+      probe.remove();
+    }
+    return tallest;
+  }
+
+  function applyMap(m: MapHandle, v: ResultsMapView, views: EntryView[], panelPx: number): void {
     const focusedPin = document.activeElement instanceof HTMLElement ? document.activeElement.dataset.pin : undefined;
     m.setDraggable(v.mapMessage === null);
     m.setAccuracy(null);
@@ -188,9 +214,13 @@ export function mountResults(root: HTMLElement, app: App): (state: AppState) => 
     if (v.frameKey === framed) return;
     framed = v.frameKey;
     const topPx = content.querySelector<HTMLElement>('.rtop')?.offsetHeight ?? 0;
-    // Framed for the tallest panel: selecting another entry never reframes, and the panel grows with some (G6-AC8).
+    // Framed for the tallest panel any entry renders: selecting another entry never reframes, and the panel grows with
+    // some (G6-AC8).
     const layerPx = layer.clientHeight;
-    if (v.bounds) m.frame(v.bounds, framePadding(topPx, framingPanelPx(panelPx, layerPx), layer.clientWidth, layerPx));
+    if (v.bounds) {
+      const bottomPx = framingPanelPx(panelPx, tallestPanelPx(views), layerPx);
+      m.frame(v.bounds, framePadding(topPx, bottomPx, layer.clientWidth, layerPx));
+    }
     else if (v.spot) m.centreOn(v.spot.lat, v.spot.lon, SPOT_ZOOM);
   }
 
@@ -199,7 +229,7 @@ export function mountResults(root: HTMLElement, app: App): (state: AppState) => 
     m.showResults();
     m.attachTo(layer);
     map = m;
-    if (last) applyMap(m, last.v, last.panelPx);
+    if (last) applyMap(m, last.v, last.views, last.panelPx);
   }, () => undefined);
 
   return (state) => {
@@ -208,10 +238,11 @@ export function mountResults(root: HTMLElement, app: App): (state: AppState) => 
     // Measured once per update: the framing padding, the attribution and "Map couldn't load." all sit above the panel
     // (G6-AC8, D-22, G6-AC9).
     const panelPx = content.querySelector<HTMLElement>('.sheet')?.offsetHeight ?? 0;
-    last = { v, panelPx };
+    const views = state.search === 'results' ? entryViews(state.results) : [];
+    last = { v, views, panelPx };
     wrap.style.setProperty('--sheet-h', `${panelPx}px`);
     mapMessage.hidden = v.mapMessage === null;
     mapMessage.textContent = v.mapMessage ?? '';
-    if (map) applyMap(map, v, panelPx);
+    if (map) applyMap(map, v, views, panelPx);
   };
 }

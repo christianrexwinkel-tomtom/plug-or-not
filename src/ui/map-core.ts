@@ -201,10 +201,12 @@ export const SHEET_MAX_FRACTION = 0.66;
 
 /**
  * G6-AC8: the panel height to frame for. The panel grows with the selected entry (a "Never worth it" reason line),
- * and a selection never reframes, so frame for the tallest it can get: the pins stay clear whichever entry is shown.
+ * and a selection never reframes, so frame for the tallest any entry renders (`tallestPx`, measured off-screen), capped
+ * at the CSS limit it can't grow past: the pins stay clear whichever entry is shown, without padding a phone's map for
+ * a panel no entry fills.
  */
-export function framingPanelPx(measuredPx: number, heightPx: number): number {
-  return Math.max(measuredPx, SHEET_MAX_FRACTION * heightPx);
+export function framingPanelPx(measuredPx: number, tallestPx: number, heightPx: number): number {
+  return Math.max(measuredPx, Math.min(tallestPx, SHEET_MAX_FRACTION * heightPx));
 }
 
 /**

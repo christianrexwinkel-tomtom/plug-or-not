@@ -255,10 +255,9 @@ export function createApp(deps: AppDeps): App {
         return;
       }
       // G3-AC1: no spot while locating, or after a denial until the map has been moved. "Try again" on the results
-      // load error keeps the searched spot: a map failure after the search drops the moved spot, and a refused tap
-      // there would only highlight the parked view (G6-AC9).
-      const derived = spotFor(state);
-      const spot = derived.kind === 'none' && state.view === 'results' && state.searchedSpot ? state.searchedSpot : derived;
+      // load error always searches the searched spot: a map failure after the search drops the moved spot, which
+      // would otherwise fall back to the browser position, or to no spot and a refused tap (G6-AC9).
+      const spot = state.view === 'results' && state.searchedSpot ? state.searchedSpot : spotFor(state);
       if (spot.kind === 'none') {
         set({ blocked: 'location' });
         return;

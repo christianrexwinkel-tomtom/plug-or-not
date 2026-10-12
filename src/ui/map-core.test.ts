@@ -283,12 +283,21 @@ describe('framePadding (G6-AC8)', () => {
 });
 
 describe('framingPanelPx (G6-AC8)', () => {
-  it('frames for the tallest the details panel can grow, so selecting a taller entry never hides a pin', () => {
-    expect(framingPanelPx(220, 780)).toBeCloseTo(SHEET_MAX_FRACTION * 780, 9);
+  it('frames for the tallest panel any entry renders, so selecting a taller entry never hides a pin', () => {
+    expect(framingPanelPx(220, 300, 780)).toBe(300);
+  });
+
+  it('caps the tallest panel at the CSS limit, the most it can render', () => {
+    expect(framingPanelPx(220, 700, 780)).toBeCloseTo(SHEET_MAX_FRACTION * 780, 9);
   });
 
   it('never pads less than the panel as measured', () => {
-    expect(framingPanelPx(600, 780)).toBe(600);
+    expect(framingPanelPx(600, 300, 780)).toBe(600);
+  });
+
+  it('on a phone, leaves the pins more than FRAME_MIN_PX of room for a typical panel', () => {
+    const p = framePadding(110, framingPanelPx(300, 330, 780), 390, 780);
+    expect(780 - p.top - p.bottom).toBeGreaterThan(FRAME_MIN_PX);
   });
 });
 

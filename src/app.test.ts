@@ -248,6 +248,20 @@ describe('createApp — controller state machine (G7-AC5)', () => {
     expect(app.getState()).toMatchObject({ view: 'results', search: 'results', blocked: null });
   });
 
+  it('"Try again" on the results load error retries at the searched spot even when the browser position is known (G6-AC9)', async () => {
+    const { app, deps } = await parked(stubDeps({ failFind: 1 }));
+    app.setBattery(20);
+    app.moveSpot(51.4484, 5.4573);
+    await app.findChargers();
+    expect(app.getState()).toMatchObject({ view: 'results', search: 'load-error' });
+    // The map fails afterwards: the moved spot goes, so the derived spot falls back to the browser position.
+    app.reportMapFailure();
+    expect(spotFor(app.getState())).toMatchObject({ kind: 'browser' });
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenLastCalledWith(51.4484, 5.4573, MANIFEST);
+    expect(app.getState().searchedSpot).toEqual({ kind: 'moved', lat: 51.4484, lon: 5.4573 });
+  });
+
   it('a map move off the parked screen is not a spot move: panning the results map keeps the spot', async () => {
     const { app } = await searched();
     app.moveSpot(51.4484, 5.4573);
