@@ -10,6 +10,7 @@
 
 **Plugin version:** 0.5.3
 **Agent Sessions:** claude-code: 4def9f23-a51e-417b-b327-10901565e942
+**Agent Sessions:** claude-code: a23146ca-79b6-4ab5-8438-6d08d1321484
 
 ## Pre-Flight
 
@@ -515,6 +516,101 @@ $ git ls-files | grep -cE '\.json\.gz$|data\.next/'
 ```
 
 **Task 19 steps 4–5 (post-merge Pages deployment check, manual device checks incl. the G8-AC2 stopwatch):** pending — owned by the user after merge.
+
+---
+
+## Slice 2: Worth-it window and live stay changes
+
+- **Started:** 2026-10-12 (session a23146ca-79b6-4ab5-8438-6d08d1321484)
+- **Base SHA:** be1da03
+- **Worker isolation:** normal
+- **Chunk layout:** one chunk, Tasks 20–25 (about 150 LLOC, well inside one window)
+
+### Pre-Flight (Slice 2)
+
+```
+$ node --version
+v20.19.5
+$ npm --version
+11.14.0
+$ npm test
+
+ Test Files  17 passed (17)
+      Tests  182 passed (182)
+   Start at  08:11:28
+   Duration  610ms (tests 37%, transform 35%, import 24%, worker 4%)
+
+$ npm run build
+dist/assets/index-Dxdb_XU8.js                                     36.06 kB │ gzip: 13.87 kB
+
+✓ built in 525ms
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account christianrexwinkel-tomtom (keyring)
+  - Active account: true
+  - Git operations protocol: https
+$ ls .pre-commit-config.yaml
+ls: .pre-commit-config.yaml: No such file or directory
+(no non-sample git hooks)
+```
+
+Result: ☑ all green
+
+<!-- Chunk-workers append `### Chunk N: Tasks A–B` entries for Slice 2 below this line. -->
+
+### Chunk 1: Tasks 20–25
+
+- **Plan tasks covered:** Tasks 20–25 (Slice 2 acceptance tests, window sentence formatter, window line in the details panel, live stay change in the controller, stay slider in the results top bar, verify Slice 2 acceptance). Task 25 steps 1–2 run here; steps 3–4 (post-merge Pages deployment check, manual device checks incl. the G8-AC2 stopwatch) are **pending — owned by the user after merge**
+- **Tests written:** test/acceptance/window-and-stay.test.ts (9, new; 8 red at Task 20, all green after Task 23), src/ui/format.test.ts (+3, 14 total), src/ui/entry-view.test.ts (+1, 6 total; the 3 unknown-entry cases also assert windowText/hasWindow), src/app.test.ts (+2, 10 total), test/fixtures/app-deps.ts gains the `nearest` option. Suite: 182 → 197 tests, 17 → 18 files, matching the plan
+- **Worker reported peak context:** ≈55k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** d32086f (Task 20), 62799f0 (Task 21), 659e817 (Task 22), caca3fd (Task 23), 2a32447 (Task 24)
+
+#### Verify output (verbatim)
+
+```
+$ npm test -- test/acceptance/window-and-stay.test.ts      # Task 20, at d32086f
+     × scenario 1: Opcharge Zernikestraat "1h30 to 7h30" and Vattenfall Marconilaan "at least 40 min" at battery 10%
+     × scenario 2: a tariff that can't be interpreted shows "Price unknown" and no window
+     × scenario 3: E-Flux Laboratoriumstraat at battery 10% is never worth it
+     × stay outside the window: 45 min against a window from 1h10 reads "Not worth it for this stay"
+     × a window from the minimum stay with no upper limit reads "Worth it for any stay"
+     × a window from the minimum stay with an upper limit reads "Worth it for any stay up to X"
+     × battery level changes the window: Opcharge at 10%, then 70% after going back and searching again
+     × scenario 1: releasing the slider re-ranks every result from the cached curves and keeps the selected charger
+      Tests  8 failed | 1 passed (9)
+$ npm test -- test/acceptance/flows.test.ts src/app.test.ts   # Task 20 step 4
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+$ npm test -- src/ui/format.test.ts                          # Task 21
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+$ npm test -- src/ui/entry-view.test.ts                      # Task 22
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+$ npm run build && npm test -- test/acceptance/window-and-stay.test.ts   # Task 22 step 6, at 659e817
+✓ built in 498ms
+     × scenario 1: releasing the slider re-ranks every result from the cached curves and keeps the selected charger
+      Tests  1 failed | 8 passed (9)
+$ npm test -- src/app.test.ts test/acceptance/window-and-stay.test.ts test/acceptance/flows.test.ts   # Task 23 step 4
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
+$ npm test -- src/app.test.ts test/acceptance/window-and-stay.test.ts   # Task 23 verify
+ Test Files  2 passed (2)
+      Tests  19 passed (19)
+$ grep -rnE "pill grow|\bfill\(" src/                        # Task 24 step 4
+(no output, exit 1)
+$ npm test                                                   # Task 24 verify / Task 25 step 1, at 2a32447
+ Test Files  18 passed (18)
+      Tests  197 passed (197)
+   Start at  08:15:28
+   Duration  631ms (tests 42%, transform 32%, import 23%, worker 4%)
+$ npm run build                                              # Task 25 step 2
+dist/assets/index-CZihSCAV.js                                     37.47 kB │ gzip: 14.26 kB
+✓ built in 399ms
+```
+
+Task 25 step 3 (`gh run list --workflow deploy.yml --branch main --limit 1` after merge) and step 4 (manual checks on iPhone Safari, Android Chrome, desktop Chrome/Edge/Safari: window line in Night and Day, results slider drag/release, desktop keyboard focus, shared stay, G8-AC2 stopwatch ×5): pending — owned by the user after merge.
 
 ---
 
