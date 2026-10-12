@@ -650,6 +650,7 @@ $ grep -rnE "pill grow|fill\(" src/
 - **Started:** 2026-10-12 (session 0ef86631-d1ec-46ad-99a2-5d397c9b06ce)
 - **Base SHA:** 79bd1d2
 - **Worker isolation:** normal
+- **Completed:** 2026-10-12
 - **Chunk layout:** one chunk, Tasks 26–34 (Slice 2 peaked at ≈55k; Slice 3 is roughly 3× the plan text, well inside one window)
 
 ### Pre-Flight (Slice 3)
@@ -837,6 +838,56 @@ $ npx tsc --noEmit
 (no output)
 ```
 
+### End-Review (Slice 3)
+
+Range reviewed: `79bd1d2..HEAD`. Opus reviewer, given no worker narrative and with the implementation log excluded.
+
+- **Verdict:** CAP_REACHED — round-2 findings fixed, not re-reviewed
+- **Issues found:**
+  - Round 1 (ISSUES_FOUND):
+    1. (Important) Any MapLibre `error` after `load`, including one lost tile, permanently set `mapFailed`, cleared `movedSpot` and could re-block "Find chargers".
+    2. The 8 s `load` timeout was final, so on a slow network or a background tab "Map couldn't load." stuck until a reload.
+    3. During a drag the chip kept "No location yet"/"Your location" with moving coordinates.
+    4. `LocationState.found.approximate` was dead duplicate state.
+    5. A stray edit in the first `src/app.test.ts` test.
+    6. The map aria-label was a literal outside `messages.ts`.
+    7. MapLibre sat in the entry chunk (≈1,060 kB).
+    8. The drag-vs-programmatic move decision had no test.
+
+    All fixed in Chunk 2 (bc0ed95, 5584a99).
+  - Round 2 (ISSUES_FOUND), all fixed in Chunk 3 (884de21, 1b41c1d) and not re-reviewed:
+    1. `src/ui/map-core.ts:62,67-71` (G6-AC9): one tile error before `load` permanently failed a map that then loaded, because recovery ran only after a timeout. Fixed: any `load` after any failure recovers. The test at `map-core.test.ts:91-97` is flipped.
+    2. `src/ui/map.ts:81-85` (Important): the live `move` handler skipped the "a zoom is not a move" check, so a wheel or pinch zoom left the chip on "Moved spot". Fixed with the pure `liveMoveCentre` helper and 3 tests.
+    3. `src/ui/parked.ts:63-71,128` (Minor): a retried dynamic map import never cleared `mapFailed`. Fixed by keeping the rejected import (no retry).
+    4. Missing Deviations from Design row for ignoring tile/source errors after `load` (G6-AC9). Handled at the Slice 3 deviation gate.
+- **Tests-vs-spec audit:** round 2 found strong, behaviour-level tests for G3-AC1, G3-AC2, G3-AC3, G3-AC4 and the parked part of G6-AC9. They go through the controller and `spotView`, with the design strings written out as literals. The only test that locked in a bug, `map-core.test.ts:91-97`, was flipped in Chunk 3. Remaining gaps, within D-17: the G7-AC6 `matchMedia` → `setStyle` switch, `setDraggable` on dragPan, `sharedMap` reuse (D-22), the live chip during a gesture, and a failed dynamic import counting as a map failure. These are checked by type check, build and the Task 34 manual device checks only.
+- **Reviewer rounds:** 2
+- **Cap outcome:** cap reached. The round-2 findings were fixed in 884de21 and not re-reviewed.
+
+#### Final full verify output (verbatim)
+
+Command: `npm test 2>&1 | tail -5; npm run build 2>&1 | tail -8`
+
+```
+ Test Files  22 passed (22)
+      Tests  261 passed (261)
+   Start at  09:53:01
+   Duration  769ms (tests 41%, transform 31%, import 25%, worker 4%)
+
+dist/assets/map-BCMP55Sr.js                                       1,019.25 kB │ gzip: 276.27 kB
+
+✓ built in 543ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+The warning is for the lazily loaded MapLibre chunk only. The entry chunk is ≈43 kB.
+
+**Task 34 steps 3–4 (post-merge Pages deployment check, device checks 1–11, G8-AC2 stopwatch):** pending, owned by the user after merge.
+
 ---
 
 ## Deviations from Plan
@@ -844,14 +895,16 @@ $ npx tsc --noEmit
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
 | --- | ---------- | ----------------- | ----------- | ------------- | ------ | ---- |
 | 1   | Task 14 / Chunk 4 | change | Slice 1: build drops locations outside a NL-and-neighbours bounding box (`DATA_BOUNDS`, lat 50.0–54.0, lon 2.5–7.5, edges kept) in `scripts/build-data.ts`, so bogus feed coordinates (0,0, swapped, Asia/US) no longer reach the snapshot or stretch the `coversAll` bounds. Snapshot: 580 tiles, 72516 locations | yes — plan §Task 14 edited 2026-10-12 | approved | 2026-10-12 |
-| 2   | Task 26 / Chunk 1 | change | Slice 3: the first acceptance test ("location still being found") sets the app up inline instead of through the async `opened()` helper. Awaiting that helper gives the stub's `locate()` enough microtask ticks to answer, so the "still locating" assertions saw a found location whatever the implementation did. The other tests and the helper are as planned | no | pending | 2026-10-12 |
-| 3   | Task 32 / Chunk 1 | change | Slice 3: `src/ui/map.ts` uses `import * as maplibregl from 'maplibre-gl'`, because maplibre-gl 6.11.2 is ESM-only with no default export (TS1192). `last` is typed `{ lat: number; lon: number }`, because `NL_CENTRE` is `as const`. The Task 32 grep still finds exactly one import, at `src/ui/map.ts:3` | no | pending | 2026-10-12 |
-| 4   | Task 32 / Chunk 1 | gap | Slice 3: with the plan's wrapper the map never loads, in dev or build ("Worker failed to load"). MapLibre 6 looks for `maplibre-gl-worker.mjs` next to its own module file, and Vite doesn't put it there. The wrapper now imports `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` and calls `maplibregl.setWorkerUrl()`. The build emits `assets/maplibre-gl-worker-*.js` (≈509 kB) | no | pending | 2026-10-12 |
-| 5   | Task 32 / Chunk 1 | gap | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | no | pending | 2026-10-12 |
-| 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | no | pending | 2026-10-12 |
-| 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | no | pending | 2026-10-12 |
+| 2   | Task 26 / Chunk 1 | change | Slice 3: the first acceptance test ("location still being found") sets the app up inline instead of through the async `opened()` helper. Awaiting that helper gives the stub's `locate()` enough microtask ticks to answer, so the "still locating" assertions saw a found location whatever the implementation did. The other tests and the helper are as planned | yes — plan §Task 26 edited 2026-10-12 | approved | 2026-10-12 |
+| 3   | Task 32 / Chunk 1 | change | Slice 3: `src/ui/map.ts` uses `import * as maplibregl from 'maplibre-gl'`, because maplibre-gl 6.11.2 is ESM-only with no default export (TS1192). `last` is typed `{ lat: number; lon: number }`, because `NL_CENTRE` is `as const`. The Task 32 grep still finds exactly one import, at `src/ui/map.ts:3` | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
+| 4   | Task 32 / Chunk 1 | change | Slice 3: with the plan's wrapper the map never loads, in dev or build ("Worker failed to load"). MapLibre 6 looks for `maplibre-gl-worker.mjs` next to its own module file, and Vite doesn't put it there. The wrapper now imports `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` and calls `maplibregl.setWorkerUrl()`. The build emits `assets/maplibre-gl-worker-*.js` (≈509 kB) | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
+| 5   | Task 32 / Chunk 1 | change | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
+| 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
+| 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
+
+Slice 3: rows 2–7 approved by the user on 2026-10-12. Rows 4 and 5 were converted from gap to change, since both gaps were closed in code. A G6-AC9 row was also added to the plan's Deviations from Design and signed off. The user chose to leave the Vite chunk-size warning for the lazily loaded MapLibre chunk as is.
 
 <!-- If there are no deviations, write "None." below the table and confirm verbally with the user. -->
 

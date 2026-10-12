@@ -56,7 +56,7 @@ Slice 1 has 19 tasks, Slice 2 has 6 (Tasks 20–25) and Slice 3 has 9 (Tasks 26�
 |-------|------|-----------------|--------|
 | 1 | Answer for my location (no map) | S1; S2 (scenarios 1–5, battery full, outside the Netherlands, load error, approximate notice, location denied + Try again); S3 (parked-screen slider, − and +, limits) | done |
 | 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | done |
-| 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | wip |
+| 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | done |
 | 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | todo (separate plan run) |
 
 _Slices 1–3 are authored in this plan; Slice 2 was added by a second plan-skill run on 2026-10-12, and Slice 3 by a third on 2026-10-12. Slices 3..N will be authored via subsequent plan-skill invocations against the same design artifact, one per PR._
@@ -5658,6 +5658,8 @@ On iPhone Safari, Android Chrome, and desktop Chrome, Edge and Safari, with the 
 
 ### Task 26: Slice 3 acceptance tests
 
+> **Implemented with a deviation (2026-10-12):** the first test sets the app up inline instead of through `opened()`, so the stub's location answer can't arrive before the "still locating" assertions. See implementation-log Deviations row 2.
+
 Encodes the slice's PRD and design behaviour as one new acceptance file. Like `test/acceptance/flows.test.ts`, it goes through the controller with stubbed browser APIs (`stubDeps`). It reads what the map area shows through the parked map's view model, `spotView` (Task 30), because there are no DOM tests (D-17). User-facing strings are written out as literals, copied from the design, so a wording slip in `messages.ts` fails here. The drag itself is `app.moveSpot(lat, lon)`, the call the MapLibre wrapper makes when a drag ends (Task 32). A map failure is `app.reportMapFailure()`, the call the wrapper makes on a failed start or an `error` event.
 
 The file fails to load until Task 30 adds `src/ui/spot-view.ts`. After Task 28 (controller) and Task 30 (view model), all 9 pass.
@@ -6281,6 +6283,8 @@ git commit -m "feat: controller moves the spot with the map, recentres, and fall
 **Verify:** `npm test -- src/app.test.ts test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts` — `Tests  39 passed (39)`
 
 ### Task 29: Map core: start watch, accuracy circle and zoom
+
+> **Implemented with deviations (2026-10-12):** after `load`, tile and source errors (events carrying `sourceId` or `tile`) are not a map failure. Any `load` after a failure (the 8 s timeout or an error during startup) recovers once through `onRecover`, and the controller's `reportMapRecovered()` clears `mapFailed`. A style that never loads stays failed. See implementation-log Deviations rows 6–7.
 
 The parts of the map wrapper that don't need MapLibre or a DOM, so Vitest can run them (G6-AC9 verify: "a map wrapper stub that throws on construction and one that emits an error"):
 
@@ -6944,6 +6948,8 @@ git commit -m "feat: Night and Day map styles on OpenFreeMap tiles"
 
 ### Task 32: MapLibre wrapper
 
+> **Implemented with deviations (2026-10-12):** `import * as maplibregl` (no default export in 6.11.2). The worker is bundled via `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` and `setWorkerUrl`. Only gesture moves (`originalEvent`, through the pure `isDriverMove`/`liveMoveCentre` in `map-core.ts`) count as the driver moving the spot. `map.ts` is loaded with a dynamic `import()` from the parked view, and a failed import counts as a map failure. See implementation-log Deviations rows 3–5.
+
 `src/ui/map.ts` wraps the one MapLibre GL JS map (D-22), made on first use by `sharedMap(events)`. A view moves it into place with `attachTo(parent)`. On the parked screen it:
 
 - starts in the device theme's style and swaps with `setStyle` when the device theme changes, without a reload (G7-AC6, D-32)
@@ -7484,4 +7490,5 @@ On iPhone Safari, Android Chrome, and desktop Chrome, Edge and Safari, with the 
 
 | ID | Type | Status | Design updated? | Note |
 |----|------|--------|-----------------|------|
-| G3-AC1, PRD S2 error table "Location denied or unavailable" | change | approved | n/a — interim wording for Slice 1 only; the design text stays the target and Slice 3 restores it | Slice 1: Slice 1 has no map, so the denied message reads "We couldn't get your location. Allow location access in your browser and try again." without "…, or drag the map to your spot." Showing the design's sentence before the map exists would point the driver at something that isn't there. Signed off by the user 2026-10-12 |
+| G3-AC1, PRD S2 error table "Location denied or unavailable" | change | approved | n/a — interim wording for Slice 1 only; the design text stays the target and Slice 3 restores it | Slice 1: Slice 1 has no map, so the denied message reads "We couldn't get your location. Allow location access in your browser and try again." without "…, or drag the map to your spot." Showing the design's sentence before the map exists would point the driver at something that isn't there. Signed off by the user 2026-10-12. Restored in Slice 3: `LOCATION_DENIED` is the full sentence, and `LOCATION_DENIED_NO_MAP` is used only when the map can't load |
+| G6-AC9 "Map can't load" | change | approved | no — the design text stays; this row records the narrowing | Slice 3: after the map has loaded, an `error` event carrying `sourceId` or `tile` (one lost tile) is not treated as "Map couldn't load.", so a flaky mobile connection doesn't drop the moved spot or block "Find chargers". Style errors, and any error before `load`, still are. A late `load` clears the failure. Signed off by the user 2026-10-12 |
