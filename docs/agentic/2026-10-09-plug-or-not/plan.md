@@ -4,8 +4,8 @@
 
 **Date:** 2026-10-12
 **Goal:** Slice 1 — a static web page on GitHub Pages that, for the driver's browser location, ranks the 10 nearest Dutch AC chargers by saving against petrol, from a committed NDW tariff snapshot, with the full cost engine and trust guard.
-**Architecture:** An offline Node script (`scripts/build-data.ts`) turns the NDW OCPI feeds into a 0.1° tile snapshot under `public/data/`. The page is plain TypeScript in four layers: UI views → controller (`src/app.ts`) → services (settings, location, data) → a pure engine that simulates each tariff minute by minute over 24 h. Next to the files the design names, the plan adds small single-purpose modules inside the same layers: `src/engine/clock.ts`, `src/engine/results.ts`, `src/ui/entry-view.ts`, `src/ui/dom.ts`, `src/ui/chrome.ts`, `src/ui/app.css` and `scripts/build-nl-border.mjs`.
-**Tech Stack:** TypeScript 7.0.2, Vite 8.3.4, Vitest 5.0.3, tsx 4.23.15, `@fontsource/sora` and `@fontsource/ibm-plex-mono` 5.3.0, Node ≥ 20.19 locally and Node 22 in CI, GitHub Actions and GitHub Pages
+**Architecture:** An offline Node script (`scripts/build-data.ts`) turns the NDW OCPI feeds into a 0.1° tile snapshot under `public/data/`. The page is plain TypeScript in four layers: UI views → controller (`src/app.ts`) → services (settings, location, data) → a pure engine that simulates each tariff minute by minute over 24 h. Next to the files the design names, the plan adds small single-purpose modules inside the same layers: `src/engine/clock.ts`, `src/engine/results.ts`, `src/ui/entry-view.ts`, `src/ui/dom.ts`, `src/ui/chrome.ts`, `src/ui/app.css`, `scripts/build-nl-border.mjs`, and from Slice 3 `src/ui/map-core.ts`, `src/ui/map-style.ts` and `src/ui/spot-view.ts`.
+**Tech Stack:** TypeScript 7.0.2, Vite 8.3.4, Vitest 5.0.3, tsx 4.23.15, `@fontsource/sora` and `@fontsource/ibm-plex-mono` 5.3.0, MapLibre GL JS 6.11.2 and `@maplibre/maplibre-gl-style-spec` 26.4.4 (Slice 3), Node ≥ 20.19 locally and Node 22 in CI, GitHub Actions and GitHub Pages
 **Design:** [solution-design.md](solution-design.md) · UI mockup [ui-mockup.html](ui-mockup.html)
 **PRD:** [prd.md](prd.md)
 **References:** NDW open data `charging_point_locations_ocpi.json.gz` and `charging_point_tariffs_ocpi.json.gz` (https://opendata.ndw.nu/); Natural Earth v5.1.2 `ne_10m_admin_0_countries.geojson`; repo `christianrexwinkel-tomtom/plug-or-not`
@@ -24,7 +24,7 @@ This plan builds the first shippable cut of Plug or Not. It's a web page that te
 
 ## Plan at a glance
 
-Slice 1 has 19 tasks and Slice 2 has 6 (Tasks 20–25). Each title names the component or acceptance criterion it delivers, and each task ends with a runnable **Verify** command and its expected output.
+Slice 1 has 19 tasks, Slice 2 has 6 (Tasks 20–25) and Slice 3 has 9 (Tasks 26–34). Each title names the component or acceptance criterion it delivers, and each task ends with a runnable **Verify** command and its expected output.
 
 | Component | Slice | Phase | Tasks | Delivers |
 |-----------|-------|-------|-------|----------|
@@ -43,6 +43,12 @@ Slice 1 has 19 tasks and Slice 2 has 6 (Tasks 20–25). Each title names the com
 | Window sentence | 2 | 3 | [21](#task-21-window-sentence-formatter), [22](#task-22-window-line-in-the-details-panel) | "Worth it if you stay …" in the view model and the details panel |
 | Live stay change | 2 | 3 | [23](#task-23-live-stay-change-in-the-controller), [24](#task-24-stay-slider-in-the-results-top-bar) | Re-rank from cached curves with the selection kept; the results-screen slider |
 | Acceptance | 2 | 4 | [25](#task-25-verify-slice-2-acceptance) | Full suite green, build clean, device checks done |
+| Spot map acceptance tests | 3 | 1 | [26](#task-26-slice-3-acceptance-tests) | Locating, denied, approximate, moved, outside-NL and map-failure flows as one failing suite |
+| Spot model | 3 | 2 | [27](#task-27-spot-model) | `Spot` and `spotOf`: moved spot, browser position, or none |
+| Controller | 3 | 3 | [28](#task-28-controller-moving-the-spot-my-location-and-map-failure) | `moveSpot`, `recentre`, `reportMapFailure`; search at the spot |
+| Parked map logic | 3 | 3 | [29](#task-29-map-core-start-watch-accuracy-circle-and-zoom), [30](#task-30-parked-map-view-model-and-wording) | Map start watch, accuracy circle, spot view model and wording — Task 26 goes green |
+| Map | 3 | 3 | [31](#task-31-night-and-day-map-styles), [32](#task-32-maplibre-wrapper), [33](#task-33-spot-map-on-the-parked-screen) | Night/Day map styles, the MapLibre wrapper, the spot map on the parked screen |
+| Acceptance | 3 | 4 | [34](#task-34-verify-slice-3-acceptance) | Full suite green, build clean, device checks done |
 
 ## Slice Status
 
@@ -50,10 +56,10 @@ Slice 1 has 19 tasks and Slice 2 has 6 (Tasks 20–25). Each title names the com
 |-------|------|-----------------|--------|
 | 1 | Answer for my location (no map) | S1; S2 (scenarios 1–5, battery full, outside the Netherlands, load error, approximate notice, location denied + Try again); S3 (parked-screen slider, − and +, limits) | done |
 | 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | done |
-| 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | todo (separate plan run) |
+| 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | done |
 | 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | todo (separate plan run) |
 
-_Slices 1 and 2 are authored in this plan; Slice 2 was added by a second plan-skill run on 2026-10-12. Slices 3..N will be authored via subsequent plan-skill invocations against the same design artifact, one per PR._
+_Slices 1–3 are authored in this plan; Slice 2 was added by a second plan-skill run on 2026-10-12, and Slice 3 by a third on 2026-10-12. Slices 3..N will be authored via subsequent plan-skill invocations against the same design artifact, one per PR._
 
 ## Slice 1: Answer for my location (no map)
 
@@ -5636,8 +5642,1853 @@ On iPhone Safari, Android Chrome, and desktop Chrome, Edge and Safari, with the 
 
 **Verify:** `npm test && npm run build` — `Tests  197 passed (197)` and `✓ built in`; the steps 3 and 4 checks recorded in `implementation-log.md`
 
+## Slice 3: Spot on a map
+
+**In scope:** G3-AC1 (the map parts: "Finding your location…" on the map, no dragging while locating, a denied location opens the map on the centre of the Netherlands (52.13, 5.29, zoom 7) with a grey pin and "No location yet", "My location" hidden, "Find chargers" blocked until the map has been moved, the blocked tap highlights the notice and the map, and the denied message with "…, or drag the map to your spot."), G3-AC2 (the accuracy circle; a search without moving uses the reported position), G3-AC3 (the spot is the map centre under a fixed pin; "Moved spot" with its coordinates; "My location"), G3-AC4 (outside the Netherlands for a moved spot, with the map kept open), G6-AC9 (the parked-view part only: "Map couldn't load.", the browser position is the spot, and with location also denied "Find chargers" stays blocked and the notice says why), G7-AC6 (the map colours: a Night and a Day map style that follow the device theme without a reload), D-22 (MapLibre GL JS on OpenFreeMap, one map instance), D-24, D-32, FR-025, and the PRD S2 edge cases "Location still being found", "Approximate location" and "Location outside the Netherlands" for a moved spot.
+
+**Left for later slices:** result pins, framing the spot and the 10 locations, "Change spot", the map on the results screen and the results-screen part of the map-failure fallback (Slice 4: G6-AC8 pin parts, G6-AC9 results part).
+
+**What already exists from Slices 1 and 2:** `locate`, `isApproximate` and `isInNetherlands` in `src/services/location.ts`; the controller's `LocationState` (`locating | found | denied`), `blocked: 'battery' | 'location' | null` and `search: 'outside-nl'`; the Slice 1 parked screen with a text "YOUR LOCATION · lat, lon" line in place of a map; and the approved interim denied message without the map clause (Deviations from Design, Slice 1 row). This slice brings back the design's full sentence. The map wrapper is built as the one shared instance (D-22), so Slice 4 can move it onto the results screen.
+
+**How the parts fit:** the controller keeps one new piece of state, `movedSpot`: the map centre after the driver dragged the map, or `null`. `spotFor(state)` turns that and the browser position into the spot "Find chargers" uses. A pure view model, `spotView(state)` in `src/ui/spot-view.ts`, decides everything the map area shows: notice, pin, chip, "My location", overlays and where to centre. The acceptance tests and unit tests pin that view model, because this repo has no DOM tests (D-17). The MapLibre wrapper `src/ui/map.ts` imports `maplibre-gl`, which needs a browser, so nothing under test imports it. Its timing and maths sit in `src/ui/map-core.ts`, which Vitest runs. The two map styles are in `src/ui/map-style.ts`.
+
+**Commands used throughout:** `npm test` runs `TZ=America/New_York vitest run`; `npm test -- <path>` runs one file with the same time zone. `npm run build` runs `tsc --noEmit` and then `vite build`. Until Task 30 adds `src/ui/spot-view.ts`, the Task 26 acceptance file imports a module that doesn't exist yet, so `tsc` fails. Tasks 26–29 therefore verify with Vitest only, and `npm run build` comes back from Task 30.
+
+### Phase 1: Acceptance Tests
+
+### Task 26: Slice 3 acceptance tests
+
+> **Implemented with a deviation (2026-10-12):** the first test sets the app up inline instead of through `opened()`, so the stub's location answer can't arrive before the "still locating" assertions. See implementation-log Deviations row 2.
+
+Encodes the slice's PRD and design behaviour as one new acceptance file. Like `test/acceptance/flows.test.ts`, it goes through the controller with stubbed browser APIs (`stubDeps`). It reads what the map area shows through the parked map's view model, `spotView` (Task 30), because there are no DOM tests (D-17). User-facing strings are written out as literals, copied from the design, so a wording slip in `messages.ts` fails here. The drag itself is `app.moveSpot(lat, lon)`, the call the MapLibre wrapper makes when a drag ends (Task 32). A map failure is `app.reportMapFailure()`, the call the wrapper makes on a failed start or an `error` event.
+
+The file fails to load until Task 30 adds `src/ui/spot-view.ts`. After Task 28 (controller) and Task 30 (view model), all 9 pass.
+
+**Files:**
+- Modify: `test/fixtures/app-deps.ts`
+- Create: `test/acceptance/spot-map.test.ts`
+
+**Interfaces:**
+- Consumes: `createApp` (`src/app.ts`); fixtures `stubDeps`, `EXAMPLE_RAW`, `NUENEN`, `BRUSSELS`, `MANIFEST`
+- Produces: fixture `KLOKGEBOUW`. The test expects `App.moveSpot`, `App.recentre`, `App.reportMapFailure` (Task 28) and `spotView(state): SpotView` (Task 30).
+
+- [ ] **Step 1: Add a second Dutch spot to the fixtures**
+
+In `test/fixtures/app-deps.ts`, after the `BRUSSELS` line, add:
+
+```ts
+export const KLOKGEBOUW = { lat: 51.4484, lon: 5.4573, accuracyM: 20 };
+```
+
+- [ ] **Step 2: Write the failing acceptance test**
+
+Create `test/acceptance/spot-map.test.ts`:
+
+```ts
+// Acceptance: the spot on a map (Slice 3) — PRD S2 edge cases "Location still being found", "Approximate location"
+// and "Location outside the Netherlands", the "Location denied" and "Map can't load" errors on the parked screen,
+// and FR-025 — through the controller with stubbed browser APIs and the parked map's view model.
+import { describe, expect, it } from 'vitest';
+import { createApp, type App } from '../../src/app.ts';
+import { spotView } from '../../src/ui/spot-view.ts';
+import { BRUSSELS, EXAMPLE_RAW, KLOKGEBOUW, MANIFEST, NUENEN, stubDeps } from '../fixtures/app-deps.ts';
+
+const NL_MAP = { lat: 52.13, lon: 5.29, zoom: 7 };
+const DENIED = "We couldn't get your location. Allow location access in your browser and try again, or drag the map to your spot.";
+
+/** Settings saved and the parked screen open; the location answer is still pending. */
+async function opened(deps = stubDeps()) {
+  const app = createApp(deps);
+  await app.start();
+  app.saveSettings(EXAMPLE_RAW);
+  return app;
+}
+
+/** The parked screen after the browser answered. */
+async function parkedApp(deps = stubDeps()) {
+  const app = await opened(deps);
+  await deps.locate.mock.results.at(-1)!.value;
+  return app;
+}
+
+const view = (app: App) => spotView(app.getState());
+
+describe('PRD S2 edge case — location still being found (G3-AC1)', () => {
+  it('shows "Finding your location…" on the map with dragging off and "Find chargers" blocked; the answer centres the map', async () => {
+    const deps = stubDeps();
+    const app = await opened(deps);
+    app.setBattery(20);
+    expect(view(app)).toMatchObject({ busy: true, draggable: false, centre: NL_MAP });
+    // A drag can't happen while locating; a stray move is ignored, so the answer never moves a spot the driver chose.
+    app.moveSpot(KLOKGEBOUW.lat, KLOKGEBOUW.lon);
+    const tap = app.findChargers();
+    expect(view(app).highlight).toBe(true);
+    await tap;
+    await deps.locate.mock.results.at(-1)!.value;
+    expect(deps.findNearest).not.toHaveBeenCalled();
+    expect(view(app)).toMatchObject({
+      busy: false, highlight: false, chipLabel: 'Your location', chipCoords: '51.4436, 5.5519', centre: { lat: 51.4436, lon: 5.5519 },
+    });
+  });
+});
+
+describe('PRD S2 error — location denied or unavailable (G3-AC1)', () => {
+  it('opens the map on the centre of the Netherlands with a grey pin; "Find chargers" waits until the map is moved', async () => {
+    const deps = stubDeps({ locations: [{ kind: 'denied' }] });
+    const app = await parkedApp(deps);
+    app.setBattery(20);
+    expect(view(app)).toMatchObject({
+      notice: { text: DENIED, retry: true }, centre: NL_MAP, pin: 'none', chipLabel: 'No location yet', recentre: false,
+    });
+    await app.findChargers();
+    expect(app.getState().blocked).toBe('location');
+    expect(view(app).highlight).toBe(true);
+    expect(deps.findNearest).not.toHaveBeenCalled();
+
+    app.moveSpot(KLOKGEBOUW.lat, KLOKGEBOUW.lon);
+    expect(view(app)).toMatchObject({ highlight: false, pin: 'me', chipLabel: 'Moved spot', chipCoords: '51.4484, 5.4573', recentre: false });
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenCalledWith(51.4484, 5.4573, MANIFEST);
+    expect(app.getState().search).toBe('results');
+  });
+});
+
+describe('PRD S2 edge case — approximate location (G3-AC2)', () => {
+  const approx = () => stubDeps({ locations: [{ kind: 'found', position: { ...NUENEN, accuracyM: 1500 } }] });
+
+  it('shows the notice and the accuracy circle; a search as is uses the reported position and repeats the notice', async () => {
+    const deps = approx();
+    const app = await parkedApp(deps);
+    expect(view(app)).toMatchObject({ notice: { text: 'Your location is approximate' }, accuracyM: 1500 });
+    app.setBattery(20);
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenCalledWith(51.4436, 5.5519, MANIFEST);
+    expect(app.getState()).toMatchObject({ search: 'results', approximateResults: true });
+  });
+
+  it('dragging the map to the exact spot removes the notice and the circle, and the results don\'t repeat it', async () => {
+    const deps = approx();
+    const app = await parkedApp(deps);
+    app.moveSpot(51.4441, 5.553);
+    expect(view(app)).toMatchObject({ notice: null, accuracyM: null, chipLabel: 'Moved spot' });
+    app.setBattery(20);
+    await app.findChargers();
+    expect(app.getState()).toMatchObject({ search: 'results', approximateResults: false });
+  });
+});
+
+describe('FR-025 — move the spot by dragging the map (G3-AC3)', () => {
+  it('a moved spot shows "Moved spot" with its coordinates and "My location", which returns to the browser position', async () => {
+    const deps = stubDeps();
+    const app = await parkedApp(deps);
+    app.moveSpot(KLOKGEBOUW.lat, KLOKGEBOUW.lon);
+    expect(view(app)).toMatchObject({ chipLabel: 'Moved spot', chipCoords: '51.4484, 5.4573', recentre: true, centre: null });
+    app.recentre();
+    expect(view(app)).toMatchObject({
+      chipLabel: 'Your location', chipCoords: '51.4436, 5.5519', recentre: false, centre: { lat: 51.4436, lon: 5.5519 },
+    });
+    app.setBattery(20);
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenCalledWith(51.4436, 5.5519, MANIFEST);
+  });
+
+  it('"Find chargers" uses the spot at that moment; going back keeps it without asking for the location again', async () => {
+    const deps = stubDeps();
+    const app = await parkedApp(deps);
+    app.setBattery(20);
+    app.moveSpot(KLOKGEBOUW.lat, KLOKGEBOUW.lon);
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenLastCalledWith(51.4484, 5.4573, MANIFEST);
+    app.backToParked();
+    expect(view(app)).toMatchObject({ chipLabel: 'Moved spot', chipCoords: '51.4484, 5.4573' });
+    expect(deps.locate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PRD S2 edge case — a moved spot outside the Netherlands (G3-AC4)', () => {
+  it('shows the message with the map kept open; moving back into the Netherlands clears it', async () => {
+    const deps = stubDeps();
+    const app = await parkedApp(deps);
+    app.setBattery(20);
+    app.moveSpot(BRUSSELS.lat, BRUSSELS.lon);
+    await app.findChargers();
+    expect(app.getState()).toMatchObject({ view: 'parked', search: 'outside-nl', results: [] });
+    expect(view(app)).toMatchObject({ notice: { text: 'Charger prices are available for the Netherlands only for now.' }, draggable: true });
+    expect(deps.findNearest).not.toHaveBeenCalled();
+    app.moveSpot(KLOKGEBOUW.lat, KLOKGEBOUW.lon);
+    expect(view(app).notice).toBeNull();
+  });
+});
+
+describe('PRD S2 error — map can\'t load, on the parked screen (G6-AC9)', () => {
+  it('shows "Map couldn\'t load." and uses the browser position as the spot', async () => {
+    const deps = stubDeps();
+    const app = await parkedApp(deps);
+    app.moveSpot(KLOKGEBOUW.lat, KLOKGEBOUW.lon);
+    app.reportMapFailure();
+    expect(view(app)).toMatchObject({ mapMessage: "Map couldn't load.", chipLabel: 'Your location', draggable: false });
+    app.setBattery(20);
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenCalledWith(51.4436, 5.5519, MANIFEST);
+  });
+
+  it('with location also denied, "Find chargers" stays blocked and the notice says why', async () => {
+    const deps = stubDeps({ locations: [{ kind: 'denied' }] });
+    const app = await parkedApp(deps);
+    app.reportMapFailure();
+    app.setBattery(20);
+    await app.findChargers();
+    expect(app.getState().blocked).toBe('location');
+    expect(view(app).notice).toMatchObject({ text: "We couldn't get your location. Allow location access in your browser and try again.", retry: true });
+    expect(deps.findNearest).not.toHaveBeenCalled();
+  });
+});
+```
+
+- [ ] **Step 3: Run it to see it fail**
+
+Run: `npm test -- test/acceptance/spot-map.test.ts`
+Expected: FAIL — `Failed to load url ../../src/ui/spot-view.ts`, then `Test Files  1 failed (1)` and `Tests  no tests`
+
+- [ ] **Step 4: Check that the existing acceptance and controller suites are unaffected**
+
+Run: `npm test -- test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts src/app.test.ts`
+Expected: PASS — `Tests  32 passed (32)` (13 + 9 + 10)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add test/fixtures/app-deps.ts test/acceptance/spot-map.test.ts
+git commit -m "test: Slice 3 acceptance tests for the spot on a map"
+```
+
+**Verify:** `npm test -- test/acceptance/spot-map.test.ts` — `Test Files  1 failed (1)` with `Failed to load url ../../src/ui/spot-view.ts`
+
+### Phase 2: Interfaces & Contracts
+
+### Task 27: Spot model
+
+The design puts the spot model in the location service: the browser position, a spot moved by the map, or a recentred spot (Components, `src/services/location.ts`). This task adds the shared types and one pure function: `LatLon`, `Spot`, `spotOf(browser, moved)` and `NL_CENTRE`. The controller (Task 28) and the parked map's view model (Task 30) both read the spot through it. A moved spot wins over the browser position. A browser position carries its accuracy and the approximate flag (G3-AC2). With neither there is no spot, and "Find chargers" stays blocked (G3-AC1).
+
+**Files:**
+- Modify: `src/services/location.ts`
+- Test: `src/services/location.test.ts`
+
+**Interfaces:**
+- Consumes: `Position`, `isApproximate` (same file)
+- Produces: `LatLon`, `Spot`, `spotOf(browser: Position | null, moved: LatLon | null): Spot`, `NL_CENTRE`
+
+- [ ] **Step 1: Write the failing tests**
+
+In `src/services/location.test.ts`, change the import to
+
+```ts
+import { NL_CENTRE, isApproximate, isInNetherlands, locate, spotOf } from './location.ts';
+```
+
+and add at the end of the file:
+
+```ts
+describe('spotOf (G3-AC3)', () => {
+  const browser = { lat: 51.4436, lon: 5.5519, accuracyM: 20 };
+
+  it('is the browser position while the map is unmoved', () => {
+    expect(spotOf(browser, null)).toEqual({ kind: 'browser', lat: 51.4436, lon: 5.5519, accuracyM: 20, approximate: false });
+  });
+
+  it('is the moved map centre once the driver dragged the map, with or without a browser position', () => {
+    expect(spotOf(browser, { lat: 51.45, lon: 5.56 })).toEqual({ kind: 'moved', lat: 51.45, lon: 5.56 });
+    expect(spotOf(null, { lat: 51.45, lon: 5.56 })).toEqual({ kind: 'moved', lat: 51.45, lon: 5.56 });
+  });
+
+  it('is none with neither, so "Find chargers" stays blocked (G3-AC1)', () => {
+    expect(spotOf(null, null)).toEqual({ kind: 'none' });
+  });
+
+  it('marks an approximate browser position (G3-AC2)', () => {
+    expect(spotOf({ ...browser, accuracyM: 1500 }, null)).toMatchObject({ kind: 'browser', approximate: true });
+  });
+
+  it('opens the map on the centre of the Netherlands at zoom 7 without a location (G3-AC1)', () => {
+    expect(NL_CENTRE).toEqual({ lat: 52.13, lon: 5.29, zoom: 7 });
+  });
+});
+```
+
+- [ ] **Step 2: Run them to see them fail**
+
+Run: `npm test -- src/services/location.test.ts`
+Expected: FAIL — `Tests  5 failed | 13 passed (18)`. `spotOf` isn't a function and `NL_CENTRE` is `undefined`.
+
+- [ ] **Step 3: Add the spot model**
+
+In `src/services/location.ts`, after the `LocateOutcome` type, add:
+
+```ts
+export interface LatLon {
+  lat: number;
+  lon: number;
+}
+
+/** G3-AC1: with no location, the map opens here. */
+export const NL_CENTRE = { lat: 52.13, lon: 5.29, zoom: 7 } as const;
+
+/** G3-AC3: where "Find chargers" searches — the map centre once the driver moved it, else the browser position. */
+export type Spot =
+  | { kind: 'none' }
+  | { kind: 'browser'; lat: number; lon: number; accuracyM: number; approximate: boolean }
+  | { kind: 'moved'; lat: number; lon: number };
+
+export function spotOf(browser: Position | null, moved: LatLon | null): Spot {
+  if (moved) return { kind: 'moved', lat: moved.lat, lon: moved.lon };
+  if (browser) {
+    return { kind: 'browser', lat: browser.lat, lon: browser.lon, accuracyM: browser.accuracyM, approximate: isApproximate(browser) };
+  }
+  return { kind: 'none' };
+}
+```
+
+`spotOf` calls `isApproximate`, which is declared further down the file. That's fine for a function declaration.
+
+- [ ] **Step 4: Run them to see them pass**
+
+Run: `npm test -- src/services/location.test.ts`
+Expected: PASS — `Tests  18 passed (18)`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/services/location.ts src/services/location.test.ts
+git commit -m "feat: spot model — browser position, moved spot, or none"
+```
+
+**Verify:** `npm test -- src/services/location.test.ts` — `Tests  18 passed (18)`
+
+### Phase 3: Component Implementation
+
+### Task 28: Controller: moving the spot, "My location" and map failure
+
+The controller gains the state and calls the map needs (Data flow step 2; G3-AC1–AC4; G6-AC9):
+
+- `movedSpot: LatLon | null`. The map centre after the driver dragged the map. `spotFor(state)` combines it with the browser position through `spotOf`.
+- `mapFailed: boolean`. Set by `reportMapFailure()`, which the map wrapper calls once when the map can't start or its style or tiles fail.
+- `moveSpot(lat, lon)`. Ignored while locating and after a map failure. It clears an outside-the-Netherlands answer and a "Find chargers" block on the location, because the next tap checks the new spot again.
+- `recentre()`. "My location": drops the moved spot when there is a browser position.
+- `findChargers()` searches at `spotFor(state)`. With no spot (still locating, or denied with an unmoved map) it's blocked. Results repeat the approximate notice only for an unmoved approximate browser position. The tile cache key is the spot, so a battery change at the same moved spot doesn't refetch.
+- `startLocating()` ("Try again") drops a moved spot, so the answer recentres the map. A found answer clears a block left by a tap made while locating.
+- `reportMapFailure()` drops a moved spot, because without a map the browser position is the spot (G6-AC9).
+
+Going back to the parked screen keeps `movedSpot` (Architecture, controller).
+
+**Files:**
+- Modify: `src/app.ts`
+- Test: `src/app.test.ts`
+
+**Interfaces:**
+- Consumes: `spotOf`, `LatLon`, `Spot` (Task 27)
+- Produces: `AppState.movedSpot`, `AppState.mapFailed`; `App.moveSpot(lat, lon)`, `App.recentre()`, `App.reportMapFailure()`; `spotFor(state: AppState): Spot`
+
+- [ ] **Step 1: Write the failing tests**
+
+In `src/app.test.ts`, replace the three import lines with
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { createApp, spotFor } from './app.ts';
+import { BRUSSELS, EXAMPLE_RAW, MANIFEST, NUENEN, stubDeps } from '../test/fixtures/app-deps.ts';
+```
+
+in the first test, "asks for the location when the parked view opens…", replace
+
+```ts
+    app.setBattery(20);
+    await app.findChargers();
+    expect(app.getState().blocked).toBe('location');
+```
+
+with
+
+```ts
+    app.setBattery(20);
+    const tap = app.findChargers();
+    expect(app.getState().blocked).toBe('location');
+    await tap;
+```
+
+That test ran `findChargers` while locating and checked `blocked` after the `await`. The stub's `locate()` has already resolved, so its answer lands before that check. After Step 3, a found answer clears a block made while locating, so the test reads `blocked` right after the refused tap instead. The new test "a found location clears…" covers what happens next.
+
+add this helper after `searched`:
+
+```ts
+async function parked(deps = stubDeps()) {
+  const app = createApp(deps);
+  await app.start();
+  app.saveSettings(EXAMPLE_RAW);
+  await deps.locate.mock.results.at(-1)!.value;
+  return { app, deps };
+}
+```
+
+and add inside the `describe` block, after the last test:
+
+```ts
+  it('ignores a map move while the location is being found, so the answer never moves a chosen spot (G3-AC1)', async () => {
+    const deps = stubDeps();
+    const app = createApp(deps);
+    await app.start();
+    app.saveSettings(EXAMPLE_RAW);
+    app.moveSpot(51.4484, 5.4573);
+    expect(app.getState().movedSpot).toBeNull();
+    await deps.locate.mock.results.at(-1)!.value;
+    expect(spotFor(app.getState())).toMatchObject({ kind: 'browser', lat: 51.4436, lon: 5.5519 });
+  });
+
+  it('a found location clears a "Find chargers" block made while locating', async () => {
+    const deps = stubDeps();
+    const app = createApp(deps);
+    await app.start();
+    app.saveSettings(EXAMPLE_RAW);
+    app.setBattery(20);
+    void app.findChargers();
+    expect(app.getState().blocked).toBe('location');
+    await deps.locate.mock.results.at(-1)!.value;
+    expect(app.getState().blocked).toBeNull();
+  });
+
+  it('"Try again" after a denial drops a moved spot and asks again', async () => {
+    const { app } = await parked(stubDeps({ locations: [{ kind: 'denied' }, { kind: 'found', position: NUENEN }] }));
+    app.moveSpot(51.4484, 5.4573);
+    expect(app.getState().movedSpot).toEqual({ lat: 51.4484, lon: 5.4573 });
+    await app.retryLocation();
+    expect(app.getState().movedSpot).toBeNull();
+    expect(spotFor(app.getState())).toMatchObject({ kind: 'browser', lat: 51.4436, lon: 5.5519 });
+  });
+
+  it('a map move clears an outside-the-Netherlands answer', async () => {
+    const { app } = await parked(stubDeps({ locations: [{ kind: 'found', position: BRUSSELS }] }));
+    app.setBattery(20);
+    await app.findChargers();
+    expect(app.getState().search).toBe('outside-nl');
+    app.moveSpot(51.4436, 5.5519);
+    expect(app.getState()).toMatchObject({ search: 'idle', movedSpot: { lat: 51.4436, lon: 5.5519 } });
+  });
+
+  it('"My location" drops the moved spot only when there is a browser position', async () => {
+    const { app } = await parked();
+    app.moveSpot(51.4484, 5.4573);
+    app.recentre();
+    expect(app.getState().movedSpot).toBeNull();
+    const { app: denied } = await parked(stubDeps({ locations: [{ kind: 'denied' }] }));
+    denied.moveSpot(51.4484, 5.4573);
+    denied.recentre();
+    expect(denied.getState().movedSpot).toEqual({ lat: 51.4484, lon: 5.4573 });
+  });
+
+  it('a map failure drops a moved spot, stops map moves and clears an outside-the-Netherlands answer (G6-AC9)', async () => {
+    const { app } = await parked();
+    app.setBattery(20);
+    app.moveSpot(BRUSSELS.lat, BRUSSELS.lon);
+    await app.findChargers();
+    expect(app.getState().search).toBe('outside-nl');
+    app.reportMapFailure();
+    expect(app.getState()).toMatchObject({ mapFailed: true, movedSpot: null, search: 'idle' });
+    app.moveSpot(51.4484, 5.4573);
+    expect(app.getState().movedSpot).toBeNull();
+  });
+
+  it('a search at a moved spot loads the tiles for that spot; a battery change there reuses them', async () => {
+    const { app, deps } = await parked();
+    app.setBattery(20);
+    app.moveSpot(51.4484, 5.4573);
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenLastCalledWith(51.4484, 5.4573, MANIFEST);
+    app.backToParked();
+    app.setBattery(70);
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenCalledTimes(1);
+    expect(app.getState()).toMatchObject({ search: 'results', movedSpot: { lat: 51.4484, lon: 5.4573 } });
+  });
+```
+
+- [ ] **Step 2: Run them to see them fail**
+
+Run: `npm test -- src/app.test.ts`
+Expected: FAIL — `Tests  7 failed | 10 passed (17)`. Six fail with `app.moveSpot is not a function` or `spotFor is not a function`. "A found location clears…" fails because `blocked` is still `'location'`. The edited first test still passes.
+
+- [ ] **Step 3: Add the state, the calls and `spotFor`**
+
+In `src/app.ts`:
+
+Replace the location-service import with
+
+```ts
+import { isApproximate, isInNetherlands, spotOf, type LatLon, type LocateOutcome, type Position, type Spot } from './services/location.ts';
+```
+
+In `AppState`, after `selectedId: string | null;`, add
+
+```ts
+  /** The map centre after the driver dragged the map; null = the browser position is the spot (G3-AC3). */
+  movedSpot: LatLon | null;
+  /** The map couldn't start, or its style or tiles failed (G6-AC9). */
+  mapFailed: boolean;
+```
+
+In the `App` interface, after `retryLocation(): Promise<void>;`, add
+
+```ts
+  /** The driver dragged the map to this centre (FR-025). */
+  moveSpot(lat: number, lon: number): void;
+  /** "My location": back to the browser position. */
+  recentre(): void;
+  /** The map wrapper reports that the map can't be used (G6-AC9). */
+  reportMapFailure(): void;
+```
+
+After the `App` interface, add
+
+```ts
+/** G3-AC3: the spot "Find chargers" uses — the moved map centre, else the browser position, else none. */
+export function spotFor(state: AppState): Spot {
+  return spotOf(state.location.status === 'found' ? state.location.position : null, state.movedSpot);
+}
+```
+
+In the initial state in `createApp`, after `selectedId: null,`, add
+
+```ts
+    movedSpot: null,
+    mapFailed: false,
+```
+
+Replace `startLocating` with
+
+```ts
+  async function startLocating(): Promise<void> {
+    located = true;
+    // "Try again" starts over from the browser position; the map can't be moved until it answers (G3-AC1).
+    set({ location: { status: 'locating' }, movedSpot: null, blocked: null });
+    const outcome = await deps.locate();
+    set({
+      location: outcome.kind === 'found'
+        ? { status: 'found', position: outcome.position, approximate: isApproximate(outcome.position) }
+        : { status: 'denied' },
+      // A found location answers a "Find chargers" tap that was refused while locating.
+      blocked: outcome.kind === 'found' && state.blocked === 'location' ? null : state.blocked,
+    });
+  }
+```
+
+After `rerank`, add
+
+```ts
+  /** A new spot answers an outside-the-Netherlands message; the next "Find chargers" checks the spot again. */
+  function searchAfterSpotChange(): SearchStatus {
+    return state.search === 'outside-nl' ? 'idle' : state.search;
+  }
+```
+
+After `retryLocation: () => startLocating(),`, add
+
+```ts
+      moveSpot(lat, lon) {
+        // No dragging while the location is being found (G3-AC1), and none once the map has failed (G6-AC9).
+        if (state.location.status === 'locating' || state.mapFailed) return;
+        set({
+          movedSpot: { lat, lon },
+          search: searchAfterSpotChange(),
+          blocked: state.blocked === 'location' ? null : state.blocked,
+        });
+      },
+
+      recentre() {
+        if (state.location.status !== 'found') return;
+        set({ movedSpot: null, search: searchAfterSpotChange() });
+      },
+
+      reportMapFailure() {
+        if (state.mapFailed) return;
+        // Without a map the browser position is the spot (G6-AC9).
+        set({ mapFailed: true, movedSpot: null, search: searchAfterSpotChange() });
+      },
+```
+
+Replace `findChargers` with
+
+```ts
+      async findChargers() {
+        if (busy || !state.settings) return;
+        if (state.battery === null) {
+          set({ blocked: 'battery' });
+          return;
+        }
+        // G3-AC1: no spot while locating, or after a denial until the map has been moved.
+        const spot = spotFor(state);
+        if (spot.kind === 'none') {
+          set({ blocked: 'location' });
+          return;
+        }
+        set({ blocked: null });
+        if (!isInNetherlands(spot.lat, spot.lon)) {
+          set({ search: 'outside-nl' });
+          return;
+        }
+        if (state.battery === 100) {
+          computed = [];
+          set({ view: 'results', search: 'battery-full', results: [], selectedId: null });
+          return;
+        }
+        busy = true;
+        set({ view: 'loading' });
+        try {
+          const key = `${spot.lat},${spot.lon}`;
+          if (nearestCache?.key !== key) {
+            const m = await getManifest();
+            nearestCache = { key, result: await deps.findNearest(spot.lat, spot.lon, m) };
+          }
+          const { nearby, tariffs } = nearestCache.result;
+          computed = computeEntries(nearby, tariffs, state.settings, state.battery, deps.now());
+          // G3-AC2: the results repeat the notice only for an unmoved approximate position.
+          set({ selectedId: null, approximateResults: spot.kind === 'browser' && spot.approximate });
+          rerank();
+          set({ view: 'results', search: 'results' });
+        } catch {
+          computed = [];
+          set({ view: 'results', search: 'load-error', results: [], selectedId: null });
+        } finally {
+          busy = false;
+        }
+      },
+```
+
+Against the Slice 1 method, only the spot check, the Netherlands check, the cache key, the `findNearest` arguments and `approximateResults` changed. They now read `spot` instead of `state.location.position`.
+
+- [ ] **Step 4: Run the controller tests**
+
+Run: `npm test -- src/app.test.ts`
+Expected: PASS — `Tests  17 passed (17)`
+
+- [ ] **Step 5: Run the Slice 1 and 2 acceptance suites**
+
+Run: `npm test -- test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts`
+Expected: PASS — `Tests  22 passed (22)` (13 + 9)
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/app.ts src/app.test.ts
+git commit -m "feat: controller moves the spot with the map, recentres, and falls back when the map fails"
+```
+
+**Verify:** `npm test -- src/app.test.ts test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts` — `Tests  39 passed (39)`
+
+### Task 29: Map core: start watch, accuracy circle and zoom
+
+> **Implemented with deviations (2026-10-12):** after `load`, tile and source errors (events carrying `sourceId` or `tile`) are not a map failure. Any `load` after a failure (the 8 s timeout or an error during startup) recovers once through `onRecover`, and the controller's `reportMapRecovered()` clears `mapFailed`. A style that never loads stays failed. See implementation-log Deviations rows 6–7.
+
+The parts of the map wrapper that don't need MapLibre or a DOM, so Vitest can run them (G6-AC9 verify: "a map wrapper stub that throws on construction and one that emits an error"):
+
+- `startMap(create, onFail)`. It builds the map and watches it start. Any of these calls `onFail` once: a constructor that throws (no WebGL), no `load` event within 8 s, or an `error` event (style or tiles, also after load). A constructor that throws gets `onFail` on a microtask, never synchronously. Otherwise the parked view, still building itself, would be re-entered through the controller's state change.
+- `metresPerPixel` and `accuracyRadiusPx` give the accuracy circle's radius in pixels for a radius in metres (G3-AC2). They use Web Mercator ground resolution for MapLibre's 512 px tiles.
+- `spotZoom(accuracyM, lat)`. Street level (zoom 15) for a precise position. An approximate position zooms out until its circle has a 90 px radius, so the circle fits the 230 px spot map.
+- `hasMoved(a, b)`. A centre change counts as a move only above about 1 cm. A zoom around the centre doesn't move the spot.
+
+**Files:**
+- Create: `src/ui/map-core.ts`
+- Test: `src/ui/map-core.test.ts`
+
+**Interfaces:**
+- Consumes: nothing
+- Produces: `MAP_LOAD_TIMEOUT_MS`, `SPOT_ZOOM`, `ACCURACY_FIT_PX`, `Startable`, `startMap`, `metresPerPixel`, `accuracyRadiusPx`, `spotZoom`, `hasMoved`
+
+- [ ] **Step 1: Write the failing tests**
+
+Create `src/ui/map-core.test.ts`:
+
+```ts
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  ACCURACY_FIT_PX, MAP_LOAD_TIMEOUT_MS, SPOT_ZOOM, accuracyRadiusPx, hasMoved, metresPerPixel, spotZoom, startMap,
+} from './map-core.ts';
+
+/** A stand-in for maplibregl.Map: records listeners so a test can fire `load` and `error`. */
+function fakeMap() {
+  const listeners: Record<string, Array<() => void>> = {};
+  return {
+    on(type: 'load' | 'error', listener: () => void) {
+      (listeners[type] ??= []).push(listener);
+    },
+    fire(type: 'load' | 'error') {
+      for (const l of listeners[type] ?? []) l();
+    },
+  };
+}
+
+describe('startMap (G6-AC9)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('reports nothing when the map loads within 8 s', () => {
+    vi.useFakeTimers();
+    const onFail = vi.fn();
+    const map = fakeMap();
+    expect(startMap(() => map, onFail)).toBe(map);
+    map.fire('load');
+    vi.advanceTimersByTime(MAP_LOAD_TIMEOUT_MS + 1);
+    expect(onFail).not.toHaveBeenCalled();
+  });
+
+  it('fails when there is no load event within 8 s', () => {
+    vi.useFakeTimers();
+    const onFail = vi.fn();
+    startMap(() => fakeMap(), onFail);
+    vi.advanceTimersByTime(MAP_LOAD_TIMEOUT_MS - 1);
+    expect(onFail).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(onFail).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails once on error events (style or tiles), also after load', () => {
+    const onFail = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, onFail);
+    map.fire('load');
+    map.fire('error');
+    map.fire('error');
+    expect(onFail).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails, not synchronously, when the constructor throws (no WebGL), and returns null', async () => {
+    const onFail = vi.fn();
+    expect(startMap(() => { throw new Error('WebGL not supported'); }, onFail)).toBeNull();
+    expect(onFail).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(onFail).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('accuracy circle and zoom (G3-AC2)', () => {
+  it('uses Web Mercator ground resolution for 512 px tiles', () => {
+    expect(metresPerPixel(0, 0)).toBeCloseTo(78_271.517, 3);
+    expect(metresPerPixel(60, 1)).toBeCloseTo(19_567.879, 3);
+  });
+
+  it('zooms to street level for a precise position, and out until an approximate circle fits', () => {
+    expect(spotZoom(20, 51.4436)).toBe(SPOT_ZOOM);
+    const z = spotZoom(1500, 51.4436);
+    expect(z).toBeLessThan(SPOT_ZOOM);
+    expect(accuracyRadiusPx(1500, 51.4436, z)).toBeCloseTo(ACCURACY_FIT_PX, 6);
+  });
+
+  it('counts a centre change as a move, but not a zoom around the centre', () => {
+    const a = { lat: 51.4436, lon: 5.5519 };
+    expect(hasMoved(a, { ...a })).toBe(false);
+    expect(hasMoved(a, { lat: a.lat + 1e-9, lon: a.lon })).toBe(false);
+    expect(hasMoved(a, { lat: a.lat, lon: a.lon + 1e-5 })).toBe(true);
+  });
+});
+```
+
+The test-only `afterEach` restores real timers, so the error test, which needs none, runs on real ones. Its 8 s timer is cleared by `load`.
+
+- [ ] **Step 2: Run them to see them fail**
+
+Run: `npm test -- src/ui/map-core.test.ts`
+Expected: FAIL — `Failed to load url ./map-core.ts`, `Test Files  1 failed (1)`
+
+- [ ] **Step 3: Write `src/ui/map-core.ts`**
+
+```ts
+// The parts of the map wrapper that need neither MapLibre nor a DOM, so Vitest can run them.
+
+/** G6-AC9: no `load` within this long counts as a map that can't start. */
+export const MAP_LOAD_TIMEOUT_MS = 8_000;
+/** G3-AC3: street level for a precise position. */
+export const SPOT_ZOOM = 15;
+/** G3-AC2: an approximate position zooms out until its accuracy circle has this radius (the spot map is 230 px high). */
+export const ACCURACY_FIT_PX = 90;
+
+const EARTH_CIRCUMFERENCE_M = 40_075_016.686;
+/** MapLibre's tile size in CSS pixels. */
+const TILE_PX = 512;
+/** About 1 cm of latitude. */
+const MOVE_EPSILON_DEG = 1e-7;
+
+export interface Startable {
+  on(type: 'load' | 'error', listener: () => void): unknown;
+}
+
+/**
+ * Creates the map and watches it start (G6-AC9). A constructor that throws (no WebGL), no `load` within the
+ * timeout, or any `error` event (style or tiles) calls `onFail`, once. A throwing constructor reports on a
+ * microtask, never synchronously, so a view that is still building itself isn't re-entered. Returns null then.
+ */
+export function startMap<M extends Startable>(create: () => M, onFail: () => void, timeoutMs = MAP_LOAD_TIMEOUT_MS): M | null {
+  let failed = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const fail = () => {
+    if (failed) return;
+    failed = true;
+    clearTimeout(timer);
+    onFail();
+  };
+  let map: M;
+  try {
+    map = create();
+  } catch {
+    queueMicrotask(fail);
+    return null;
+  }
+  timer = setTimeout(fail, timeoutMs);
+  map.on('load', () => clearTimeout(timer));
+  map.on('error', fail);
+  return map;
+}
+
+/** Ground resolution at a latitude and zoom, in metres per CSS pixel. */
+export function metresPerPixel(lat: number, zoom: number): number {
+  return (EARTH_CIRCUMFERENCE_M * Math.cos((lat * Math.PI) / 180)) / (TILE_PX * 2 ** zoom);
+}
+
+/** G3-AC2: the accuracy circle's radius on screen. */
+export function accuracyRadiusPx(accuracyM: number, lat: number, zoom: number): number {
+  return accuracyM / metresPerPixel(lat, zoom);
+}
+
+/** Street level, or wider when the accuracy circle wouldn't fit at street level. */
+export function spotZoom(accuracyM: number, lat: number): number {
+  // The radius doubles with each zoom step: accuracyM × 2^zoom ÷ metresPerPixel(lat, 0) = ACCURACY_FIT_PX.
+  const fit = Math.log2((ACCURACY_FIT_PX * metresPerPixel(lat, 0)) / accuracyM);
+  return Math.min(SPOT_ZOOM, fit);
+}
+
+/** A centre change bigger than about 1 cm counts as a move; a zoom around the centre doesn't. */
+export function hasMoved(a: { lat: number; lon: number }, b: { lat: number; lon: number }): boolean {
+  return Math.abs(a.lat - b.lat) > MOVE_EPSILON_DEG || Math.abs(a.lon - b.lon) > MOVE_EPSILON_DEG;
+}
+```
+
+- [ ] **Step 4: Run them to see them pass**
+
+Run: `npm test -- src/ui/map-core.test.ts`
+Expected: PASS — `Tests  7 passed (7)`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/ui/map-core.ts src/ui/map-core.test.ts
+git commit -m "feat: map start watch, accuracy circle and spot zoom"
+```
+
+**Verify:** `npm test -- src/ui/map-core.test.ts` — `Tests  7 passed (7)`
+
+### Task 30: Parked map view model and wording
+
+Everything the map area on the parked screen shows, as one pure function of app state, `spotView(state)`. It covers:
+
+- the notice above the map, in this order: outside the Netherlands; location denied, with "Try again"; approximate
+- whether a refused "Find chargers" tap or an outside answer highlights the notice and the map
+- where to centre the map: the browser position at `spotZoom`, the centre of the Netherlands at zoom 7 when there's no spot, or `null` (leave the map where the driver put it) for a moved spot
+- the pin (blue, or grey when there's no spot), the chip ("Your location", "Moved spot" or "No location yet", with coordinates) and "My location"
+- the "Finding your location…" overlay, whether dragging is on, the accuracy circle, and "Map couldn't load."
+
+The denied notice gets the design's full sentence, with "…, or drag the map to your spot.". That ends the Slice 1 interim wording (Deviations from Design, Slice 1 row). G6-AC9 asks that the notice "says why" when the map can't load and location is denied too. Then the sentence without the map clause is shown, `LOCATION_DENIED_NO_MAP`, so the notice doesn't point at a map that isn't there. This task also adds the coordinates formatter (G3-AC3: the spot is shown as coordinates) and the new strings. "Your location", "My location" and the hint "Drag the map to adjust the spot" come from the UI mockup. "Moved spot", "No location yet" and "Map couldn't load." come from the design.
+
+After this task the Task 26 acceptance suite is green.
+
+**Files:**
+- Modify: `src/ui/messages.ts`
+- Modify: `src/ui/messages.test.ts`
+- Modify: `src/ui/format.ts`
+- Modify: `src/ui/format.test.ts`
+- Create: `src/ui/spot-view.ts`
+- Test: `src/ui/spot-view.test.ts`
+
+**Interfaces:**
+- Consumes: `spotFor`, `AppState` (Task 28); `NL_CENTRE` (Task 27); `spotZoom`, `SPOT_ZOOM` (Task 29)
+- Produces: `coords(lat, lon): string`; `LOCATION_DENIED` (full text), `LOCATION_DENIED_NO_MAP`, `MAP_FAILED`, `YOUR_LOCATION`, `MOVED_SPOT`, `NO_LOCATION`, `MY_LOCATION`, `MAP_HINT`; `SpotNotice`, `SpotView`, `spotView(state): SpotView`
+
+- [ ] **Step 1: Write the failing wording tests**
+
+In `src/ui/messages.test.ts`, replace the row
+
+```ts
+    ['LOCATION_DENIED (approved Slice 1 interim text)', m.LOCATION_DENIED, "We couldn't get your location. Allow location access in your browser and try again."],
+```
+
+with
+
+```ts
+    ['LOCATION_DENIED', m.LOCATION_DENIED, "We couldn't get your location. Allow location access in your browser and try again, or drag the map to your spot."],
+    ['LOCATION_DENIED_NO_MAP', m.LOCATION_DENIED_NO_MAP, "We couldn't get your location. Allow location access in your browser and try again."],
+    ['MAP_FAILED', m.MAP_FAILED, "Map couldn't load."],
+    ['YOUR_LOCATION', m.YOUR_LOCATION, 'Your location'],
+    ['MOVED_SPOT', m.MOVED_SPOT, 'Moved spot'],
+    ['NO_LOCATION', m.NO_LOCATION, 'No location yet'],
+    ['MY_LOCATION', m.MY_LOCATION, 'My location'],
+    ['MAP_HINT', m.MAP_HINT, 'Drag the map to adjust the spot'],
+```
+
+In `src/ui/format.test.ts`, add `coords` to the import from `./format.ts` and add at the end of the file:
+
+```ts
+describe('coords (G3-AC3)', () => {
+  it('shows the spot to 4 decimals', () => {
+    expect(coords(51.4484, 5.4573)).toBe('51.4484, 5.4573');
+    expect(coords(51.45, 5.5)).toBe('51.4500, 5.5000');
+  });
+});
+```
+
+- [ ] **Step 2: Write the failing view-model test**
+
+Create `src/ui/spot-view.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { createApp, type AppState } from '../app.ts';
+import { SPOT_ZOOM } from './map-core.ts';
+import { spotView } from './spot-view.ts';
+import { APPROXIMATE, LOCATION_DENIED, LOCATION_DENIED_NO_MAP, MAP_FAILED, MOVED_SPOT, NO_LOCATION, OUTSIDE_NL, YOUR_LOCATION } from './messages.ts';
+import { NUENEN, stubDeps } from '../../test/fixtures/app-deps.ts';
+
+const base: AppState = createApp(stubDeps()).getState();
+const at = (patch: Partial<AppState>): AppState => ({ ...base, view: 'parked', ...patch });
+const found = (accuracyM = 20): AppState['location'] => ({
+  status: 'found', position: { ...NUENEN, accuracyM }, approximate: accuracyM > 1000,
+});
+const NL_MAP = { lat: 52.13, lon: 5.29, zoom: 7 };
+
+describe('spotView (G3-AC1–AC4, G6-AC9)', () => {
+  it('while locating: the overlay, no chip, no dragging, and the map on the centre of the Netherlands', () => {
+    expect(spotView(at({ location: { status: 'locating' } }))).toEqual({
+      notice: null, highlight: false, centre: NL_MAP, pin: 'none', chipLabel: null, chipCoords: null,
+      recentre: false, busy: true, draggable: false, accuracyM: null, mapMessage: null,
+    });
+  });
+
+  it('found: the browser position at street level, "Your location" with its coordinates', () => {
+    expect(spotView(at({ location: found() }))).toMatchObject({
+      notice: null, centre: { lat: 51.4436, lon: 5.5519, zoom: SPOT_ZOOM }, pin: 'me',
+      chipLabel: YOUR_LOCATION, chipCoords: '51.4436, 5.5519', recentre: false, busy: false, draggable: true, accuracyM: null,
+    });
+  });
+
+  it('approximate: the notice, the accuracy circle and a wider zoom (G3-AC2)', () => {
+    const v = spotView(at({ location: found(1500) }));
+    expect(v).toMatchObject({ notice: { tone: 'info', text: APPROXIMATE, retry: false }, accuracyM: 1500, chipLabel: YOUR_LOCATION });
+    expect(v.centre!.zoom).toBeLessThan(SPOT_ZOOM);
+  });
+
+  it('moved: "Moved spot" with its coordinates, "My location", and the map left where the driver put it (G3-AC3)', () => {
+    expect(spotView(at({ location: found(1500), movedSpot: { lat: 51.45, lon: 5.56 } }))).toMatchObject({
+      notice: null, centre: null, pin: 'me', chipLabel: MOVED_SPOT, chipCoords: '51.4500, 5.5600', recentre: true, accuracyM: null,
+    });
+  });
+
+  it('denied: grey pin, "No location yet", no "My location", and the notice with "Try again" pointing to the map', () => {
+    expect(spotView(at({ location: { status: 'denied' } }))).toMatchObject({
+      notice: { tone: 'bad', role: 'alert', text: LOCATION_DENIED, retry: true },
+      centre: NL_MAP, pin: 'none', chipLabel: NO_LOCATION, chipCoords: null, recentre: false, draggable: true,
+    });
+  });
+
+  it('denied, then moved: "Moved spot" without "My location"', () => {
+    expect(spotView(at({ location: { status: 'denied' }, movedSpot: { lat: 51.45, lon: 5.56 } }))).toMatchObject({
+      pin: 'me', chipLabel: MOVED_SPOT, recentre: false, notice: { text: LOCATION_DENIED },
+    });
+  });
+
+  it('outside the Netherlands: the message and the highlight, with the map still draggable (G3-AC4)', () => {
+    expect(spotView(at({ location: found(), movedSpot: { lat: 50.8467, lon: 4.3525 }, search: 'outside-nl' }))).toMatchObject({
+      notice: { tone: 'bad', role: 'alert', text: OUTSIDE_NL, retry: false }, highlight: true, draggable: true,
+    });
+  });
+
+  it('map failed: "Map couldn\'t load." and no dragging; with location denied too, the notice drops the map clause (G6-AC9)', () => {
+    expect(spotView(at({ location: found(), mapFailed: true }))).toMatchObject({
+      mapMessage: MAP_FAILED, draggable: false, chipLabel: YOUR_LOCATION,
+    });
+    expect(spotView(at({ location: { status: 'denied' }, mapFailed: true, blocked: 'location' }))).toMatchObject({
+      notice: { text: LOCATION_DENIED_NO_MAP, retry: true }, highlight: true,
+    });
+  });
+});
+```
+
+- [ ] **Step 3: Run them to see them fail**
+
+Run: `npm test -- src/ui/messages.test.ts src/ui/format.test.ts src/ui/spot-view.test.ts`
+Expected: FAIL — `Test Files  3 failed (3)`, with `Tests  9 failed | 26 passed (35)`. In `messages.test.ts` the changed row and the seven new rows fail (8). In `format.test.ts` the `coords` test fails (1). `spot-view.test.ts` fails to load (`Failed to load url ./spot-view.ts`).
+
+- [ ] **Step 4: Add the strings**
+
+In `src/ui/messages.ts`, replace
+
+```ts
+/** G3-AC1 denied / unavailable / timed out — Slice 1 interim wording without the map clause (plan, Deviations from Design). */
+export const LOCATION_DENIED = "We couldn't get your location. Allow location access in your browser and try again.";
+```
+
+with
+
+```ts
+/** G3-AC1 denied / unavailable / timed out (PRD S2 error table). */
+export const LOCATION_DENIED = "We couldn't get your location. Allow location access in your browser and try again, or drag the map to your spot.";
+/** G6-AC9: the denied notice when the map can't load, so it doesn't point at a map that isn't there. */
+export const LOCATION_DENIED_NO_MAP = "We couldn't get your location. Allow location access in your browser and try again.";
+/** G6-AC9, PRD S2 error table "Map can't load". */
+export const MAP_FAILED = "Map couldn't load.";
+/** G3-AC3 chip on the spot map: the unmoved browser position (UI mockup wording). */
+export const YOUR_LOCATION = 'Your location';
+/** G3-AC3 chip once the map has been dragged. */
+export const MOVED_SPOT = 'Moved spot';
+/** G3-AC1 chip with location denied and the map unmoved. */
+export const NO_LOCATION = 'No location yet';
+/** G3-AC3 button that returns to the browser position (UI mockup wording). */
+export const MY_LOCATION = 'My location';
+/** Hint at the bottom of the spot map (UI mockup wording; not a PRD string). */
+export const MAP_HINT = 'Drag the map to adjust the spot';
+```
+
+- [ ] **Step 5: Add the coordinates formatter**
+
+In `src/ui/format.ts`, after `metres`, add:
+
+```ts
+/** G3-AC3: the spot as "51.4436, 5.5519"; it is shown as coordinates, never as a place name. */
+export function coords(lat: number, lon: number): string {
+  return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+}
+```
+
+- [ ] **Step 6: Write `src/ui/spot-view.ts`**
+
+```ts
+// What the map area on the parked screen shows, read from app state (G3-AC1–AC4, G6-AC9). Pure, so Vitest pins it.
+import { spotFor, type AppState } from '../app.ts';
+import { NL_CENTRE } from '../services/location.ts';
+import { coords } from './format.ts';
+import { spotZoom } from './map-core.ts';
+import { APPROXIMATE, LOCATION_DENIED, LOCATION_DENIED_NO_MAP, MAP_FAILED, MOVED_SPOT, NO_LOCATION, OUTSIDE_NL, YOUR_LOCATION } from './messages.ts';
+
+export interface SpotNotice {
+  tone: 'info' | 'bad';
+  role: 'status' | 'alert';
+  text: string;
+  /** Show "Try again" (G3-AC1). */
+  retry: boolean;
+}
+
+export interface SpotView {
+  notice: SpotNotice | null;
+  /** A refused "Find chargers" tap or an outside answer highlights the notice and the map (G3-AC1, G3-AC4). */
+  highlight: boolean;
+  /** Where the map should be; null for a moved spot, so the map stays where the driver put it. */
+  centre: { lat: number; lon: number; zoom: number } | null;
+  /** Blue on a spot; grey with no spot yet. */
+  pin: 'me' | 'none';
+  /** "Your location", "Moved spot" or "No location yet"; null while locating. */
+  chipLabel: string | null;
+  chipCoords: string | null;
+  /** Show "My location". */
+  recentre: boolean;
+  /** "Finding your location…" over the map. */
+  busy: boolean;
+  draggable: boolean;
+  /** The accuracy circle's radius, for an unmoved approximate position (G3-AC2). */
+  accuracyM: number | null;
+  mapMessage: string | null;
+}
+
+function spotNotice(state: AppState, approximate: boolean): SpotNotice | null {
+  if (state.search === 'outside-nl') return { tone: 'bad', role: 'alert', text: OUTSIDE_NL, retry: false };
+  if (state.location.status === 'denied') {
+    // G6-AC9: without a map there's nothing to drag, so the notice asks only for location access.
+    return { tone: 'bad', role: 'alert', text: state.mapFailed ? LOCATION_DENIED_NO_MAP : LOCATION_DENIED, retry: true };
+  }
+  if (approximate) return { tone: 'info', role: 'status', text: APPROXIMATE, retry: false };
+  return null;
+}
+
+export function spotView(state: AppState): SpotView {
+  const spot = spotFor(state);
+  const locating = state.location.status === 'locating';
+  return {
+    notice: spotNotice(state, spot.kind === 'browser' && spot.approximate),
+    highlight: state.blocked === 'location' || state.search === 'outside-nl',
+    centre: spot.kind === 'moved'
+      ? null
+      : spot.kind === 'browser'
+        ? { lat: spot.lat, lon: spot.lon, zoom: spotZoom(spot.accuracyM, spot.lat) }
+        : { lat: NL_CENTRE.lat, lon: NL_CENTRE.lon, zoom: NL_CENTRE.zoom },
+    pin: spot.kind === 'none' ? 'none' : 'me',
+    chipLabel: locating ? null : spot.kind === 'moved' ? MOVED_SPOT : spot.kind === 'browser' ? YOUR_LOCATION : NO_LOCATION,
+    chipCoords: spot.kind === 'none' ? null : coords(spot.lat, spot.lon),
+    recentre: spot.kind === 'moved' && state.location.status === 'found',
+    busy: locating,
+    draggable: !locating && !state.mapFailed,
+    accuracyM: spot.kind === 'browser' && spot.approximate ? spot.accuracyM : null,
+    mapMessage: state.mapFailed ? MAP_FAILED : null,
+  };
+}
+```
+
+- [ ] **Step 7: Run the unit tests**
+
+Run: `npm test -- src/ui/messages.test.ts src/ui/format.test.ts src/ui/spot-view.test.ts`
+Expected: PASS — `Tests  43 passed (43)` (20 + 15 + 8)
+
+- [ ] **Step 8: Run the Slice 3 acceptance suite**
+
+Run: `npm test -- test/acceptance/spot-map.test.ts`
+Expected: PASS — `Tests  9 passed (9)`
+
+- [ ] **Step 9: Typecheck, build and run the full suite**
+
+Run: `npm run build && npm test`
+Expected: the build exits 0 with `✓ built in`, then `Test Files  21 passed (21)` and `Tests  241 passed (241)`. The Slice 1 parked screen still renders the denied notice from `LOCATION_DENIED`, so until Task 33 it shows the full sentence without a map on screen. Task 33 adds the map.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add src/ui/messages.ts src/ui/messages.test.ts src/ui/format.ts src/ui/format.test.ts src/ui/spot-view.ts src/ui/spot-view.test.ts
+git commit -m "feat: parked map view model, coordinates and map wording"
+```
+
+**Verify:** `npm test -- test/acceptance/spot-map.test.ts` — `Tests  9 passed (9)`; `npm run build && npm test` — `✓ built in`, then `Tests  241 passed (241)`
+
+### Task 31: Night and Day map styles
+
+D-32: own map styles per theme, on OpenFreeMap's vector source, glyphs and sprites, with the colours of the UI mockup's `--map-*` tokens. They are written as one TypeScript module, `src/ui/map-style.ts`. It returns the style JSON object for each theme from one colour table, so the two styles can't drift apart in their layers. Vite bundles them with the page, so no style file is fetched. The layers are kept to what a driver needs to recognise the spot: land, parks and grass, water, buildings from zoom 14, minor and major roads with a casing, street names from zoom 14 (uppercase and letter-spaced, as in the mockup), and place names. Text uses OpenFreeMap's Noto Sans glyphs, because the page's self-hosted Sora isn't available as map glyphs.
+
+The test validates both styles with MapLibre's own style validator, `@maplibre/maplibre-gl-style-spec`, pinned as a dev dependency. Version 26.4.4 is the one `maplibre-gl` 6.11.2 depends on (`^26.4.4`), released 2026-09-15. The test also checks that every layer reads a source layer OpenFreeMap's tiles have, so a typo in a `source-layer` can't blank the map. The list is the `vector_layers` of `https://tiles.openfreemap.org/planet`, read on 2026-10-12.
+
+**Files:**
+- Modify: `package.json`, `package-lock.json` (through `npm install`)
+- Create: `src/ui/map-style.ts`
+- Test: `src/ui/map-style.test.ts`
+
+**Interfaces:**
+- Consumes: types `StyleSpecification`, `LineLayerSpecification`, `ExpressionSpecification` (`@maplibre/maplibre-gl-style-spec`)
+- Produces: `Theme`, `MapColours`, `MAP_COLOURS`, `mapStyle(theme): StyleSpecification`
+
+- [ ] **Step 1: Add the style validator**
+
+Run: `npm install --save-exact --save-dev @maplibre/maplibre-gl-style-spec@26.4.4`
+Expected: `added` … `packages`, and `package.json` lists `"@maplibre/maplibre-gl-style-spec": "26.4.4"` under `devDependencies`. `--save-exact` matches the other exact pins in `package.json`.
+
+- [ ] **Step 2: Write the failing test**
+
+Create `src/ui/map-style.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
+import { MAP_COLOURS, mapStyle, type Theme } from './map-style.ts';
+
+/** `vector_layers` of OpenFreeMap's planet TileJSON (https://tiles.openfreemap.org/planet, read 2026-10-12). */
+const OFM_LAYERS = [
+  'aerodrome_label', 'aeroway', 'boundary', 'building', 'housenumber', 'landcover', 'landuse', 'mountain_peak',
+  'park', 'place', 'poi', 'transportation', 'transportation_name', 'water', 'water_name', 'waterway',
+];
+const THEMES: Theme[] = ['night', 'day'];
+
+describe('mapStyle (D-32)', () => {
+  it.each(THEMES)('the %s style is a valid MapLibre style', (theme) => {
+    expect(validateStyleMin(mapStyle(theme))).toEqual([]);
+  });
+
+  it('every layer except the background reads a source layer that OpenFreeMap\'s tiles have', () => {
+    for (const theme of THEMES) {
+      for (const layer of mapStyle(theme).layers) {
+        if (layer.type === 'background') continue;
+        expect(layer).toMatchObject({ source: 'openmaptiles' });
+        expect(OFM_LAYERS).toContain((layer as { 'source-layer': string })['source-layer']);
+      }
+    }
+  });
+
+  it('uses OpenFreeMap\'s tiles, glyphs and sprites, with no key', () => {
+    const s = mapStyle('night');
+    expect(s.sources).toEqual({ openmaptiles: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' } });
+    expect(s.glyphs).toBe('https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf');
+    expect(s.sprite).toBe('https://tiles.openfreemap.org/sprites/ofm_f384/ofm');
+  });
+
+  it('paints land, water and labels in the theme\'s colours', () => {
+    for (const theme of THEMES) {
+      const paint = (id: string) => mapStyle(theme).layers.find((l) => l.id === id)!.paint as Record<string, unknown>;
+      expect(paint('land')['background-color']).toBe(MAP_COLOURS[theme].land);
+      expect(paint('water')['fill-color']).toBe(MAP_COLOURS[theme].water);
+      expect(paint('road-name')['text-color']).toBe(MAP_COLOURS[theme].label);
+    }
+    expect(MAP_COLOURS.night.land).not.toBe(MAP_COLOURS.day.land);
+  });
+});
+```
+
+- [ ] **Step 3: Run it to see it fail**
+
+Run: `npm test -- src/ui/map-style.test.ts`
+Expected: FAIL — `Failed to load url ./map-style.ts`, `Test Files  1 failed (1)`
+
+- [ ] **Step 4: Write `src/ui/map-style.ts`**
+
+```ts
+// The Night and Day map styles (D-32): OpenFreeMap's vector tiles, glyphs and sprites in the UI mockup's map colours.
+import type { ExpressionSpecification, LineLayerSpecification, StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
+
+export type Theme = 'night' | 'day';
+
+export interface MapColours {
+  land: string;
+  road: string;
+  edge: string;
+  park: string;
+  water: string;
+  label: string;
+}
+
+/** The mockup's --map-* tokens (ui-mockup.html), Night and Day. */
+export const MAP_COLOURS: Record<Theme, MapColours> = {
+  night: { land: '#111816', road: '#212c29', edge: '#0b100f', park: '#13231b', water: '#0f1f2a', label: '#4c5d58' },
+  day: { land: '#eceeea', road: '#ffffff', edge: '#d4d9d4', park: '#d7e9d1', water: '#cde2ee', label: '#97a29d' },
+};
+
+const SOURCE = 'openmaptiles';
+const MAJOR = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
+const MINOR = ['minor', 'service'];
+
+/** A line width growing with zoom: `z10` px at zoom 10 to `z18` px at zoom 18. */
+function width(z10: number, z18: number): ExpressionSpecification {
+  return ['interpolate', ['exponential', 1.5], ['zoom'], 10, z10, 18, z18];
+}
+
+function road(id: string, classes: string[], colour: string, lineWidth: ExpressionSpecification): LineLayerSpecification {
+  return {
+    id,
+    type: 'line',
+    source: SOURCE,
+    'source-layer': 'transportation',
+    filter: ['match', ['get', 'class'], classes, true, false],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': colour, 'line-width': lineWidth },
+  };
+}
+
+export function mapStyle(theme: Theme): StyleSpecification {
+  const c = MAP_COLOURS[theme];
+  const text = { 'text-color': c.label, 'text-halo-color': c.land, 'text-halo-width': 1.2 };
+  return {
+    version: 8,
+    name: `Plug or Not ${theme}`,
+    sources: { [SOURCE]: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' } },
+    glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+    sprite: 'https://tiles.openfreemap.org/sprites/ofm_f384/ofm',
+    layers: [
+      { id: 'land', type: 'background', paint: { 'background-color': c.land } },
+      { id: 'park', type: 'fill', source: SOURCE, 'source-layer': 'park', paint: { 'fill-color': c.park } },
+      {
+        id: 'green', type: 'fill', source: SOURCE, 'source-layer': 'landcover',
+        filter: ['match', ['get', 'class'], ['grass', 'wood'], true, false],
+        paint: { 'fill-color': c.park },
+      },
+      { id: 'water', type: 'fill', source: SOURCE, 'source-layer': 'water', paint: { 'fill-color': c.water } },
+      { id: 'waterway', type: 'line', source: SOURCE, 'source-layer': 'waterway', paint: { 'line-color': c.water, 'line-width': width(1, 6) } },
+      {
+        id: 'building', type: 'fill', source: SOURCE, 'source-layer': 'building', minzoom: 14,
+        paint: { 'fill-color': c.edge, 'fill-opacity': 0.5 },
+      },
+      road('road-minor-casing', MINOR, c.edge, width(1.5, 14)),
+      road('road-major-casing', MAJOR, c.edge, width(3, 22)),
+      road('road-minor', MINOR, c.road, width(0.5, 11)),
+      road('road-major', MAJOR, c.road, width(2, 18)),
+      {
+        id: 'road-name', type: 'symbol', source: SOURCE, 'source-layer': 'transportation_name', minzoom: 14,
+        layout: {
+          'symbol-placement': 'line', 'text-field': ['coalesce', ['get', 'name'], ''], 'text-font': ['Noto Sans Regular'],
+          'text-size': 10, 'text-letter-spacing': 0.08, 'text-transform': 'uppercase',
+        },
+        paint: text,
+      },
+      {
+        id: 'place-name', type: 'symbol', source: SOURCE, 'source-layer': 'place',
+        filter: ['match', ['get', 'class'], ['city', 'town', 'village', 'suburb'], true, false],
+        layout: {
+          'text-field': ['coalesce', ['get', 'name'], ''], 'text-font': ['Noto Sans Bold'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 6, 11, 14, 15],
+        },
+        paint: text,
+      },
+    ],
+  };
+}
+```
+
+- [ ] **Step 5: Run it to see it pass**
+
+Run: `npm test -- src/ui/map-style.test.ts`
+Expected: PASS — `Tests  5 passed (5)`
+
+- [ ] **Step 6: Typecheck and build**
+
+Run: `npm run build`
+Expected: exits 0 with `✓ built in`
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add package.json package-lock.json src/ui/map-style.ts src/ui/map-style.test.ts
+git commit -m "feat: Night and Day map styles on OpenFreeMap tiles"
+```
+
+**Verify:** `npm test -- src/ui/map-style.test.ts` — `Tests  5 passed (5)`; `npm run build` exits 0
+
+### Task 32: MapLibre wrapper
+
+> **Implemented with deviations (2026-10-12):** `import * as maplibregl` (no default export in 6.11.2). The worker is bundled via `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` and `setWorkerUrl`. Only gesture moves (`originalEvent`, through the pure `isDriverMove`/`liveMoveCentre` in `map-core.ts`) count as the driver moving the spot. `map.ts` is loaded with a dynamic `import()` from the parked view, and a failed import counts as a map failure. See implementation-log Deviations rows 3–5.
+
+`src/ui/map.ts` wraps the one MapLibre GL JS map (D-22), made on first use by `sharedMap(events)`. A view moves it into place with `attachTo(parent)`. On the parked screen it:
+
+- starts in the device theme's style and swaps with `setStyle` when the device theme changes, without a reload (G7-AC6, D-32)
+- starts on the centre of the Netherlands; `centreOn` jumps without animation and is never reported as a move
+- reports a drag through `events.moved(lat, lon)` when the move ends, and follows the centre live through `onLiveMove` for the coordinates chip (G3-AC3)
+- keeps zooming around the centre, so only a drag moves the spot. Rotation, pitch and double-click zoom are off, because double-click zoom zooms around the tapped point.
+- turns dragging and keyboard panning off and on (`setDraggable`, G3-AC1)
+- draws the accuracy circle around the pin, sized for the zoom (`setAccuracy`, G3-AC2)
+- reports through `events.failed()` once, through `startMap` (Task 29), when the map can't start or its style or tiles fail (G6-AC9)
+- shows the attribution "OpenFreeMap © OpenMapTiles Data from OpenStreetMap" in the bottom-right corner, spelled out, never collapsed (`compact: false`). The text is the `attribution` of OpenFreeMap's TileJSON, which MapLibre reads from the source.
+
+If the constructor threw, every method does nothing, and the views keep working without a map.
+
+MapLibre GL JS 6.11.2 is pinned exactly. It was released 2026-09-24, so it's more than two weeks old, and it ships ES module builds and its own types. It needs WebGL and a DOM, so it's never imported by anything under test. That's why the logic Vitest can check lives in `map-core.ts`. This task has no unit test of its own (D-17). The checks are the typecheck in `npm run build` and the device checks in Task 34. Nothing imports `map.ts` until Task 33, so Vite leaves it out of the bundle for now.
+
+**Files:**
+- Modify: `package.json`, `package-lock.json` (through `npm install`)
+- Create: `src/ui/map.ts`
+
+**Interfaces:**
+- Consumes: `startMap`, `accuracyRadiusPx`, `hasMoved` (Task 29); `mapStyle`, `Theme` (Task 31); `NL_CENTRE` (Task 27)
+- Produces: `MapEvents`, `MapHandle`, `sharedMap(events): MapHandle`
+
+- [ ] **Step 1: Add MapLibre GL JS**
+
+Run: `npm install --save-exact maplibre-gl@6.11.2`
+Expected: `added` … `packages`, and `package.json` lists `"maplibre-gl": "6.11.2"` under `dependencies`
+
+- [ ] **Step 2: Write `src/ui/map.ts`**
+
+```ts
+// The one MapLibre map (D-22): OpenFreeMap tiles in the Night or Day style (D-32), dragged under a fixed spot pin
+// (G3-AC3), with the load and error detection of G6-AC9. Result pins come with Slice 4.
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { NL_CENTRE } from '../services/location.ts';
+import { accuracyRadiusPx, hasMoved, startMap } from './map-core.ts';
+import { mapStyle, type Theme } from './map-style.ts';
+
+export interface MapEvents {
+  /** The driver moved the map; its new centre is the spot. Never called for the wrapper's own jumps. */
+  moved(lat: number, lon: number): void;
+  /** The map can't start, or its style or tiles failed. Called once, never synchronously. */
+  failed(): void;
+}
+
+export interface MapHandle {
+  /** Moves the map into `parent`, as its first child (one map, moved between views: D-22). */
+  attachTo(parent: HTMLElement): void;
+  /** Centres the map without animation; not reported as a move. */
+  centreOn(lat: number, lon: number, zoom: number): void;
+  /** G3-AC1: no dragging while the location is being found. */
+  setDraggable(on: boolean): void;
+  /** G3-AC2: the accuracy circle around the pin, or none. */
+  setAccuracy(metres: number | null): void;
+  /** Follows the centre while the driver drags, for the coordinates chip; one listener at a time. */
+  onLiveMove(listener: ((lat: number, lon: number) => void) | null): void;
+}
+
+const LIGHT = window.matchMedia('(prefers-color-scheme: light)');
+const theme = (): Theme => (LIGHT.matches ? 'day' : 'night');
+
+function createMap(events: MapEvents): MapHandle {
+  const el = document.createElement('div');
+  el.className = 'mapcanvas';
+  const map = startMap(() => new maplibregl.Map({
+    container: el,
+    style: mapStyle(theme()),
+    center: [NL_CENTRE.lon, NL_CENTRE.lat],
+    zoom: NL_CENTRE.zoom,
+    attributionControl: false,
+    dragRotate: false,
+    pitchWithRotate: false,
+    touchPitch: false,
+    doubleClickZoom: false,
+  }), () => events.failed());
+  const circle = document.createElement('div');
+  circle.className = 'acc';
+  circle.hidden = true;
+  el.append(circle);
+  let accuracyM: number | null = null;
+  let live: ((lat: number, lon: number) => void) | null = null;
+  let jumping = false;
+  let last = { lat: NL_CENTRE.lat, lon: NL_CENTRE.lon };
+
+  function drawCircle(): void {
+    if (!map || accuracyM === null) {
+      circle.hidden = true;
+      return;
+    }
+    const d = 2 * accuracyRadiusPx(accuracyM, map.getCenter().lat, map.getZoom());
+    circle.style.width = `${d}px`;
+    circle.style.height = `${d}px`;
+    circle.hidden = false;
+  }
+
+  if (map) {
+    // The attribution comes from OpenFreeMap's TileJSON, always spelled out (D-22).
+    map.addControl(new maplibregl.AttributionControl({ compact: false }), 'bottom-right');
+    // Zooming keeps the spot under the pin: only a drag moves it.
+    map.scrollZoom.enable({ around: 'center' });
+    map.touchZoomRotate.enable({ around: 'center' });
+    map.touchZoomRotate.disableRotation();
+    map.on('move', () => {
+      if (jumping || !live) return;
+      const c = map.getCenter();
+      live(c.lat, c.lng);
+    });
+    map.on('moveend', () => {
+      const c = map.getCenter();
+      const now = { lat: c.lat, lon: c.lng };
+      if (!jumping && hasMoved(last, now)) events.moved(now.lat, now.lon);
+      last = now;
+    });
+    map.on('zoom', drawCircle);
+    // G7-AC6: follow a device theme switch without a reload; the pin and the circle are HTML and stay.
+    LIGHT.addEventListener('change', () => map.setStyle(mapStyle(theme())));
+  }
+
+  return {
+    attachTo(parent) {
+      parent.prepend(el);
+      map?.resize();
+    },
+    centreOn(lat, lon, zoom) {
+      if (!map) return;
+      // jumpTo fires its move events synchronously, so the flag covers them all.
+      jumping = true;
+      try {
+        map.jumpTo({ center: [lon, lat], zoom });
+      } finally {
+        jumping = false;
+      }
+      drawCircle();
+    },
+    setDraggable(on) {
+      if (!map) return;
+      if (on) {
+        map.dragPan.enable();
+        map.keyboard.enable();
+      } else {
+        map.dragPan.disable();
+        map.keyboard.disable();
+      }
+    },
+    setAccuracy(metres) {
+      accuracyM = metres;
+      drawCircle();
+    },
+    onLiveMove(listener) {
+      live = listener;
+    },
+  };
+}
+
+let shared: MapHandle | null = null;
+
+/** The one map (D-22), made on first use. The first caller's events stay bound: the app is a singleton. */
+export function sharedMap(events: MapEvents): MapHandle {
+  shared ??= createMap(events);
+  return shared;
+}
+```
+
+- [ ] **Step 3: Check that only the wrapper imports MapLibre**
+
+Run: `grep -rn "from 'maplibre-gl'" src/ test/`
+Expected: exactly one line, `src/ui/map.ts:3:import maplibregl from 'maplibre-gl';`
+
+- [ ] **Step 4: Typecheck, build and run the full suite**
+
+Run: `npm run build && npm test`
+Expected: the build exits 0 with `✓ built in`, then `Test Files  22 passed (22)` and `Tests  246 passed (246)`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add package.json package-lock.json src/ui/map.ts
+git commit -m "feat: MapLibre wrapper with one shared map, drag reporting and failure detection"
+```
+
+**Verify:** `npm run build && npm test` — `✓ built in`, then `Tests  246 passed (246)`; `grep -rn "from 'maplibre-gl'" src/ test/` — only `src/ui/map.ts:3`
+
+### Task 33: Spot map on the parked screen
+
+Replaces the Slice 1 "YOUR LOCATION · lat, lon" line on the parked screen with the spot map from the UI mockup (G3-AC1–AC4, FR-025). The map box holds:
+
+- the shared MapLibre map (Task 32)
+- a fixed pin at the centre: blue on a spot, grey with "No location yet"
+- the chip with the label and coordinates; the coordinates follow the map while it is dragged
+- "My location"
+- the "Finding your location…" overlay
+- the hint "Drag the map to adjust the spot"
+- "Map couldn't load."
+
+The notice above it comes from `spotView` (Task 30), with "Try again" for a denied location. Like the sliders, the map box is built once per visit and patched on every state change, so a state change never interrupts a drag. The view centres the map only when `spotView.centre` changes. A moved spot (`centre: null`) leaves the map where the driver put it. The pin is hidden once the map has failed, so it doesn't cover the message.
+
+The CSS follows the mockup's spot map rules (`ui-mockup.html` lines 163–182), adapted to the real map. The mockup's hand-drawn `.pan` layer is replaced by `.mapcanvas`. The accuracy circle is its own element, sized in pixels by the wrapper, where the mockup used a fixed shadow. The hint sits above the attribution in the bottom-right corner, so the two don't overlap on a phone. `theme.css` gets the mockup's `--map-land` token for both colour sets, as the box background while tiles load and behind "Map couldn't load.". The unused `.spotline` rule goes.
+
+There's no DOM test in this repo (D-17). The automated checks are the typecheck, the build and the full suite. A dev-server check follows in Step 5, and the device checks are in Task 34.
+
+**Files:**
+- Modify: `src/ui/parked.ts`
+- Modify: `src/ui/app.css`
+- Modify: `src/ui/theme.css`
+
+**Interfaces:**
+- Consumes: `sharedMap`, `MapHandle` (Task 32); `spotView`, `SpotView`, `SpotNotice` (Task 30); `coords` (Task 30); `App.moveSpot`, `App.recentre`, `App.reportMapFailure`, `App.retryLocation` (Task 28); `LOCATING`, `MAP_HINT`, `MY_LOCATION`, `TRY_AGAIN`
+- Produces: the parked screen's spot map
+
+- [ ] **Step 1: Replace `src/ui/parked.ts`**
+
+```ts
+import type { App, AppState } from '../app.ts';
+import { STAY_MAX, STAY_MIN, STAY_STEP } from '../engine/compare.ts';
+import { h, icon, rangeFill } from './dom.ts';
+import { appBar, errorText, notice, storageNotice } from './chrome.ts';
+import { coords, duration } from './format.ts';
+import { sharedMap } from './map.ts';
+import { spotView, type SpotNotice, type SpotView } from './spot-view.ts';
+import { BATTERY_NOT_SET, FINDING_CHARGERS, LOCATING, MAP_HINT, MY_LOCATION, STAY_LIMITS, TRY_AGAIN } from './messages.ts';
+
+/** A range slider whose element is never replaced, so a state change can't interrupt a drag. */
+function slider(opts: {
+  id: string; label: string; min: number; max: number; step: number; scale: string[]; inset?: boolean;
+  format: (v: number) => string; valueText: (v: number) => string; commit: (v: number) => void;
+}) {
+  let dragging = false;
+  let unset = true;
+  const value = h('span', { class: 'val num' });
+  const input = h('input', { type: 'range', class: 'range', id: opts.id, min: opts.min, max: opts.max, step: opts.step });
+  const box = h('div', { class: 'slider' },
+    h('div', { class: 'stop' }, h('label', { for: opts.id }, opts.label), value),
+    h('div', { class: 'srow' }, input),
+    h('div', { class: opts.inset ? 'scale inset' : 'scale', 'aria-hidden': 'true' }, ...opts.scale.map((t) => h('span', {}, t))),
+  );
+  const show = (v: number | null) => {
+    const set = v !== null;
+    unset = !set;
+    const n = v ?? (opts.min + opts.max) / 2;
+    input.value = String(n);
+    input.style.setProperty('--p', set ? rangeFill(n, opts.min, opts.max) : '0%');
+    input.setAttribute('aria-valuetext', set ? opts.valueText(n) : 'not set');
+    value.textContent = set ? opts.format(n) : 'Slide to set';
+    value.className = set ? 'val num' : 'val num unset';
+    box.classList.toggle('unset', !set);
+  };
+  // Live label while dragging; the value is committed on release (`change`).
+  input.addEventListener('input', () => {
+    dragging = true;
+    show(Number(input.value));
+  });
+  input.addEventListener('change', () => {
+    dragging = false;
+    opts.commit(Number(input.value));
+  });
+  // An unset slider parks its thumb mid-scale, so a tap or release exactly there fires no `change`:
+  // commit on pointer release anyway, so any tap or drag sets the value.
+  // (Keyboard input always moves the value, so it fires `change` by itself.)
+  const commitIfUnset = () => {
+    if (!unset) return;
+    dragging = false;
+    opts.commit(Number(input.value));
+  };
+  input.addEventListener('pointerup', commitIfUnset);
+  return {
+    box,
+    input,
+    /** Shows the app's value unless the driver is dragging. */
+    sync: (v: number | null) => { if (!dragging) show(v); },
+  };
+}
+
+function spotNotice(n: SpotNotice, highlight: boolean, app: App): HTMLElement {
+  const el = notice(n.tone, n.role,
+    h('p', {}, n.text),
+    n.retry && h('div', { class: 'acts' },
+      h('button', { type: 'button', class: 'btn btn-secondary btn-small', onclick: () => void app.retryLocation() }, TRY_AGAIN)),
+  );
+  el.classList.toggle('highlight', highlight);
+  return el;
+}
+
+/** The spot map (G3-AC1–AC4, FR-025): the shared map under a fixed pin, with its chip and overlays. Built once per visit. */
+function spotMap(app: App) {
+  const map = sharedMap({ moved: (lat, lon) => app.moveSpot(lat, lon), failed: () => app.reportMapFailure() });
+  const pin = h('span', { class: 'target' });
+  const chipLabel = h('b', {});
+  const chipCoords = h('span', {});
+  const chip = h('span', { class: 'chipx' }, chipLabel, chipCoords);
+  const recentre = h('button', { type: 'button', class: 'recenter', onclick: () => app.recentre() }, icon('pin', 12), MY_LOCATION);
+  const busy = h('div', { class: 'busy', role: 'status' }, h('span', {}, h('i', { class: 'dot' }), LOCATING));
+  const hint = h('span', { class: 'maphint' }, MAP_HINT);
+  const failed = h('div', { class: 'mapmsg', role: 'status' });
+  const box = h('div', { class: 'spotmap', role: 'application', 'aria-label': 'Map of your spot. Drag to move the spot under the pin.' },
+    pin, h('div', { class: 'mapchips' }, chip, recentre), busy, hint, failed);
+  /** The centre last applied; null while the driver's own move is showing. */
+  let applied: string | null = null;
+  // While dragging, only the coordinates follow the map; the spot is committed when the move ends (`moved`).
+  map.onLiveMove((lat, lon) => {
+    chipCoords.textContent = ` · ${coords(lat, lon)}`;
+  });
+
+  return {
+    box,
+    /** Puts the shared map into this box; call once the box is in the page, so the map can size itself. */
+    attach: () => map.attachTo(box),
+    update(v: SpotView) {
+      box.classList.toggle('hl', v.highlight);
+      pin.className = v.pin === 'none' ? 'target none' : 'target';
+      pin.hidden = v.mapMessage !== null;
+      chip.hidden = v.chipLabel === null;
+      chipLabel.textContent = v.chipLabel ?? '';
+      chipCoords.textContent = v.chipCoords ? ` · ${v.chipCoords}` : '';
+      recentre.hidden = !v.recentre;
+      busy.hidden = !v.busy;
+      hint.hidden = !v.draggable;
+      failed.hidden = v.mapMessage === null;
+      failed.textContent = v.mapMessage ?? '';
+      map.setDraggable(v.draggable);
+      map.setAccuracy(v.accuracyM);
+      const key = v.centre && `${v.centre.lat},${v.centre.lon},${v.centre.zoom}`;
+      if (v.centre && key !== applied) map.centreOn(v.centre.lat, v.centre.lon, v.centre.zoom);
+      applied = key;
+    },
+  };
+}
+
+/** Builds the parked screen once per visit and returns an updater that patches it in place. */
+export function mountParked(root: HTMLElement, app: App): (state: AppState) => void {
+  const battery = slider({
+    id: 'batt', label: 'Battery now', min: 0, max: 100, step: 1, scale: ['0%', '25%', '50%', '75%', '100%'],
+    format: (v) => `${v}%`, valueText: (v) => `${v} percent`, commit: (v) => app.setBattery(v),
+  });
+  const batteryError = errorText('batt_e', BATTERY_NOT_SET);
+  battery.box.append(batteryError);
+
+  const stay = slider({
+    id: 'stay', label: 'How long you’ll stay', min: STAY_MIN, max: STAY_MAX, step: STAY_STEP,
+    scale: ['15 min', '6h', '12h', '18h', '24h'], inset: true,
+    format: duration, valueText: duration, commit: (v) => app.setStay(v),
+  });
+  const srow = stay.box.querySelector('.srow')!;
+  srow.prepend(h('button', { type: 'button', class: 'nudge', 'aria-label': '15 minutes shorter', onclick: () => app.nudgeStay(-1) }, '−'));
+  srow.append(h('button', { type: 'button', class: 'nudge', 'aria-label': '15 minutes longer', onclick: () => app.nudgeStay(1) }, '+'));
+  const limitNote = h('div', { class: 'limitnote', role: 'status' }, STAY_LIMITS);
+  stay.box.append(limitNote);
+
+  const storage = storageNotice();
+  const noticeSlot = h('div', {});
+  const map = spotMap(app);
+  root.replaceChildren(
+    appBar(app),
+    h('section', { class: 'screen' },
+      h('h1', {}, 'Parked here now'),
+      h('p', { class: 'lede' }, 'We’ll rank the 10 nearest chargers by what they save you compared with petrol.'),
+      storage, battery.box, stay.box,
+      h('h2', { class: 'sec' }, 'Where you parked'),
+      noticeSlot,
+      map.box,
+      h('button', { type: 'button', class: 'btn btn-primary', onclick: () => void app.findChargers() }, icon('bolt', 18), 'Find chargers'),
+    ),
+  );
+  map.attach();
+
+  return (state) => {
+    storage.hidden = !state.storageWarning;
+    battery.sync(state.battery);
+    const batteryBlocked = state.blocked === 'battery';
+    battery.box.classList.toggle('err', batteryBlocked);
+    batteryError.hidden = !batteryBlocked;
+    if (batteryBlocked) battery.input.setAttribute('aria-invalid', 'true');
+    else battery.input.removeAttribute('aria-invalid');
+    battery.input.setAttribute('aria-describedby', 'batt_e');
+    stay.sync(state.stayMin);
+    limitNote.hidden = !state.stayLimitNote;
+    const spot = spotView(state);
+    noticeSlot.replaceChildren(...(spot.notice ? [spotNotice(spot.notice, spot.highlight, app)] : []));
+    map.update(spot);
+  };
+}
+
+export function renderLoading(root: HTMLElement): void {
+  root.replaceChildren(
+    appBar(null),
+    h('section', { class: 'screen' },
+      h('div', { class: 'loading', role: 'status' }, h('div', { class: 'pulse' }, icon('pin', 28)), h('p', {}, FINDING_CHARGERS)),
+    ),
+  );
+}
+```
+
+Carried over from the Slice 2 file unchanged: `slider`, the battery and stay sliders with − and +, the limit note, the storage notice, the battery block and `renderLoading`. Changed: the old `spotNotice(state, app)` and the "YOUR LOCATION" line give way to `spotNotice(n, highlight, app)` from the view model and the `spotMap` box. The imports drop `APPROXIMATE`, `LOCATION_DENIED` and `OUTSIDE_NL`, which `spot-view.ts` now uses, and add `coords`, `sharedMap`, `spotView`, `LOCATING`, `MAP_HINT` and `MY_LOCATION`.
+
+- [ ] **Step 2: Style the spot map**
+
+In `src/ui/app.css`, replace the first line
+
+```css
+/* Component styles from the UI mockup (style B), map parts left out until Slice 3. */
+```
+
+with
+
+```css
+/* Component styles from the UI mockup (style B); the results map comes with Slice 4. */
+```
+
+delete the line
+
+```css
+.spotline { font-size: 11px; letter-spacing: .04em; color: var(--muted); margin: 0 0 14px; }
+```
+
+and after the `.limitnote` rule's block (before `.loading`), add:
+
+```css
+.spotmap { position: relative; height: 230px; border-radius: 20px; overflow: hidden; border: 1px solid var(--line); background: var(--map-land); margin-bottom: 14px; }
+.spotmap.hl { border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 22%, transparent); }
+.spotmap .mapcanvas { position: absolute; inset: 0; }
+.spotmap .mapcanvas .acc { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; background: color-mix(in srgb, var(--me) 13%, transparent); border: 1px solid color-mix(in srgb, var(--me) 55%, transparent); pointer-events: none; }
+.target { position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: var(--me); border: 3px solid #fff; box-shadow: 0 0 0 10px color-mix(in srgb, var(--me) 20%, transparent); pointer-events: none; z-index: 2; }
+.target.none { background: var(--faint); box-shadow: 0 0 0 6px color-mix(in srgb, var(--faint) 20%, transparent); }
+.mapchips { position: absolute; left: 10px; right: 10px; top: 10px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; pointer-events: none; z-index: 2; }
+.mapchips .chipx { background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; font: 500 11px/1.2 var(--f-data); color: var(--soft); }
+.mapchips .chipx b { color: var(--ink); font-family: var(--f-ui); font-weight: 600; }
+.recenter { pointer-events: auto; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.maphint { position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); white-space: nowrap; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 11.5px; color: var(--soft); pointer-events: none; z-index: 2; }
+.spotmap .busy { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 50%, transparent); z-index: 3; }
+.spotmap .busy span { display: flex; gap: 8px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: 14px; }
+.spotmap .mapmsg { position: absolute; inset: 0; display: grid; place-items: center; background: var(--map-land); color: var(--muted); font-weight: 600; font-size: 14px; z-index: 1; }
+.spotmap .maplibregl-ctrl.maplibregl-ctrl-attrib { font-size: 10px; background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--soft); }
+.spotmap .maplibregl-ctrl-attrib a { color: inherit; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--go); animation: blink 1s ease-in-out infinite alternate; }
+@keyframes blink { to { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+```
+
+`.mapmsg` sits at `z-index: 1`, under the chip (2). That way "Your location" with its coordinates stays readable when the map has failed. MapLibre's stylesheet is imported by `map.ts`, so it lands after `app.css` in the bundle. Its `.maplibregl-map { position: relative }` would beat a plain `.mapcanvas` rule and leave the map 0 px tall. The map rules are therefore scoped under `.spotmap`, and the attribution rule repeats MapLibre's two classes, so these rules win on specificity whatever the order.
+
+- [ ] **Step 3: Add the map background token**
+
+In `src/ui/theme.css`, in the Night `:root` block, replace
+
+```css
+  --dash: #6c7b76; --glow: .55;
+```
+
+with
+
+```css
+  --dash: #6c7b76; --glow: .55; --map-land: #111816;
+```
+
+and in the Day block (inside `@media (prefers-color-scheme: light)`), replace
+
+```css
+    --dash: #8a9692; --glow: 0;
+```
+
+with
+
+```css
+    --dash: #8a9692; --glow: 0; --map-land: #eceeea;
+```
+
+- [ ] **Step 4: Typecheck, build and run the full suite**
+
+Run: `npm run build && npm test`
+Expected: the build exits 0 with `✓ built in`, then `Test Files  22 passed (22)` and `Tests  246 passed (246)`. Vite may print `Some chunks are larger than 500 kB after minification` for the main chunk: that's the MapLibre bundle (D-22, about 800 kB minified). It's a warning, not an error.
+
+- [ ] **Step 5: Check the parked map in the dev server**
+
+Run: `npm run dev`, open `http://localhost:5173/plug-or-not/` in desktop Chrome, and with the PRD Story 1 settings saved:
+1. Allow location in the prompt, or set a location under DevTools → Sensors (Nuenen, 51.4436, 5.5519). "Finding your location…" covers the map, then the map shows streets around the spot, the blue pin, "Your location · 51.4436, 5.5519" and the attribution in the bottom-right corner.
+2. Drag the map. The coordinates follow while dragging. On release the chip reads "Moved spot" and "My location" appears. "My location" jumps back.
+3. Block location for the site (DevTools → Sensors → "Location unavailable", then "Try again"). The map shows the Netherlands with the grey pin, "No location yet" and the denied notice with "…, or drag the map to your spot.".
+4. Toggle DevTools → Rendering → "prefers-color-scheme: light" and back. The map switches between the Day and Night colours without a reload.
+
+Stop the server with Ctrl+C.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/ui/parked.ts src/ui/app.css src/ui/theme.css
+git commit -m "feat: spot map on the parked screen"
+```
+
+**Verify:** `npm run build && npm test` — `✓ built in`, then `Tests  246 passed (246)`; Step 5 checks 1–4 seen in the dev server
+
+### Phase 4: Acceptance Verification
+
+### Task 34: Verify Slice 3 acceptance
+
+No new code. Run everything, then do the manual checks that unit tests can't cover (D-17; Testing & verification, "Devices").
+
+- [ ] **Step 1: Run the whole suite**
+
+Run: `npm test`
+Expected: `Test Files  22 passed (22)` and `Tests  246 passed (246)`. That's Slice 2's 197 plus 49:
+- `test/acceptance/spot-map.test.ts` 9
+- `src/services/location.test.ts` +5
+- `src/app.test.ts` +7
+- `src/ui/map-core.test.ts` 7
+- `src/ui/messages.test.ts` +7
+- `src/ui/format.test.ts` +1
+- `src/ui/spot-view.test.ts` 8
+- `src/ui/map-style.test.ts` 5
+
+- [ ] **Step 2: Typecheck and build**
+
+Run: `npm run build`
+Expected: exits 0 with `✓ built in`
+
+- [ ] **Step 3: After the PR merges to `main`: check the deployment**
+
+Run: `gh run list --workflow deploy.yml --branch main --limit 1`
+Expected: the latest run shows `completed  success`
+
+- [ ] **Step 4: Manual device checks on the Pages link**
+
+On iPhone Safari, Android Chrome, and desktop Chrome, Edge and Safari, with the PRD Story 1 settings:
+1. Location prompt: on opening the parked screen the browser asks for the location. "Finding your location…" covers the map, and dragging does nothing until the answer. Tapping "Find chargers" with the battery set highlights the map and doesn't search.
+2. Drag on a phone: one finger moves the map under the fixed pin, and the coordinates follow. On release, "Moved spot" and "My location" appear. "Find chargers" gives results for the moved spot. Pinching zooms without moving the spot.
+3. Denied: deny location in a private window. The map shows the Netherlands with the grey pin and "No location yet", and "My location" isn't shown. The notice ends "…, or drag the map to your spot." and has "Try again". "Find chargers" is blocked, and highlights the notice and the map, until the map is dragged.
+4. Approximate: with an approximate position (desktop Chrome: DevTools → Sensors with an accuracy above 1,000 m, or a phone with precise location off), the notice "Your location is approximate" and the accuracy circle show. A search as is repeats the notice on the results. After dragging the map, the circle and the notice go.
+5. Outside the Netherlands: drag the map to Brussels and tap "Find chargers". "Charger prices are available for the Netherlands only for now." shows, and the map stays open. Dragging back into the Netherlands clears the message.
+6. Back from the results: tap the Battery pill on the results. The parked map still shows the moved spot, and the browser doesn't ask for the location again. Do this 10 times on the iPhone; the map keeps drawing, so one WebGL context is reused (D-22).
+7. Theme: switch the device between light and dark with the parked screen open. The page and the map switch together without a reload, and the pin, chip and circle stay. Check the Day set outdoors in daylight.
+8. Attribution: "OpenFreeMap © OpenMapTiles Data from OpenStreetMap" is readable in the map's bottom-right corner on a phone, and doesn't overlap the hint.
+9. Map blocked: in desktop Chrome, block `tiles.openfreemap.org` (DevTools → Network request blocking) and reload. The map area shows "Map couldn't load.", the chip shows "Your location" with the browser position, and "Find chargers" gives results. With location denied too, the notice reads "We couldn't get your location. Allow location access in your browser and try again." and "Find chargers" stays blocked.
+10. Privacy: in DevTools → Network, the only requests that leave the site go to `tiles.openfreemap.org`.
+11. Stopwatch (G8-AC2) once more with the map on the parked screen: under 30 s in each of 5 trials on a phone over mobile data, not waiting for map tiles.
+
+**Verify:** `npm test && npm run build` — `Tests  246 passed (246)` and `✓ built in`; the step 3 and 4 checks recorded in `implementation-log.md`
+
 ## Deviations from Design
 
 | ID | Type | Status | Design updated? | Note |
 |----|------|--------|-----------------|------|
-| G3-AC1, PRD S2 error table "Location denied or unavailable" | change | approved | n/a — interim wording for Slice 1 only; the design text stays the target and Slice 3 restores it | Slice 1: Slice 1 has no map, so the denied message reads "We couldn't get your location. Allow location access in your browser and try again." without "…, or drag the map to your spot." Showing the design's sentence before the map exists would point the driver at something that isn't there. Signed off by the user 2026-10-12 |
+| G3-AC1, PRD S2 error table "Location denied or unavailable" | change | approved | n/a — interim wording for Slice 1 only; the design text stays the target and Slice 3 restores it | Slice 1: Slice 1 has no map, so the denied message reads "We couldn't get your location. Allow location access in your browser and try again." without "…, or drag the map to your spot." Showing the design's sentence before the map exists would point the driver at something that isn't there. Signed off by the user 2026-10-12. Restored in Slice 3: `LOCATION_DENIED` is the full sentence, and `LOCATION_DENIED_NO_MAP` is used only when the map can't load |
+| G6-AC9 "Map can't load" | change | approved | no — the design text stays; this row records the narrowing | Slice 3: after the map has loaded, an `error` event carrying `sourceId` or `tile` (one lost tile) is not treated as "Map couldn't load.", so a flaky mobile connection doesn't drop the moved spot or block "Find chargers". Style errors, and any error before `load`, still are. A late `load` clears the failure. Signed off by the user 2026-10-12 |

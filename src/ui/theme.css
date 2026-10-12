@@ -6,7 +6,7 @@
   --no: #ff6f5e; --no-text: #ff7d6d; --no-ink: #2a0703; --no-soft: #2a1513;
   --info: #f2c14e; --info-soft: #2a2410;
   --unknown: #a7b4b0; --focus: #7da5ff; --me: #4f86ff;
-  --dash: #6c7b76; --glow: .55;
+  --dash: #6c7b76; --glow: .55; --map-land: #111816;
   --f-ui: "Sora", "Avenir Next", system-ui, sans-serif;
   --f-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   color-scheme: dark;
@@ -20,7 +20,7 @@
     --no: #d23b28; --no-text: #b42616; --no-ink: #ffffff; --no-soft: #fde8e4;
     --info: #9a6200; --info-soft: #fff3d6;
     --unknown: #56625e; --focus: #2a62d6; --me: #2a62d6;
-    --dash: #8a9692; --glow: 0;
+    --dash: #8a9692; --glow: 0; --map-land: #eceeea;
     color-scheme: light;
   }
 }

@@ -4,7 +4,15 @@ import * as m from './messages.ts';
 
 describe('PRD error and notice wording', () => {
   it.each([
-    ['LOCATION_DENIED (approved Slice 1 interim text)', m.LOCATION_DENIED, "We couldn't get your location. Allow location access in your browser and try again."],
+    ['LOCATION_DENIED', m.LOCATION_DENIED, "We couldn't get your location. Allow location access in your browser and try again, or drag the map to your spot."],
+    ['LOCATION_DENIED_NO_MAP', m.LOCATION_DENIED_NO_MAP, "We couldn't get your location. Allow location access in your browser and try again."],
+    ['MAP_FAILED', m.MAP_FAILED, "Map couldn't load."],
+    ['YOUR_LOCATION', m.YOUR_LOCATION, 'Your location'],
+    ['MOVED_SPOT', m.MOVED_SPOT, 'Moved spot'],
+    ['NO_LOCATION', m.NO_LOCATION, 'No location yet'],
+    ['MY_LOCATION', m.MY_LOCATION, 'My location'],
+    ['MAP_HINT', m.MAP_HINT, 'Drag the map to adjust the spot'],
+    ['SPOT_MAP_LABEL', m.SPOT_MAP_LABEL, 'Map of your spot. Drag to move the spot under the pin.'],
     ['OUTSIDE_NL', m.OUTSIDE_NL, 'Charger prices are available for the Netherlands only for now.'],
     ['LOCATING', m.LOCATING, 'Finding your location…'],
     ['APPROXIMATE', m.APPROXIMATE, 'Your location is approximate'],

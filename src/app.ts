@@ -3,14 +3,14 @@ import type { Manifest } from './shared/data-format.ts';
 import { computeEntries, rankAtStay, type ComputedEntry, type RankedEntry } from './engine/results.ts';
 import { STAY_DEFAULT, STAY_STEP, clampStay } from './engine/compare.ts';
 import { validate, type RawSettings, type Settings, type SettingsStore, type ValidationResult } from './services/settings.ts';
-import { isApproximate, isInNetherlands, type LocateOutcome, type Position } from './services/location.ts';
+import { isInNetherlands, spotOf, type LatLon, type LocateOutcome, type Position, type Spot } from './services/location.ts';
 import type { NearestResult } from './services/data.ts';
 
 export type View = 'setup' | 'parked' | 'loading' | 'results';
 
 export type LocationState =
   | { status: 'locating' }
-  | { status: 'found'; position: Position; approximate: boolean }
+  | { status: 'found'; position: Position }
   | { status: 'denied' };
 
 export type SearchStatus = 'idle' | 'outside-nl' | 'load-error' | 'battery-full' | 'results';
@@ -37,6 +37,10 @@ export interface AppState {
   /** Results were calculated for an approximate position (G3-AC2). */
   approximateResults: boolean;
   selectedId: string | null;
+  /** The map centre after the driver dragged the map; null = the browser position is the spot (G3-AC3). */
+  movedSpot: LatLon | null;
+  /** The map couldn't start, or its style failed (G6-AC9); cleared if the map loads after all (late, or after a tile error during startup). */
+  mapFailed: boolean;
 }
 
 export interface AppDeps {
@@ -55,12 +59,25 @@ export interface App {
   openSettings(): void;
   closeSettings(): void;
   retryLocation(): Promise<void>;
+  /** The driver dragged the map to this centre (FR-025). */
+  moveSpot(lat: number, lon: number): void;
+  /** "My location": back to the browser position. */
+  recentre(): void;
+  /** The map wrapper reports that the map can't be used (G6-AC9). */
+  reportMapFailure(): void;
+  /** The map wrapper reports that a map which failed before `load` has loaded after all (G6-AC9). */
+  reportMapRecovered(): void;
   setBattery(pct: number): void;
   setStay(min: number): void;
   nudgeStay(direction: 1 | -1): void;
   findChargers(): Promise<void>;
   select(id: string): void;
   backToParked(): void;
+}
+
+/** G3-AC3: the spot "Find chargers" uses — the moved map centre, else the browser position, else none. */
+export function spotFor(state: AppState): Spot {
+  return spotOf(state.location.status === 'found' ? state.location.position : null, state.movedSpot);
 }
 
 export function createApp(deps: AppDeps): App {
@@ -80,6 +97,8 @@ export function createApp(deps: AppDeps): App {
     results: [],
     approximateResults: false,
     selectedId: null,
+    movedSpot: null,
+    mapFailed: false,
   };
   const listeners: Array<(s: AppState) => void> = [];
   let manifest: Promise<Manifest> | null = null;
@@ -111,12 +130,15 @@ export function createApp(deps: AppDeps): App {
 
   async function startLocating(): Promise<void> {
     located = true;
-    set({ location: { status: 'locating' }, blocked: null });
+    // "Try again" starts over from the browser position; the map can't be moved until it answers (G3-AC1).
+    set({ location: { status: 'locating' }, movedSpot: null, blocked: null });
     const outcome = await deps.locate();
     set({
       location: outcome.kind === 'found'
-        ? { status: 'found', position: outcome.position, approximate: isApproximate(outcome.position) }
+        ? { status: 'found', position: outcome.position }
         : { status: 'denied' },
+      // A found location answers a "Find chargers" tap that was refused while locating.
+      blocked: outcome.kind === 'found' && state.blocked === 'location' ? null : state.blocked,
     });
   }
 
@@ -130,6 +152,11 @@ export function createApp(deps: AppDeps): App {
     const results = rankAtStay(computed, state.stayMin, state.settings!);
     const selectedId = results.some((r) => r.id === state.selectedId) ? state.selectedId : (results[0]?.id ?? null);
     set({ results, selectedId });
+  }
+
+  /** A new spot answers an outside-the-Netherlands message; the next "Find chargers" checks the spot again. */
+  function searchAfterSpotChange(): SearchStatus {
+    return state.search === 'outside-nl' ? 'idle' : state.search;
   }
 
   return {
@@ -175,6 +202,32 @@ export function createApp(deps: AppDeps): App {
 
     retryLocation: () => startLocating(),
 
+    moveSpot(lat, lon) {
+      // No dragging while the location is being found (G3-AC1), and none once the map has failed (G6-AC9).
+      if (state.location.status === 'locating' || state.mapFailed) return;
+      set({
+        movedSpot: { lat, lon },
+        search: searchAfterSpotChange(),
+        blocked: state.blocked === 'location' ? null : state.blocked,
+      });
+    },
+
+    recentre() {
+      if (state.location.status !== 'found') return;
+      set({ movedSpot: null, search: searchAfterSpotChange() });
+    },
+
+    reportMapFailure() {
+      if (state.mapFailed) return;
+      // Without a map the browser position is the spot (G6-AC9).
+      set({ mapFailed: true, movedSpot: null, search: searchAfterSpotChange() });
+    },
+
+    reportMapRecovered() {
+      // The spot stays the browser position until the driver drags; the map can be moved again.
+      if (state.mapFailed) set({ mapFailed: false });
+    },
+
     setBattery(pct) {
       set({ battery: pct, blocked: state.blocked === 'battery' ? null : state.blocked });
     },
@@ -197,13 +250,14 @@ export function createApp(deps: AppDeps): App {
         set({ blocked: 'battery' });
         return;
       }
-      if (state.location.status !== 'found') {
+      // G3-AC1: no spot while locating, or after a denial until the map has been moved.
+      const spot = spotFor(state);
+      if (spot.kind === 'none') {
         set({ blocked: 'location' });
         return;
       }
-      const { position, approximate } = state.location;
       set({ blocked: null });
-      if (!isInNetherlands(position.lat, position.lon)) {
+      if (!isInNetherlands(spot.lat, spot.lon)) {
         set({ search: 'outside-nl' });
         return;
       }
@@ -215,14 +269,15 @@ export function createApp(deps: AppDeps): App {
       busy = true;
       set({ view: 'loading' });
       try {
-        const key = `${position.lat},${position.lon}`;
+        const key = `${spot.lat},${spot.lon}`;
         if (nearestCache?.key !== key) {
           const m = await getManifest();
-          nearestCache = { key, result: await deps.findNearest(position.lat, position.lon, m) };
+          nearestCache = { key, result: await deps.findNearest(spot.lat, spot.lon, m) };
         }
         const { nearby, tariffs } = nearestCache.result;
         computed = computeEntries(nearby, tariffs, state.settings, state.battery, deps.now());
-        set({ selectedId: null, approximateResults: approximate });
+        // G3-AC2: the results repeat the notice only for an unmoved approximate position.
+        set({ selectedId: null, approximateResults: spot.kind === 'browser' && spot.approximate });
         rerank();
         set({ view: 'results', search: 'results' });
       } catch {

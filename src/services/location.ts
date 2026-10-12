@@ -12,6 +12,28 @@ export interface Position {
 
 export type LocateOutcome = { kind: 'found'; position: Position } | { kind: 'denied' };
 
+export interface LatLon {
+  lat: number;
+  lon: number;
+}
+
+/** G3-AC1: with no location, the map opens here. */
+export const NL_CENTRE = { lat: 52.13, lon: 5.29, zoom: 7 } as const;
+
+/** G3-AC3: where "Find chargers" searches — the map centre once the driver moved it, else the browser position. */
+export type Spot =
+  | { kind: 'none' }
+  | { kind: 'browser'; lat: number; lon: number; accuracyM: number; approximate: boolean }
+  | { kind: 'moved'; lat: number; lon: number };
+
+export function spotOf(browser: Position | null, moved: LatLon | null): Spot {
+  if (moved) return { kind: 'moved', lat: moved.lat, lon: moved.lon };
+  if (browser) {
+    return { kind: 'browser', lat: browser.lat, lon: browser.lon, accuracyM: browser.accuracyM, approximate: isApproximate(browser) };
+  }
+  return { kind: 'none' };
+}
+
 /** Browser location (G3-AC1). Denied, unavailable, timed out and unsupported all become `denied`. */
 export function locate(geo: Geolocation | undefined, timeoutMs = LOCATE_TIMEOUT_MS): Promise<LocateOutcome> {
   return new Promise((resolve) => {

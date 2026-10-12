@@ -1,6 +1,6 @@
 // Acceptance: the PRD Story 1–3 flows for Slice 1, through the controller with stubbed browser APIs.
 import { describe, expect, it } from 'vitest';
-import { createApp } from '../../src/app.ts';
+import { createApp, spotFor } from '../../src/app.ts';
 import { entryViews } from '../../src/ui/entry-view.ts';
 import { BRUSSELS, EXAMPLE_RAW, NUENEN, memoryStorage, stubDeps } from '../fixtures/app-deps.ts';
 
@@ -50,7 +50,7 @@ describe('Story 1 — set up my car and costs', () => {
 describe('Story 2 — see which nearby chargers are worth it', () => {
   it('scenario 1: allow location, battery 20%, stay 45 min, "Find chargers" → ranked results with the best selected', async () => {
     const app = await parkedApp();
-    expect(app.getState().location).toEqual({ status: 'found', position: NUENEN, approximate: false });
+    expect(app.getState().location).toEqual({ status: 'found', position: NUENEN });
     app.setBattery(20);
     app.setStay(45);
     await app.findChargers();
@@ -115,7 +115,7 @@ describe('Story 2 — see which nearby chargers are worth it', () => {
   it('approximate location: the results repeat the notice', async () => {
     const deps = stubDeps({ locations: [{ kind: 'found', position: { ...NUENEN, accuracyM: 1500 } }] });
     const app = await parkedApp(deps);
-    expect(app.getState().location).toMatchObject({ approximate: true });
+    expect(spotFor(app.getState())).toMatchObject({ kind: 'browser', approximate: true });
     app.setBattery(20);
     await app.findChargers();
     expect(app.getState()).toMatchObject({ search: 'results', approximateResults: true });

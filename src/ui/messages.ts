@@ -5,8 +5,24 @@ import { dataDate } from './format.ts';
 export const OUTSIDE_NL = 'Charger prices are available for the Netherlands only for now.';
 /** G3-AC1, while the browser location API answers. */
 export const LOCATING = 'Finding your location…';
-/** G3-AC1 denied / unavailable / timed out — Slice 1 interim wording without the map clause (plan, Deviations from Design). */
-export const LOCATION_DENIED = "We couldn't get your location. Allow location access in your browser and try again.";
+/** G3-AC1 denied / unavailable / timed out (PRD S2 error table). */
+export const LOCATION_DENIED = "We couldn't get your location. Allow location access in your browser and try again, or drag the map to your spot.";
+/** G6-AC9: the denied notice when the map can't load, so it doesn't point at a map that isn't there. */
+export const LOCATION_DENIED_NO_MAP = "We couldn't get your location. Allow location access in your browser and try again.";
+/** G6-AC9, PRD S2 error table "Map can't load". */
+export const MAP_FAILED = "Map couldn't load.";
+/** G3-AC3 chip on the spot map: the unmoved browser position (UI mockup wording). */
+export const YOUR_LOCATION = 'Your location';
+/** G3-AC3 chip once the map has been dragged. */
+export const MOVED_SPOT = 'Moved spot';
+/** G3-AC1 chip with location denied and the map unmoved. */
+export const NO_LOCATION = 'No location yet';
+/** G3-AC3 button that returns to the browser position (UI mockup wording). */
+export const MY_LOCATION = 'My location';
+/** Hint at the bottom of the spot map (UI mockup wording; not a PRD string). */
+export const MAP_HINT = 'Drag the map to adjust the spot';
+/** Accessible name of the spot map (not a PRD string). */
+export const SPOT_MAP_LABEL = 'Map of your spot. Drag to move the spot under the pin.';
 /** G3-AC2, accuracy worse than 1 km (also repeated on the results). */
 export const APPROXIMATE = 'Your location is approximate';
 /** Results line under the approximate notice (UI mockup wording; not a PRD string). */

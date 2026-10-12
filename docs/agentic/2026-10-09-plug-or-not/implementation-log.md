@@ -11,6 +11,7 @@
 **Plugin version:** 0.5.3
 **Agent Sessions:** claude-code: 4def9f23-a51e-417b-b327-10901565e942
 **Agent Sessions:** claude-code: a23146ca-79b6-4ab5-8438-6d08d1321484
+**Agent Sessions:** claude-code: 0ef86631-d1ec-46ad-99a2-5d397c9b06ce
 
 ## Pre-Flight
 
@@ -644,13 +645,266 @@ $ grep -rnE "pill grow|fill\(" src/
 
 ---
 
+## Slice 3: Spot on a map
+
+- **Started:** 2026-10-12 (session 0ef86631-d1ec-46ad-99a2-5d397c9b06ce)
+- **Base SHA:** 79bd1d2
+- **Worker isolation:** normal
+- **Completed:** 2026-10-12
+- **Chunk layout:** one chunk, Tasks 26–34 (Slice 2 peaked at ≈55k; Slice 3 is roughly 3× the plan text, well inside one window)
+
+### Pre-Flight (Slice 3)
+
+```
+$ node --version
+v20.19.5
+$ npm --version
+11.14.0
+$ npm test
+ Test Files  18 passed (18)
+      Tests  197 passed (197)
+   Start at  09:27:07
+   Duration  716ms (tests 38%, transform 32%, import 26%, worker 3%)
+$ npm run build
+dist/assets/index-CZihSCAV.js                                     37.47 kB │ gzip: 14.26 kB
+
+✓ built in 499ms
+$ npm view maplibre-gl@6.11.2 version
+6.11.2
+$ npm view @maplibre/maplibre-gl-style-spec@26.4.4 version
+26.4.4
+$ curl -sSI https://tiles.openfreemap.org/styles/liberty | head -1
+HTTP/2 200 
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account christianrexwinkel-tomtom (keyring)
+  - Active account: true
+  - Git operations protocol: https
+$ ls .pre-commit-config.yaml
+ls: .pre-commit-config.yaml: No such file or directory
+(no non-sample git hooks)
+```
+
+Result: ☑ all green
+
+<!-- Chunk-workers append `### Chunk N: Tasks A–B` entries for Slice 3 below this line. -->
+
+### Chunk 1: Tasks 26–34
+
+- **Plan tasks covered:** Tasks 26–34 (Slice 3 acceptance tests, spot model, controller moving the spot / "My location" / map failure, map core, parked map view model and wording, Night and Day map styles, MapLibre wrapper, spot map on the parked screen, verify Slice 3 acceptance). Task 33 step 5 dev-server checks 1–4 were run here in the in-app browser pane, with geolocation stubbed in the page for the found-location checks, and all four passed. Task 34 steps 1–2 ran here. Steps 3–4 (post-merge Pages deployment check, manual device checks 1–11 incl. the G8-AC2 stopwatch) are **pending — owned by the user after merge**
+- **Tests written:** test/acceptance/spot-map.test.ts (9, new; fails to load until Task 30, all green after it), src/services/location.test.ts (+5, 18 total), src/app.test.ts (+7, 17 total; the first test reads `blocked` right after the refused tap), src/ui/map-core.test.ts (7, new), src/ui/messages.test.ts (+7, 20 total), src/ui/format.test.ts (+1, 15 total), src/ui/spot-view.test.ts (8, new), src/ui/map-style.test.ts (5, new); test/fixtures/app-deps.ts gains `KLOKGEBOUW`. Suite: 197 → 246 tests, 18 → 22 files, matching the plan
+- **Worker reported peak context:** ≈110k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** f00b834 (Task 26), eb1c71e (Task 27), 30461b6 (Task 28), 231588d (Task 29), 6e1b266 (Task 30), 5b3f0f3 (Task 31), a2fe559 (Task 32), a57c825 (Task 32 fixes found in the Task 33 dev-server check), 7196ae4 (Task 33)
+- **Deviations:** rows 2–5 in the Deviations from Plan table (acceptance-test setup timing, MapLibre import form, worker URL, gesture-only moves)
+- **Open finding (not fixed, for the end-review / user):** `startMap` fails after 8 s with no `load`. MapLibre fires `load` only after it renders frames, so a tab that is in the background while the map starts (no animation frames) can time out. "Map couldn't load." then stays until a reload. This happened once in the browser pane during the `vite preview` check and did not happen again on later loads. The plan and the design have no retry here.
+
+#### Verify output (verbatim)
+
+```
+$ npm test -- test/acceptance/spot-map.test.ts                 # Task 26, at f00b834
+Error: Cannot find module '../../src/ui/spot-view.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/test/acceptance/spot-map.test.ts
+ Test Files  1 failed (1)
+      Tests  no tests
+$ npm test -- test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts src/app.test.ts   # Task 26 step 4
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
+$ npm test -- src/services/location.test.ts                    # Task 27 (red, then green)
+      Tests  5 failed | 13 passed (18)
+      Tests  18 passed (18)
+$ npm test -- src/app.test.ts                                  # Task 28 step 2 (red)
+      Tests  7 failed | 10 passed (17)
+$ npm test -- src/app.test.ts test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts   # Task 28 verify
+ Test Files  3 passed (3)
+      Tests  39 passed (39)
+$ npm test -- src/ui/map-core.test.ts                          # Task 29 (red, then green)
+Error: Cannot find module './map-core.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/src/ui/map-core.test.ts
+ Test Files  1 failed (1)
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+$ npm test -- src/ui/messages.test.ts src/ui/format.test.ts src/ui/spot-view.test.ts   # Task 30 (red, then green)
+ Test Files  3 failed (3)
+      Tests  9 failed | 26 passed (35)
+ Test Files  3 passed (3)
+      Tests  43 passed (43)
+$ npm test -- test/acceptance/spot-map.test.ts                 # Task 30 verify
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+$ npm run build && npm test                                    # Task 30 step 9, at 6e1b266
+✓ built in 453ms
+ Test Files  21 passed (21)
+      Tests  241 passed (241)
+$ npm test -- src/ui/map-style.test.ts; npm run build          # Task 31
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+✓ built in 409ms
+$ grep -rn "from 'maplibre-gl'" src/ test/                     # Task 32 step 3
+src/ui/map.ts:3:import * as maplibregl from 'maplibre-gl';
+$ npm run build && npm test                                    # Task 32 verify, at a2fe559
+✓ built in 388ms
+ Test Files  22 passed (22)
+      Tests  246 passed (246)
+$ npm run build && npm test                                    # Task 33 verify / Task 34 steps 1–2, at 7196ae4
+ Test Files  22 passed (22)
+      Tests  246 passed (246)
+   Start at  09:38:13
+   Duration  741ms (tests 44%, transform 26%, import 25%, worker 5%)
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-3hY0xTqg.js                                     1,060.22 kB │ gzip: 291.77 kB
+✓ built in 525ms
+(!) Some chunks are larger than 500 kB after minification. Consider:
+```
+
+Task 33 step 5 (dev server, `http://localhost:5173/plug-or-not/`, browser pane; seen after a57c825):
+1. With geolocation stubbed to 51.4436, 5.5519 and "Try again" pressed: "Finding your location…" covered the map, then the map showed the streets around the spot, the blue pin, "Your location · 51.4436, 5.5519" and "OpenFreeMap © OpenMapTiles Data from OpenStreetMap" in the bottom-right corner. ☑
+2. Dragging the map turned the chip into "Moved spot · 51.4413, 5.5632" and "My location" appeared. "My location" jumped back to "Your location · 51.4436, 5.5519" and the button was hidden again. ☑
+3. With location denied (the pane's default): the map showed the Netherlands, the grey pin, "No location yet" and the notice "We couldn't get your location. Allow location access in your browser and try again, or drag the map to your spot." with "Try again". ☑
+4. With prefers-color-scheme emulated dark, then light, the map switched between the Night and Day colours without a reload, and the chip and pin stayed. ☑
+
+Before a57c825, check 1 failed with `Error: Worker failed to load. Check that the worker URL is correct.` and "Map couldn't load.". Check 3 showed "No location yet · 52.0862, 5.2900": the coordinates came from the attach-time resize. Both are fixed in a57c825; see deviation rows 4 and 5. The `vite preview` production build was also checked after the fix: the map loaded, the attribution was spelled out, and there were no console errors.
+
+### Chunk 2: End-Review round 1 fixes
+
+- **Issues fixed:** 1, 2, 3, 4, 5, 6, 7, 8 (and the optional `themeFor`)
+- **Tests added or changed:** src/ui/map-core.test.ts ("fails once on error … also after load" replaced by "fails once on error events before load, tile errors included", "after load, a tile error does not fail", "after load, a style error (no source or tile) still fails, once"; added "a load after the timeout recovers, once", "a load after an error does not recover, and a load in time reports no recovery"; new `isDriverMove` block, 4 tests); src/app.test.ts (+1: a map that loads late recovers via `reportMapRecovered`, keeps the browser position, allows moves again; the first test awaits `app.findChargers()` again, with `locate` mocked to a promise that hasn't answered, because a found location now answers the refused tap); src/ui/map-style.test.ts (+1, `themeFor`); src/ui/messages.test.ts (+1, `SPOT_MAP_LABEL`); test/acceptance/flows.test.ts and src/ui/spot-view.test.ts drop `approximate` from `LocationState.found` (issue 4: the field is removed, `spotOf` decides; the approximate-location flow now asserts `spotFor(...)`). Suite: 246 → 257 tests. Issues 3 and 7 (`src/ui/parked.ts`: "Moved spot" in the live drag listener; MapLibre via a cached dynamic `import('./map.ts')`, a failed import calling `reportMapFailure`) are DOM code with no DOM test dependency; checked by `tsc --noEmit`, the build and the browser pane
+- **Build (issue 7):** entry chunk `index-*.js` 43.07 kB (was ≈1,060 kB); MapLibre is in the lazily loaded `map-*.js` (1,019 kB / 276 kB gz), which is the only chunk the 500 kB warning still names
+- **Browser pane (dev server, location denied):** the parked map loaded (no "Map couldn't load.", no console errors), a real drag turned the chip into "Moved spot · 52.5182, 6.0330". The mid-drag chip and a late `load` after the 8 s timeout could not be forced in the pane (synthetic pointer events don't drive MapLibre's drag); both are covered by unit tests and left for the manual device pass
+- **Worker reported peak context:** ≈75k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** bc0ed95 (fixes); this log entry in the following docs commit
+- **Deviations:** rows 6–7 in the Deviations from Plan table
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  22 passed (22)
+      Tests  257 passed (257)
+   Start at  09:47:34
+   Duration  790ms (tests 45%, transform 28%, import 24%, worker 3%)
+
+$ npm run build
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-DYvrgcMw.css                                       20.25 kB │ gzip:   4.53 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-lnsROtTx.js                                        43.07 kB │ gzip:  16.40 kB
+dist/assets/map-RXyRFVM2.js                                       1,019.22 kB │ gzip: 276.26 kB
+
+✓ built in 622ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+### Chunk 3: End-Review round 2 fixes
+
+- **Issues fixed:** 1, 2, 3
+- **Issue 1:** `startMap` drops `timedOut`; the `load` handler recovers after any failure (`if (failed) { failed = false; onRecover(); }`). Doc comments updated in `src/ui/map-core.ts` (`startMap`), `src/ui/map.ts` (`recovered`), `src/app.ts` (`mapFailed`, `reportMapRecovered`)
+- **Issue 2:** new pure helper `liveMoveCentre(e, last, centre)` in `src/ui/map-core.ts` (calls `isDriverMove` with both centres); the `move` handler in `src/ui/map.ts` uses it, so a wheel or pinch zoom around the centre no longer flips the chip to "Moved spot"
+- **Issue 3 (option chosen):** keep the rejected promise, no retry. `loadMap()` in `src/ui/parked.ts` caches `import('./map.ts')` as is; a failed import reports `reportMapFailure` once and stays failed until a reload. Simpler than a guarded `reportMapRecovered()` on a retried success, which would also need to tell a retry apart from the cached first success so it can't clear a real `startMap` failure
+- **Tests added or changed:** src/ui/map-core.test.ts: "a load after an error does not recover, and a load in time reports no recovery" split into "a load after an error before load recovers, once (a tile lost during startup)" (flipped) and "a load in time reports no recovery"; new `liveMoveCentre` block, 3 tests (zoom-only gesture move with same centre and `originalEvent` is not a driver move; a centre change gives the new centre; jumps and event-less moves give nothing). Suite: 257 → 261 tests. Issue 3 is DOM code with no DOM test dependency; checked by `tsc --noEmit` and the build
+- **Red run:** `npx vitest run src/ui/map-core.test.ts` before the code change: 4 failed | 15 passed (19)
+- **Worker reported peak context:** ≈30k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 884de21 (fixes); this log entry in the following docs commit
+- **Deviations:** rows 6–7 in the Deviations from Plan table updated (no new row)
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  22 passed (22)
+      Tests  261 passed (261)
+   Start at  09:52:18
+   Duration  822ms (tests 44%, transform 30%, import 22%, worker 4%)
+
+$ npm run build
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-DYvrgcMw.css                                       20.25 kB │ gzip:   4.53 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-Dfjh81rR.js                                        43.09 kB │ gzip:  16.41 kB
+dist/assets/map-BCMP55Sr.js                                       1,019.25 kB │ gzip: 276.27 kB
+
+✓ built in 602ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+$ npx tsc --noEmit
+(no output)
+```
+
+### End-Review (Slice 3)
+
+Range reviewed: `79bd1d2..HEAD`. Opus reviewer, given no worker narrative and with the implementation log excluded.
+
+- **Verdict:** CAP_REACHED — round-2 findings fixed, not re-reviewed
+- **Issues found:**
+  - Round 1 (ISSUES_FOUND):
+    1. (Important) Any MapLibre `error` after `load`, including one lost tile, permanently set `mapFailed`, cleared `movedSpot` and could re-block "Find chargers".
+    2. The 8 s `load` timeout was final, so on a slow network or a background tab "Map couldn't load." stuck until a reload.
+    3. During a drag the chip kept "No location yet"/"Your location" with moving coordinates.
+    4. `LocationState.found.approximate` was dead duplicate state.
+    5. A stray edit in the first `src/app.test.ts` test.
+    6. The map aria-label was a literal outside `messages.ts`.
+    7. MapLibre sat in the entry chunk (≈1,060 kB).
+    8. The drag-vs-programmatic move decision had no test.
+
+    All fixed in Chunk 2 (bc0ed95, 5584a99).
+  - Round 2 (ISSUES_FOUND), all fixed in Chunk 3 (884de21, 1b41c1d) and not re-reviewed:
+    1. `src/ui/map-core.ts:62,67-71` (G6-AC9): one tile error before `load` permanently failed a map that then loaded, because recovery ran only after a timeout. Fixed: any `load` after any failure recovers. The test at `map-core.test.ts:91-97` is flipped.
+    2. `src/ui/map.ts:81-85` (Important): the live `move` handler skipped the "a zoom is not a move" check, so a wheel or pinch zoom left the chip on "Moved spot". Fixed with the pure `liveMoveCentre` helper and 3 tests.
+    3. `src/ui/parked.ts:63-71,128` (Minor): a retried dynamic map import never cleared `mapFailed`. Fixed by keeping the rejected import (no retry).
+    4. Missing Deviations from Design row for ignoring tile/source errors after `load` (G6-AC9). Handled at the Slice 3 deviation gate.
+- **Tests-vs-spec audit:** round 2 found strong, behaviour-level tests for G3-AC1, G3-AC2, G3-AC3, G3-AC4 and the parked part of G6-AC9. They go through the controller and `spotView`, with the design strings written out as literals. The only test that locked in a bug, `map-core.test.ts:91-97`, was flipped in Chunk 3. Remaining gaps, within D-17: the G7-AC6 `matchMedia` → `setStyle` switch, `setDraggable` on dragPan, `sharedMap` reuse (D-22), the live chip during a gesture, and a failed dynamic import counting as a map failure. These are checked by type check, build and the Task 34 manual device checks only.
+- **Reviewer rounds:** 2
+- **Cap outcome:** cap reached. The round-2 findings were fixed in 884de21 and not re-reviewed.
+
+#### Final full verify output (verbatim)
+
+Command: `npm test 2>&1 | tail -5; npm run build 2>&1 | tail -8`
+
+```
+ Test Files  22 passed (22)
+      Tests  261 passed (261)
+   Start at  09:53:01
+   Duration  769ms (tests 41%, transform 31%, import 25%, worker 4%)
+
+dist/assets/map-BCMP55Sr.js                                       1,019.25 kB │ gzip: 276.27 kB
+
+✓ built in 543ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+The warning is for the lazily loaded MapLibre chunk only. The entry chunk is ≈43 kB.
+
+**Task 34 steps 3–4 (post-merge Pages deployment check, device checks 1–11, G8-AC2 stopwatch):** pending, owned by the user after merge.
+
+---
+
 ## Deviations from Plan
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
 | --- | ---------- | ----------------- | ----------- | ------------- | ------ | ---- |
 | 1   | Task 14 / Chunk 4 | change | Slice 1: build drops locations outside a NL-and-neighbours bounding box (`DATA_BOUNDS`, lat 50.0–54.0, lon 2.5–7.5, edges kept) in `scripts/build-data.ts`, so bogus feed coordinates (0,0, swapped, Asia/US) no longer reach the snapshot or stretch the `coversAll` bounds. Snapshot: 580 tiles, 72516 locations | yes — plan §Task 14 edited 2026-10-12 | approved | 2026-10-12 |
+| 2   | Task 26 / Chunk 1 | change | Slice 3: the first acceptance test ("location still being found") sets the app up inline instead of through the async `opened()` helper. Awaiting that helper gives the stub's `locate()` enough microtask ticks to answer, so the "still locating" assertions saw a found location whatever the implementation did. The other tests and the helper are as planned | yes — plan §Task 26 edited 2026-10-12 | approved | 2026-10-12 |
+| 3   | Task 32 / Chunk 1 | change | Slice 3: `src/ui/map.ts` uses `import * as maplibregl from 'maplibre-gl'`, because maplibre-gl 6.11.2 is ESM-only with no default export (TS1192). `last` is typed `{ lat: number; lon: number }`, because `NL_CENTRE` is `as const`. The Task 32 grep still finds exactly one import, at `src/ui/map.ts:3` | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
+| 4   | Task 32 / Chunk 1 | change | Slice 3: with the plan's wrapper the map never loads, in dev or build ("Worker failed to load"). MapLibre 6 looks for `maplibre-gl-worker.mjs` next to its own module file, and Vite doesn't put it there. The wrapper now imports `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` and calls `maplibregl.setWorkerUrl()`. The build emits `assets/maplibre-gl-worker-*.js` (≈509 kB) | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
+| 5   | Task 32 / Chunk 1 | change | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
+| 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
+| 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
+
+Slice 3: rows 2–7 approved by the user on 2026-10-12. Rows 4 and 5 were converted from gap to change, since both gaps were closed in code. A G6-AC9 row was also added to the plan's Deviations from Design and signed off. The user chose to leave the Vite chunk-size warning for the lazily loaded MapLibre chunk as is.
 
 <!-- If there are no deviations, write "None." below the table and confirm verbally with the user. -->
 
