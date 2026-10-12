@@ -24,7 +24,7 @@ This plan builds the first shippable cut of Plug or Not. It's a web page that te
 
 ## Plan at a glance
 
-Slice 1 has 19 tasks. Each title names the component or acceptance criterion it delivers, and each task ends with a runnable **Verify** command and its expected output.
+Slice 1 has 19 tasks and Slice 2 has 6 (Tasks 20–25). Each title names the component or acceptance criterion it delivers, and each task ends with a runnable **Verify** command and its expected output.
 
 | Component | Slice | Phase | Tasks | Delivers |
 |-----------|-------|-------|-------|----------|
@@ -39,17 +39,21 @@ Slice 1 has 19 tasks. Each title names the component or acceptance criterion it 
 | Page | 1 | 3 | [16](#task-16-views-setup-parked-loading-results), [17](#task-17-page-shell-theme-and-fonts) | Setup, parked, loading and results views; Night/Day theme; self-hosted fonts |
 | Deployment | 1 | 3 | [18](#task-18-github-pages-deployment) | Test, build and deploy to GitHub Pages on push to `main` |
 | Acceptance | 1 | 4 | [19](#task-19-verify-slice-1-acceptance) | Full suite green, build clean, device checks done |
+| Window and stay acceptance tests | 2 | 1 | [20](#task-20-slice-2-acceptance-tests) | PRD S4 windows and the S3 results slider as one failing suite |
+| Window sentence | 2 | 3 | [21](#task-21-window-sentence-formatter), [22](#task-22-window-line-in-the-details-panel) | "Worth it if you stay …" in the view model and the details panel |
+| Live stay change | 2 | 3 | [23](#task-23-live-stay-change-in-the-controller), [24](#task-24-stay-slider-in-the-results-top-bar) | Re-rank from cached curves with the selection kept; the results-screen slider |
+| Acceptance | 2 | 4 | [25](#task-25-verify-slice-2-acceptance) | Full suite green, build clean, device checks done |
 
 ## Slice Status
 
 | Slice | Name | Use case ref(s) | Status |
 |-------|------|-----------------|--------|
 | 1 | Answer for my location (no map) | S1; S2 (scenarios 1–5, battery full, outside the Netherlands, load error, approximate notice, location denied + Try again); S3 (parked-screen slider, − and +, limits) | done |
-| 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | todo (separate plan run) |
+| 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | todo |
 | 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | todo (separate plan run) |
 | 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | todo (separate plan run) |
 
-_Only Slice 1 is authored in this plan. Slices 2..N will be authored via subsequent plan-skill invocations against the same design artifact, one per PR._
+_Slices 1 and 2 are authored in this plan; Slice 2 was added by a second plan-skill run on 2026-10-12. Slices 3..N will be authored via subsequent plan-skill invocations against the same design artifact, one per PR._
 
 ## Slice 1: Answer for my location (no map)
 
@@ -4846,6 +4850,791 @@ On iPhone Safari, Android Chrome, and desktop Chrome, Edge and Safari:
 4. Stopwatch (G8-AC2): with saved settings, time from opening the link, through setting the battery and tapping "Find chargers", to the #1 details panel on screen, 5 trials on a phone over mobile data. Target: under 30 s in each trial.
 
 **Verify:** `npm test && npm run build` — `Tests  163 passed (163)` and `✓ built in`; the steps 4 and 5 checks recorded in `implementation-log.md`
+
+## Slice 2: Worth-it window and live stay changes
+
+**In scope:** G6-AC1 (the window sentence on every priced entry: "Worth it if you stay X to Y", "… at least X", "Worth it for any stay", "… up to X", "(not for every stay in between)", and "Never worth it: always more expensive than petrol for your car"), G6-AC5 (the window sentence, the one part Slice 1 left out), G7-AC2 (the stay slider in the results top bar, one shared stay value), G7-AC4 (releasing the results slider re-ranks from the cached cost curves, with no fetch, no engine run and no spinner), G6-AC8 and D-30 (only the "selection stays on the same entry after a stay change" part), PRD S4 (scenarios 1–3 and the edge cases), PRD S3 scenario 1 (the results-screen slider).
+
+**Left for later slices:** the parked map, dragging, "Moved spot", "My location", the accuracy circle and MapLibre (Slice 3); pins, framing, "Change spot" and the map-failure fallback (Slice 4).
+
+**What already exists from Slice 1:** the engine computes each entry's window once per search (`ComputedEntry.window`, `src/engine/results.ts`), and `rankAtStay` reads the cached curves at any stay without running the engine. `rerank()` in `src/app.ts` already keeps `selectedId` when that entry is still in the results. There is one `stayMin` in app state. What's missing is the sentence, the line in the details panel, a re-rank when the stay changes on the results screen, and the slider itself.
+
+**Commands used throughout:** `npm test` runs `TZ=America/New_York vitest run`; `npm test -- <path>` runs one file with the same time zone. `npm run build` runs `tsc --noEmit` and then `vite build`. That typecheck is the only automated check on DOM code (D-17).
+
+### Phase 1: Acceptance Tests
+
+### Task 20: Slice 2 acceptance tests
+
+Encodes PRD Story 4 and PRD Story 3 scenario 1 as one new acceptance file. Like `test/acceptance/prd-figures.test.ts`, the Story 4 cases run the whole pure pipeline (tile entry → cost curve → ranking at the stay → what the details panel shows). The battery case and the Story 3 cases go through the controller with stubbed browser APIs, like `test/acceptance/flows.test.ts`. The stub dependencies get a `nearest` option, so a test can supply its own nearby chargers. The default stays the two-location Nuenen set, so every Slice 1 test is untouched.
+
+Every figure below was worked out by hand from the PRD Story 1 settings (petrol €0.7997 per kWh of driving = 2.399 ÷ 12 ÷ 0.25; Vattenfall €0.3256/kWh including VAT) and then checked against the Slice 1 engine:
+
+- **€1.80 start fee, Vattenfall, battery 10%:** saving = kWh × €0.4741 − €1.80. It turns positive at 3.80 kWh, minute 64, so the window starts at the next grid stay, 1h10. At 45 min (2.7 kWh) it's −€0.52.
+- **No start fee, Vattenfall, battery 10%:** 15 min adds 0.9 kWh and saves €0.43, so the window starts at the minimum.
+- **No start fee, €0.2691/kWh plus €0.88/h after full, battery 90%:** 1.5 kWh of room, full after 25 min, saving €0.71. Then €1.0648/h including VAT uses that up after 40 more minutes, so the window ends at 1h (60 min still saves; 70 min doesn't).
+- **Opcharge at battery 70%:** 4.5 kWh of room. €3.60 of petrol never covers €1.50 of fixed fees (€0.89 card fee plus €0.61 start) plus €2.34 of energy, so there's no window.
+- **"Cheapkwh" (€0.10/kWh plus a €2.00 start fee) against Vattenfall, battery 10%:** at 45 min Cheapkwh costs €1.48 more and Vattenfall saves €0.39. At 4h (13.5 kWh, battery full) Cheapkwh saves €5.85 and Vattenfall €5.51, so the ranking swaps.
+
+Tests 1–8 fail until Tasks 21–23. Test 9 already passes: Slice 1 keeps one `stayMin` in app state. It stays here as the G7-AC2 guard.
+
+**Files:**
+- Modify: `test/fixtures/app-deps.ts`
+- Create: `test/acceptance/window-and-stay.test.ts`
+
+**Interfaces:**
+- Consumes: `createApp`, `AppState` (`src/app.ts`); `computeEntries`, `rankAtStay`, `EngineSettings` (`src/engine/results.ts`); `entryViews` (`src/ui/entry-view.ts`); `NearestResult` (`src/services/data.ts`); `TileTariff` (`src/shared/data-format.ts`); fixtures `EXAMPLE_SETTINGS`, `FRIDAY_1000`, `TARIFFS`, `location`, `tariff`, `EXAMPLE_RAW`, `stubDeps`
+- Produces: `stubDeps({ nearest?: NearestResult })`. The test expects `EntryView.windowText: string | null` (Task 22) and the re-rank on a results-screen stay change (Task 23).
+
+- [ ] **Step 1: Give the stub dependencies a `nearest` option**
+
+In `test/fixtures/app-deps.ts`, replace the options type and the `findNearest` stub:
+
+```ts
+/** Each call to `locate` resolves with the next scripted outcome (the last one repeats). */
+export function stubDeps(opts: {
+  storage?: () => Storage;
+  locations?: LocateOutcome[];
+  failFind?: number;
+  /** Nearby chargers to return instead of the two-location Nuenen set. */
+  nearest?: NearestResult;
+} = {}) {
+  const outcomes = [...(opts.locations ?? [{ kind: 'found', position: NUENEN }])];
+  let finds = 0;
+  const deps = {
+    store: createSettingsStore(opts.storage ?? (() => memoryStorage())),
+    locate: vi.fn(async (): Promise<LocateOutcome> => (outcomes.length > 1 ? outcomes.shift()! : outcomes[0]!)),
+    loadManifest: vi.fn(async () => MANIFEST),
+    findNearest: vi.fn(async (): Promise<NearestResult> => {
+      finds++;
+      if (opts.failFind && finds <= opts.failFind) throw new DataLoadError('offline');
+      return opts.nearest ?? NEAREST;
+    }),
+    now: () => FRIDAY_1000,
+  } satisfies AppDeps;
+  return deps;
+}
+```
+
+- [ ] **Step 2: Write the failing acceptance test**
+
+Create `test/acceptance/window-and-stay.test.ts`:
+
+```ts
+// Acceptance: the PRD Story 4 worth-it window and the Story 3 results-screen stay slider (Slice 2),
+// through the pure pipeline and through the controller with stubbed browser APIs.
+import { describe, expect, it } from 'vitest';
+import { createApp } from '../../src/app.ts';
+import { computeEntries, rankAtStay, type EngineSettings } from '../../src/engine/results.ts';
+import { entryViews } from '../../src/ui/entry-view.ts';
+import type { NearestResult } from '../../src/services/data.ts';
+import type { TileTariff } from '../../src/shared/data-format.ts';
+import { EXAMPLE_SETTINGS, FRIDAY_1000, TARIFFS, location, tariff } from '../fixtures/prd-tariffs.ts';
+import { EXAMPLE_RAW, stubDeps } from '../fixtures/app-deps.ts';
+
+const NEVER = 'Never worth it: always more expensive than petrol for your car';
+
+/** One charger with one tariff, through computeEntries → rankAtStay → entryViews. */
+function viewAt(t: TileTariff, opts: { battery: number; stay: number; settings?: EngineSettings }) {
+  const settings = opts.settings ?? EXAMPLE_SETTINGS;
+  const computed = computeEntries(
+    [{ location: location('L:1', [{ tariffKey: 'L:t', powerKw: 11 }]), distanceM: 1 }],
+    { 'L:t': t }, settings, opts.battery, FRIDAY_1000,
+  );
+  return entryViews(rankAtStay(computed, opts.stay, settings))[0]!;
+}
+
+async function parkedApp(deps = stubDeps()) {
+  const app = createApp(deps);
+  await app.start();
+  app.saveSettings(EXAMPLE_RAW);
+  await deps.locate.mock.results.at(-1)!.value;
+  return app;
+}
+
+describe('PRD Story 4 — see the worth-it window', () => {
+  it('scenario 1: Opcharge Zernikestraat "1h30 to 7h30" and Vattenfall Marconilaan "at least 40 min" at battery 10%', () => {
+    expect(viewAt(TARIFFS.opcharge, { battery: 10, stay: 90 })).toMatchObject({
+      verdictText: 'Worth it', windowText: 'Worth it if you stay 1h30 to 7h30',
+    });
+    expect(viewAt(TARIFFS.vattenfall, { battery: 10, stay: 90 })).toMatchObject({
+      verdictText: 'Worth it', windowText: 'Worth it if you stay at least 40 min',
+    });
+  });
+
+  it('scenario 2: a tariff that can\'t be interpreted shows "Price unknown" and no window', () => {
+    expect(viewAt({ ...TARIFFS.vattenfall, currency: 'GBP' }, { battery: 10, stay: 90 })).toMatchObject({
+      verdictText: 'Price unknown', windowText: null, savingText: null,
+    });
+  });
+
+  it('scenario 3: E-Flux Laboratoriumstraat at battery 10% is never worth it', () => {
+    expect(viewAt(TARIFFS.efluxLab, { battery: 10, stay: 90 })).toMatchObject({ verdictText: 'Never worth it', windowText: NEVER });
+  });
+
+  it('stay outside the window: 45 min against a window from 1h10 reads "Not worth it for this stay"', () => {
+    // €1.80 start fee: the saving turns positive at 3.80 kWh (minute 64); the next grid stay is 1h10.
+    const settings = { ...EXAMPLE_SETTINGS, cardStartFee: 1.8 };
+    expect(viewAt(TARIFFS.vattenfall, { battery: 10, stay: 45, settings })).toMatchObject({
+      verdictText: 'Not worth it for this stay', windowText: 'Worth it if you stay at least 1h10',
+    });
+  });
+
+  it('a window from the minimum stay with no upper limit reads "Worth it for any stay"', () => {
+    // No start fee: 15 min adds 0.9 kWh and already saves €0.43.
+    const settings = { ...EXAMPLE_SETTINGS, cardStartFee: 0 };
+    expect(viewAt(TARIFFS.vattenfall, { battery: 10, stay: 15, settings })).toMatchObject({
+      verdictText: 'Worth it', windowText: 'Worth it for any stay',
+    });
+  });
+
+  it('a window from the minimum stay with an upper limit reads "Worth it for any stay up to X"', () => {
+    // Battery 90%: full after 25 min with 1.5 kWh, saving €0.71; €0.88/h after full uses that up 40 min later.
+    const settings = { ...EXAMPLE_SETTINGS, cardStartFee: 0 };
+    const t = tariff([{ components: [['ENERGY', 0.2691], ['PARKING_TIME', 0.88]] }]);
+    expect(viewAt(t, { battery: 90, stay: 15, settings })).toMatchObject({
+      verdictText: 'Worth it', windowText: 'Worth it for any stay up to 1h',
+    });
+  });
+
+  it('battery level changes the window: Opcharge at 10%, then 70% after going back and searching again', async () => {
+    const opcharge: NearestResult = {
+      nearby: [{ location: location('OPC:zernike', [{ tariffKey: 'OPC:t', powerKw: 11 }], { operator: 'Opcharge' }), distanceM: 50 }],
+      tariffs: { 'OPC:t': TARIFFS.opcharge },
+    };
+    const app = await parkedApp(stubDeps({ nearest: opcharge }));
+    app.setBattery(10);
+    await app.findChargers();
+    expect(entryViews(app.getState().results)[0]!.windowText).toBe('Worth it if you stay 1h30 to 7h30');
+    app.backToParked();
+    app.setBattery(70);
+    await app.findChargers();
+    // 4.5 kWh of room: €3.60 of petrol never covers €1.50 of fixed fees plus €2.34 of energy.
+    expect(entryViews(app.getState().results)[0]).toMatchObject({ verdictText: 'Never worth it', windowText: NEVER });
+  });
+});
+
+describe('PRD Story 3 — the stay slider on the results screen', () => {
+  // Cheaper kWh but a bigger start fee: behind Vattenfall for a short stay, ahead of it once the battery is full.
+  const SWAP: NearestResult = {
+    nearby: [
+      { location: location('VAT:park21', [{ tariffKey: 'VAT:t', powerKw: 11 }], { operator: 'Vattenfall', address: 'Parkstraat 21' }), distanceM: 100 },
+      { location: location('CHP:berg', [{ tariffKey: 'CHP:t', powerKw: 11 }], { operator: 'Cheapkwh', address: 'Berg 14' }), distanceM: 300 },
+    ],
+    tariffs: { 'VAT:t': TARIFFS.vattenfall, 'CHP:t': tariff([{ components: [['ENERGY', 0.1], ['FLAT', 2]] }]) },
+  };
+
+  it('scenario 1: releasing the slider re-ranks every result from the cached curves and keeps the selected charger', async () => {
+    const deps = stubDeps({ nearest: SWAP });
+    const app = await parkedApp(deps);
+    app.setBattery(10);
+    app.setStay(45);
+    await app.findChargers();
+    const before = app.getState();
+    expect(before.results.map((r) => r.locationId)).toEqual(['VAT:park21', 'CHP:berg']);
+    const vattenfall = before.results[0]!.id;
+    app.select(vattenfall);
+    const views: string[] = [];
+    app.subscribe((s) => views.push(s.view));
+
+    app.setStay(240);
+
+    const after = app.getState();
+    // 13.5 kWh: Cheapkwh saves €5.85, Vattenfall €5.51.
+    expect(after.results.map((r) => r.locationId)).toEqual(['CHP:berg', 'VAT:park21']);
+    expect(after.selectedId).toBe(vattenfall);
+    expect(entryViews(after.results)[1]).toMatchObject({ id: vattenfall, rankText: '#2 of 2 · best saving first' });
+    expect(views).not.toContain('loading');
+    expect(deps.findNearest).toHaveBeenCalledTimes(1);
+    // The same cost curves, read at the new stay: no engine run (G7-AC4).
+    const curves = before.results.map((r) => r.entry);
+    for (const r of after.results) expect(curves).toContain(r.entry);
+  });
+
+  it('both screens share one stay: a change on the results screen shows on the parked screen (G7-AC2)', async () => {
+    const app = await parkedApp();
+    app.setBattery(20);
+    await app.findChargers();
+    app.setStay(150);
+    app.backToParked();
+    expect(app.getState()).toMatchObject({ view: 'parked', stayMin: 150 });
+  });
+});
+```
+
+- [ ] **Step 3: Run it to see it fail**
+
+Run: `npm test -- test/acceptance/window-and-stay.test.ts`
+Expected: FAIL — `Tests  8 failed | 1 passed (9)`. The seven Story 4 tests fail on `windowText` (`undefined` instead of the sentence or `null`). Story 3 scenario 1 fails on the order: still `['VAT:park21', 'CHP:berg']` after `setStay(240)`. The shared-stay test passes.
+
+- [ ] **Step 4: Check that the Slice 1 suite is unaffected**
+
+Run: `npm test -- test/acceptance/flows.test.ts src/app.test.ts`
+Expected: PASS — `Tests  21 passed (21)`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add test/fixtures/app-deps.ts test/acceptance/window-and-stay.test.ts
+git commit -m "test: Slice 2 acceptance tests for the worth-it window and the results stay slider"
+```
+
+**Verify:** `npm test -- test/acceptance/window-and-stay.test.ts` — `Tests  8 failed | 1 passed (9)`
+
+### Phase 2: Interfaces & Contracts
+
+No new shared types or data formats in this slice. The tile format, `ComputedEntry.window` and the `App` interface already carry what Slice 2 needs. The one contract change is two fields on the view model, `EntryView.windowText: string | null` and `EntryView.hasWindow: boolean`. Task 22 adds them together with the test that pins them.
+
+### Phase 3: Component Implementation
+
+### Task 21: Window sentence formatter
+
+Turns a `Window` (or `null`) into the sentence the details panel shows (G6-AC1). The order of the checks follows the design. A window from the minimum stay reads "for any stay", and that wins over "at least X" when the window also reaches 24 h. A window from the minimum that ends earlier reads "for any stay up to X". A window that reaches 24 h reads "at least X". Anything else reads "X to Y". A window with gaps adds "(not for every stay in between)". The limits come from `STAY_MIN` and `STAY_MAX` in `src/engine/compare.ts`, the constants the window grid is built from, so the formatter and the grid can't disagree. Durations use the existing `duration()` ("40 min", "1h10", "7h30", "1h").
+
+**Files:**
+- Modify: `src/ui/format.ts`
+- Test: `src/ui/format.test.ts`
+
+**Interfaces:**
+- Consumes: `Window`, `STAY_MIN`, `STAY_MAX` (`src/engine/compare.ts`); `duration` (same file)
+- Produces: `NEVER_WORTH_IT: string`; `windowSentence(w: Window | null): string`
+
+- [ ] **Step 1: Write the failing test**
+
+In `src/ui/format.test.ts`, replace the import line:
+
+```ts
+import { NEVER_WORTH_IT, amountChip, dataDate, duration, euro, metres, priceLine, roundCents, savingPhrase, savingSentence, windowSentence } from './format.ts';
+```
+
+and add at the end of the file:
+
+```ts
+describe('windowSentence (G6-AC1)', () => {
+  const w = (shortest: number, longest: number, hasGaps = false) => ({ shortest, longest, hasGaps });
+
+  it('reads the PRD Story 4 windows', () => {
+    expect(windowSentence(w(90, 450))).toBe('Worth it if you stay 1h30 to 7h30');
+    expect(windowSentence(w(40, 1440))).toBe('Worth it if you stay at least 40 min');
+    expect(windowSentence(w(70, 1440))).toBe('Worth it if you stay at least 1h10');
+    expect(windowSentence(null)).toBe(NEVER_WORTH_IT);
+    expect(NEVER_WORTH_IT).toBe('Never worth it: always more expensive than petrol for your car');
+  });
+
+  it('a window from the minimum stay reads "for any stay", which wins over "at least"', () => {
+    expect(windowSentence(w(15, 1440))).toBe('Worth it for any stay');
+    expect(windowSentence(w(15, 60))).toBe('Worth it for any stay up to 1h');
+  });
+
+  it('adds "(not for every stay in between)" to a window with gaps', () => {
+    expect(windowSentence(w(90, 450, true))).toBe('Worth it if you stay 1h30 to 7h30 (not for every stay in between)');
+    expect(windowSentence(w(15, 1440, true))).toBe('Worth it for any stay (not for every stay in between)');
+  });
+});
+```
+
+- [ ] **Step 2: Run it to see it fail**
+
+Run: `npm test -- src/ui/format.test.ts`
+Expected: FAIL — `Tests  3 failed | 11 passed (14)`, with `TypeError: windowSentence is not a function`
+
+- [ ] **Step 3: Implement the formatter**
+
+In `src/ui/format.ts`, replace the first two import lines:
+
+```ts
+import { VAT } from '../engine/tariff.ts';
+import type { StartPrices } from '../engine/curve.ts';
+import { STAY_MAX, STAY_MIN, type Window } from '../engine/compare.ts';
+```
+
+and add directly after the `duration` function:
+
+```ts
+/** PRD S4 scenario 3: the window sentence when no stay is worth it. */
+export const NEVER_WORTH_IT = 'Never worth it: always more expensive than petrol for your car';
+
+/** G6-AC1: "Worth it if you stay 1h30 to 7h30", "… at least 40 min", "Worth it for any stay (up to X)". */
+export function windowSentence(w: Window | null): string {
+  if (!w) return NEVER_WORTH_IT;
+  const fromMin = w.shortest === STAY_MIN;
+  const toMax = w.longest === STAY_MAX;
+  const base = fromMin
+    ? (toMax ? 'Worth it for any stay' : `Worth it for any stay up to ${duration(w.longest)}`)
+    : toMax
+      ? `Worth it if you stay at least ${duration(w.shortest)}`
+      : `Worth it if you stay ${duration(w.shortest)} to ${duration(w.longest)}`;
+  return w.hasGaps ? `${base} (not for every stay in between)` : base;
+}
+```
+
+- [ ] **Step 4: Run it to see it pass**
+
+Run: `npm test -- src/ui/format.test.ts`
+Expected: PASS — `Tests  14 passed (14)`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/ui/format.ts src/ui/format.test.ts
+git commit -m "feat: worth-it window sentence"
+```
+
+**Verify:** `npm test -- src/ui/format.test.ts` — `Tests  14 passed (14)`
+
+### Task 22: Window line in the details panel
+
+Adds the window sentence to the entry view model and shows it in the details panel, as in the UI mockup. It sits under the "Also here" rows: a calendar icon in the "go" colour when a window exists, and a cross in the "no" colour for "Never worth it: …". "Price unknown" entries get no window line (`windowText: null`), only their reason (G6-AC7; PRD S4 scenario 2). The sentence comes from the same `ComputedEntry` as the rest of the entry, so the window appears together with the rest of the entry, never on its own afterwards (PRD S4 "Pending" edge case). The Slice 1 `entry-view.test.ts` cases gain the two new fields. Their old expectations don't change.
+
+**Files:**
+- Modify: `src/ui/entry-view.ts`
+- Modify: `src/ui/results.ts`
+- Modify: `src/ui/dom.ts`
+- Modify: `src/ui/app.css`
+- Test: `src/ui/entry-view.test.ts`
+
+**Interfaces:**
+- Consumes: `windowSentence` (Task 21); `RankedEntry.entry.window` (`src/engine/results.ts`)
+- Produces: `EntryView.windowText: string | null`, `EntryView.hasWindow: boolean`; icon name `'win'` in `src/ui/dom.ts`; CSS class `window-line` (modifier `ok`)
+
+- [ ] **Step 1: Write the failing test**
+
+Replace `src/ui/entry-view.test.ts` with:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { entryViews } from './entry-view.ts';
+import { computeEntries, rankAtStay } from '../engine/results.ts';
+import { EXAMPLE_SETTINGS, FRIDAY_1000, TARIFFS, location, tariff } from '../../test/fixtures/prd-tariffs.ts';
+
+function viewsFor(entries: Parameters<typeof location>[1], tariffs: Record<string, ReturnType<typeof tariff>>) {
+  const computed = computeEntries([{ location: location('L:1', entries, { operator: 'Vattenfall', address: 'Parkstraat 21' }), distanceM: 74 }], tariffs, EXAMPLE_SETTINGS, 20, FRIDAY_1000);
+  return entryViews(rankAtStay(computed, 45, EXAMPLE_SETTINGS));
+}
+
+describe('entryViews', () => {
+  it('Nuenen fixture: what the details panel shows for a priced entry', () => {
+    expect(viewsFor([{ tariffKey: 'V:t', powerKw: 11 }], { 'V:t': TARIFFS.vattenfall })[0]).toEqual({
+      id: 'L:1#V:t',
+      verdict: 'worth-it',
+      verdictText: 'Worth it',
+      rankText: '#1 of 1 · best saving first',
+      distanceText: '74 m',
+      operator: 'Vattenfall',
+      address: 'Parkstraat 21, Nuenen',
+      savingText: 'Saves €0.39 compared with €2.16 of petrol',
+      priceText: '€0.33/kWh · total €1.77',
+      windowText: 'Worth it if you stay at least 40 min',
+      hasWindow: true,
+      reasonText: null,
+      alsoHere: [],
+      chipText: '€0.39',
+      stripText: '1. Parkstraat 21',
+    });
+  });
+
+  it('a priced entry without a window gets the "Never worth it" sentence and no window icon', () => {
+    expect(viewsFor([{ tariffKey: 'E:t', powerKw: 11 }], { 'E:t': TARIFFS.efluxLab })[0]).toMatchObject({
+      verdictText: 'Never worth it',
+      windowText: 'Never worth it: always more expensive than petrol for your car',
+      hasWindow: false,
+    });
+  });
+
+  it.each([
+    ['no-tariff', { tariffKey: null, powerKw: null, unknown: 'no-tariff' as const }, {}, 'No price published for this charger.'],
+    ['no-power', { tariffKey: 'V:t', powerKw: null, unknown: 'no-power' as const }, { 'V:t': TARIFFS.vattenfall }, "Charging power isn't published for this charger."],
+    ['unreadable', { tariffKey: 'V:t', powerKw: 11 }, { 'V:t': { ...TARIFFS.vattenfall, currency: 'GBP' } }, "The published price is incomplete or can't be read."],
+  ])('unknown entry (%s) says what is missing and shows no figures and no window (G6-AC7)', (_r, entry, tariffs, reason) => {
+    expect(viewsFor([entry], tariffs)[0]).toMatchObject({
+      verdict: 'unknown', verdictText: 'Price unknown', reasonText: reason, savingText: null, priceText: null,
+      windowText: null, hasWindow: false, chipText: 'Unknown',
+    });
+  });
+
+  it('links each entry to the other entries at the same location', () => {
+    const v = viewsFor(
+      [{ tariffKey: 'V:t', powerKw: 11 }, { tariffKey: null, powerKw: null, unknown: 'no-tariff' }],
+      { 'V:t': TARIFFS.vattenfall },
+    );
+    expect(v[0]!.alsoHere).toEqual([{ id: 'L:1#no-tariff', text: 'Also here: Price unknown' }]);
+    expect(v[1]!.alsoHere).toEqual([{ id: 'L:1#V:t', text: 'Also here: Worth it · saves €0.39' }]);
+  });
+});
+```
+
+- [ ] **Step 2: Run it to see it fail**
+
+Run: `npm test -- src/ui/entry-view.test.ts`
+Expected: FAIL — `Tests  5 failed | 1 passed (6)`. Only "links each entry…" passes, and the others fail on the missing `windowText`/`hasWindow`.
+
+- [ ] **Step 3: Add the fields to the view model**
+
+In `src/ui/entry-view.ts`, replace the format import:
+
+```ts
+import { amountChip, metres, priceLine, savingPhrase, savingSentence, windowSentence } from './format.ts';
+```
+
+In `interface EntryView`, add after `priceText: string | null;`:
+
+```ts
+  /** G6-AC1 window sentence; null for "Price unknown" entries (G6-AC7). */
+  windowText: string | null;
+  /** A window exists: the line gets the calendar icon instead of the cross. */
+  hasWindow: boolean;
+```
+
+In `entryViews`, add after the `priceText:` line:
+
+```ts
+      windowText: priced ? windowSentence(e.entry.window) : null,
+      hasWindow: priced !== null && e.entry.window !== null,
+```
+
+- [ ] **Step 4: Run it to see it pass**
+
+Run: `npm test -- src/ui/entry-view.test.ts`
+Expected: PASS — `Tests  6 passed (6)`
+
+- [ ] **Step 5: Show the line in the details panel**
+
+In `src/ui/dom.ts`, add to `ICONS` after the `full:` entry (the mockup's calendar icon):
+
+```ts
+  win: '<rect x="3" y="5" width="18" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+```
+
+In `src/ui/results.ts`, in `panel()`, replace
+
+```ts
+      e.reasonText && h('p', { class: 'reason' }, e.reasonText),
+```
+
+with
+
+```ts
+      e.windowText && h('p', { class: e.hasWindow ? 'window-line ok' : 'window-line' },
+        icon(e.hasWindow ? 'win' : 'cross', 16), h('span', {}, e.windowText)),
+      e.reasonText && h('p', { class: 'reason' }, e.reasonText),
+```
+
+In `src/ui/app.css`, add after the `.reason { … }` rule:
+
+```css
+.window-line { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; font-size: 13.5px; color: var(--soft); font-weight: 600; }
+.window-line svg { color: var(--no-text); margin-top: 1px; }
+.window-line.ok svg { color: var(--go); }
+```
+
+- [ ] **Step 6: Typecheck, build, and run the Story 4 acceptance tests**
+
+Run: `npm run build && npm test -- test/acceptance/window-and-stay.test.ts`
+Expected: the build exits 0 with `✓ built in`. The tests show `Tests  1 failed | 8 passed (9)`, and the only failure is Story 3 scenario 1 (the re-rank comes with Task 23).
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/ui/entry-view.ts src/ui/entry-view.test.ts src/ui/results.ts src/ui/dom.ts src/ui/app.css
+git commit -m "feat: worth-it window line in the details panel"
+```
+
+**Verify:** `npm test -- src/ui/entry-view.test.ts` — `Tests  6 passed (6)`; `npm run build` exits 0
+
+### Task 23: Live stay change in the controller
+
+A stay change on the results screen re-reads the cached cost curves at the new stay and re-ranks (G7-AC4; Data flow step 6). `setStay` calls the existing `rerank()`, which runs `rankAtStay` over `computed` and keeps `selectedId` while that entry is still in the results (D-30). Nothing is fetched, no curve is rebuilt, and the view never passes through `loading`. The re-rank runs only while results are on screen (`view === 'results'`, `search === 'results'`, curves cached). On the parked screen the stay is only stored, as in Slice 1, and the next "Find chargers" uses it. After a load error or a full battery there's nothing to re-rank. `nudgeStay` is unchanged, because − and + exist only on the parked screen (PRD FR-018).
+
+**Files:**
+- Modify: `src/app.ts`
+- Test: `src/app.test.ts`
+
+**Interfaces:**
+- Consumes: `rankAtStay` through the existing `rerank()`; the cached `computed` entries
+- Produces: `App.setStay(min)` re-ranks while results are shown (signature unchanged)
+
+- [ ] **Step 1: Write the failing tests**
+
+In `src/app.test.ts`, add inside the `describe` block, after the "closing the settings…" test:
+
+```ts
+  it('a stay change on the results screen re-reads the cached curves at the new stay (G7-AC4)', async () => {
+    const { app, deps } = await searched();
+    const before = app.getState().results;
+    expect(before[0]!.outcome).toMatchObject({ kind: 'priced', kwh: expect.closeTo(5.4, 9) });
+    app.setStay(45);
+    const after = app.getState().results;
+    expect(after[0]!.outcome).toMatchObject({ kind: 'priced', kwh: expect.closeTo(2.7, 9) });
+    expect(after[0]!.entry).toBe(before[0]!.entry);
+    expect(deps.findNearest).toHaveBeenCalledTimes(1);
+  });
+
+  it('a stay change after a load error stores the stay and leaves the results empty', async () => {
+    const { app } = await searched(stubDeps({ failFind: 1 }));
+    expect(app.getState().search).toBe('load-error');
+    app.setStay(45);
+    expect(app.getState()).toMatchObject({ search: 'load-error', results: [], selectedId: null, stayMin: 45 });
+  });
+```
+
+The second test already passes: it pins the guard, so a later change can't re-rank stale curves after a failed search.
+
+- [ ] **Step 2: Run them to see the first fail**
+
+Run: `npm test -- src/app.test.ts`
+Expected: FAIL — `Tests  1 failed | 9 passed (10)`. The failure is "a stay change on the results screen…", with `kwh` still 5.4.
+
+- [ ] **Step 3: Re-rank on a stay change while results are shown**
+
+In `src/app.ts`, replace `setStay`:
+
+```ts
+    setStay(min) {
+      set({ stayMin: clampStay(min), stayLimitNote: false });
+      // Results screen: read the cached curves at the new stay; no fetch, no engine run (G7-AC4).
+      // rerank() keeps the selected entry while the ranking around it changes (D-30).
+      if (state.view === 'results' && state.search === 'results' && computed.length > 0) rerank();
+    },
+```
+
+- [ ] **Step 4: Run the controller and acceptance tests**
+
+Run: `npm test -- src/app.test.ts test/acceptance/window-and-stay.test.ts test/acceptance/flows.test.ts`
+Expected: PASS — `Tests  32 passed (32)` (10 + 9 + 13)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/app.ts src/app.test.ts
+git commit -m "feat: re-rank from the cached curves when the stay changes on the results screen"
+```
+
+**Verify:** `npm test -- src/app.test.ts test/acceptance/window-and-stay.test.ts` — `Tests  19 passed (19)`
+
+### Task 24: Stay slider in the results top bar
+
+Replaces the display-only "Stay" pill in the results top bar with the mockup's slider pill: "Stay", the value, and a range input from 15 min to 24 h in 15-minute steps (G7-AC2; FR-018). While the driver drags, only the pill's own label, fill and `aria-valuetext` follow the thumb. On release (`change`) it calls `app.setStay`, and Task 23's re-rank re-renders the results without a spinner (PRD S3 "Pending: updating"). The results view rebuilds its DOM on every state change, so a release replaces the slider. Focus goes back to the new slider, as it already does for strip items, so arrow keys keep working on a desktop. Each arrow press fires `change` and re-ranks. There are no − and + buttons and no limit note here: the range input can't go past its limits, and the PRD puts − and + on the parked screen only. The fill helper moves from `parked.ts` into `dom.ts`, so both sliders share it. The results top bar's `.pill.grow` rule loses its only user and is replaced by the mockup's `.pill.sl` rules.
+
+There's no DOM test in this repo (D-17). The automated checks are the typecheck in `npm run build` and the full suite. The behaviour is checked by hand in Task 25.
+
+**Files:**
+- Modify: `src/ui/results.ts`
+- Modify: `src/ui/parked.ts`
+- Modify: `src/ui/dom.ts`
+- Modify: `src/ui/app.css`
+
+**Interfaces:**
+- Consumes: `STAY_MIN`, `STAY_MAX`, `STAY_STEP` (`src/engine/compare.ts`); `App.setStay` (Task 23); `duration` (`src/ui/format.ts`)
+- Produces: `rangeFill(v, min, max): string` in `src/ui/dom.ts`; the results slider `input#rstay` (`STAY_SLIDER_ID` in `src/ui/results.ts`)
+
+- [ ] **Step 1: Move the fill helper into `dom.ts`**
+
+In `src/ui/dom.ts`, add after the `h` function:
+
+```ts
+/** The filled share of a range track, for the `--p` custom property ("37.5%"). */
+export function rangeFill(v: number, min: number, max: number): string {
+  return `${(((v - min) / (max - min)) * 100).toFixed(1)}%`;
+}
+```
+
+In `src/ui/parked.ts`, replace the dom import with
+
+```ts
+import { h, icon, rangeFill } from './dom.ts';
+```
+
+delete the line
+
+```ts
+const fill = (v: number, min: number, max: number) => `${(((v - min) / (max - min)) * 100).toFixed(1)}%`;
+```
+
+and in `show`, replace `fill(n, opts.min, opts.max)` with `rangeFill(n, opts.min, opts.max)`.
+
+- [ ] **Step 2: Replace `src/ui/results.ts`**
+
+```ts
+import type { App, AppState } from '../app.ts';
+import { STAY_MAX, STAY_MIN, STAY_STEP } from '../engine/compare.ts';
+import { h, icon, rangeFill, type IconName } from './dom.ts';
+import { notice } from './chrome.ts';
+import { duration } from './format.ts';
+import { APPROXIMATE, APPROXIMATE_RESULTS, BATTERY_FULL, LOAD_ERROR, TRY_AGAIN } from './messages.ts';
+import { entryViews, type EntryView, type VerdictKind } from './entry-view.ts';
+
+const VERDICT_ICON: Record<VerdictKind, IconName> = {
+  'worth-it': 'check', 'not-for-this-stay': 'clock', never: 'cross', unknown: 'question',
+};
+const VERDICT_CLASS: Record<VerdictKind, string> = { 'worth-it': 'w', 'not-for-this-stay': 'n', never: 'x', unknown: 'u' };
+/** The results slider's id; the focus restore looks it up after each re-render. */
+const STAY_SLIDER_ID = 'rstay';
+
+/** G7-AC2: the label follows the drag; the results update on release (G7-AC4). */
+function staySlider(state: AppState, app: App): HTMLElement {
+  const value = h('b', { class: 'num' });
+  const input = h('input', {
+    type: 'range', class: 'range', id: STAY_SLIDER_ID, min: STAY_MIN, max: STAY_MAX, step: STAY_STEP, value: state.stayMin,
+    'aria-label': 'Length of stay',
+  });
+  const show = (v: number) => {
+    value.textContent = duration(v);
+    input.style.setProperty('--p', rangeFill(v, STAY_MIN, STAY_MAX));
+    input.setAttribute('aria-valuetext', duration(v));
+  };
+  show(state.stayMin);
+  input.addEventListener('input', () => show(Number(input.value)));
+  input.addEventListener('change', () => app.setStay(Number(input.value)));
+  return h('label', { class: 'pill sl' }, h('span', { class: 't' }, h('small', {}, 'Stay'), value), input);
+}
+
+function topBar(state: AppState, app: App): HTMLElement {
+  return h('div', { class: 'rtop' },
+    h('div', { class: 'row' },
+      h('button', { type: 'button', class: 'pill', 'aria-label': `Battery ${state.battery}%, change`, onclick: () => app.backToParked() },
+        h('small', {}, 'Battery'), h('span', { class: 'num' }, `${state.battery}%`)),
+      staySlider(state, app),
+      h('button', { type: 'button', class: 'pill round', 'aria-label': 'Settings', onclick: () => app.openSettings() }, icon('gear', 17)),
+    ),
+  );
+}
+
+function message(kind: 'load' | 'full', app: App): HTMLElement {
+  return kind === 'load'
+    ? h('div', { class: 'rmsg', role: 'alert' },
+        h('div', { class: 'big bad' }, icon('wifi', 32)),
+        h('p', {}, LOAD_ERROR),
+        h('button', { type: 'button', class: 'btn btn-primary', onclick: () => void app.findChargers() }, TRY_AGAIN))
+    : h('div', { class: 'rmsg', role: 'status' },
+        h('div', { class: 'big good' }, icon('full', 32)),
+        h('p', {}, BATTERY_FULL));
+}
+
+function panel(e: EntryView, all: EntryView[], app: App): HTMLElement {
+  const cls = VERDICT_CLASS[e.verdict];
+  return h('section', { class: 'sheet', 'aria-label': 'Charger details' },
+    h('div', { class: 'sbody' },
+      h('div', { class: 'rk' }, h('span', {}, e.rankText), h('span', { class: 'num' }, e.distanceText)),
+      h('div', { class: `verdict ${cls}` }, icon(VERDICT_ICON[e.verdict], e.verdict === 'not-for-this-stay' ? 24 : 30), e.verdictText),
+      e.savingText && h('p', { class: 'sub' }, e.savingText),
+      e.priceText && h('p', { class: 'sub price-line' }, e.priceText),
+      h('p', { class: 'name' }, e.operator),
+      h('p', { class: 'addr' }, e.address),
+      ...e.alsoHere.map((o) => h('button', { type: 'button', class: 'also', 'data-id': o.id, onclick: () => app.select(o.id) },
+        h('span', {}, o.text), h('span', { class: 'go2' }, 'Show'))),
+      e.windowText && h('p', { class: e.hasWindow ? 'window-line ok' : 'window-line' },
+        icon(e.hasWindow ? 'win' : 'cross', 16), h('span', {}, e.windowText)),
+      e.reasonText && h('p', { class: 'reason' }, e.reasonText),
+    ),
+    h('div', { class: 'strip', role: 'list', 'aria-label': 'All chargers, best saving first' },
+      ...all.map((x) => h('div', { role: 'listitem', class: 'strip-item' }, h('button', {
+        type: 'button', 'data-id': x.id, 'aria-current': x.id === e.id ? 'true' : 'false', onclick: () => app.select(x.id),
+      }, h('b', { class: VERDICT_CLASS[x.verdict] === 'x' ? 'n' : VERDICT_CLASS[x.verdict] }, icon(VERDICT_ICON[x.verdict], 12), x.chipText), x.stripText)))),
+  );
+}
+
+export function renderResults(root: HTMLElement, state: AppState, app: App): void {
+  // Every render replaces the controls; put focus back on the one the driver used:
+  // the stay slider, or the strip item / "Also here" row of a selection.
+  const active = document.activeElement instanceof HTMLElement && root.contains(document.activeElement) ? document.activeElement : null;
+  const stayFocused = active?.id === STAY_SLIDER_ID;
+  const focused = active?.dataset.id
+    ? { id: active.dataset.id, inStrip: active.closest('.strip') !== null }
+    : undefined;
+  if (state.search === 'load-error' || state.search === 'battery-full') {
+    root.replaceChildren(h('div', { class: 'rwrap' }, topBar(state, app), message(state.search === 'load-error' ? 'load' : 'full', app)));
+    if (stayFocused) document.getElementById(STAY_SLIDER_ID)?.focus();
+    return;
+  }
+  const views = entryViews(state.results);
+  const selected = views.find((v) => v.id === state.selectedId) ?? views[0];
+  root.replaceChildren(
+    h('div', { class: 'rwrap' },
+      topBar(state, app),
+      state.approximateResults && notice('info', 'status', h('p', {}, APPROXIMATE), h('p', { class: 'plain' }, APPROXIMATE_RESULTS)),
+      selected ? panel(selected, views, app) : null,
+    ),
+  );
+  root.querySelector('.strip [aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  if (stayFocused) {
+    document.getElementById(STAY_SLIDER_ID)?.focus();
+  } else if (focused) {
+    const id = CSS.escape(focused.id);
+    // Back where it was if that control still exists (an "Also here" row disappears once selected), else its strip item.
+    const same = root.querySelector<HTMLElement>(focused.inStrip ? `.strip [data-id="${id}"]` : `.also[data-id="${id}"]`);
+    (same ?? root.querySelector<HTMLElement>(`.strip [data-id="${id}"]`))?.focus();
+  }
+}
+```
+
+Carried over from the Slice 1 file unchanged: `VERDICT_ICON`, `VERDICT_CLASS`, the Battery and Settings buttons, `message`, `panel` (with Task 22's window line), the strip, and the strip/"Also here" focus restore. Changed: the stay pill becomes `staySlider`; the focus capture also recognises the slider (`STAY_SLIDER_ID`, one constant for the id and both restores) and restores it in both branches. `rstay` doesn't collide with the parked slider's `stay` id.
+
+- [ ] **Step 3: Style the slider pill**
+
+In `src/ui/app.css`, replace
+
+```css
+.pill.grow { flex: 1; min-width: 0; }
+```
+
+with the mockup's rules:
+
+```css
+.pill.sl { flex: 1; min-width: 0; gap: 10px; padding: 0 14px 0 12px; }
+.pill.sl .t { line-height: 1.05; flex: none; min-width: 34px; }
+.pill.sl .t small { display: block; }
+.pill.sl b { font-size: 16px; }
+```
+
+- [ ] **Step 4: Check that nothing still uses the removed helper or class**
+
+Run: `grep -rnE "pill grow|\bfill\(" src/`
+Expected: no output
+
+- [ ] **Step 5: Typecheck, build and run the full suite**
+
+Run: `npm run build && npm test`
+Expected: the build exits 0 with `✓ built in`, then `Test Files  18 passed (18)` and `Tests  197 passed (197)`
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/ui/results.ts src/ui/parked.ts src/ui/dom.ts src/ui/app.css
+git commit -m "feat: stay slider in the results top bar"
+```
+
+**Verify:** `npm run build && npm test` — `✓ built in`, then `Tests  197 passed (197)`
+
+### Phase 4: Acceptance Verification
+
+### Task 25: Verify Slice 2 acceptance
+
+No new code. Run everything, then do the manual checks that unit tests can't cover (D-17; Testing & verification, "Devices").
+
+- [ ] **Step 1: Run the whole suite**
+
+Run: `npm test`
+Expected: `Test Files  18 passed (18)` and `Tests  197 passed (197)`. That's Slice 1's 182 plus 15: `test/acceptance/window-and-stay.test.ts` 9, `src/ui/format.test.ts` +3, `src/ui/entry-view.test.ts` +1, `src/app.test.ts` +2.
+
+- [ ] **Step 2: Typecheck and build**
+
+Run: `npm run build`
+Expected: exits 0 with `✓ built in`
+
+- [ ] **Step 3: After the PR merges to `main`: check the deployment**
+
+Run: `gh run list --workflow deploy.yml --branch main --limit 1`
+Expected: the latest run shows `completed  success`
+
+- [ ] **Step 4: Manual device checks on the Pages link**
+
+On iPhone Safari, Android Chrome, and desktop Chrome, Edge and Safari, with the PRD Story 1 settings:
+1. Window line: every priced entry shows its window sentence under the address. A "Worth it" or "Not worth it for this stay" entry has a green calendar icon; a "Never worth it" entry has a red cross with "Never worth it: always more expensive than petrol for your car". A "Price unknown" entry shows only its reason. Check both the Night and the Day colour sets.
+2. Results slider: dragging the Stay pill updates its value as the thumb moves, and the results don't change until release. On release the panel, "#R of N" and the strip update at once, with no loading screen. The details panel keeps the charger that was selected, even when it moves in the ranking.
+3. Desktop keyboard: Tab to the Stay slider and press → a few times. Each press re-ranks, and focus stays on the slider.
+4. Shared stay: set 3h on the results screen and tap the Battery pill. The parked screen's slider shows 3h. Tap "Find chargers" and the results are for 3h.
+5. Stopwatch (G8-AC2) once more with the slider in the top bar: under 30 s in each of 5 trials on a phone over mobile data.
+
+**Verify:** `npm test && npm run build` — `Tests  197 passed (197)` and `✓ built in`; the steps 3 and 4 checks recorded in `implementation-log.md`
 
 ## Deviations from Design
 
