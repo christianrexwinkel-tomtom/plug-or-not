@@ -4,7 +4,7 @@
 
 **Date:** 2026-10-12
 **Goal:** Slice 1 — a static web page on GitHub Pages that, for the driver's browser location, ranks the 10 nearest Dutch AC chargers by saving against petrol, from a committed NDW tariff snapshot, with the full cost engine and trust guard.
-**Architecture:** An offline Node script (`scripts/build-data.ts`) turns the NDW OCPI feeds into a 0.1° tile snapshot under `public/data/`. The page is plain TypeScript in four layers: UI views → controller (`src/app.ts`) → services (settings, location, data) → a pure engine that simulates each tariff minute by minute over 24 h. Next to the files the design names, the plan adds small single-purpose modules inside the same layers: `src/engine/clock.ts`, `src/engine/results.ts`, `src/ui/entry-view.ts`, `src/ui/dom.ts`, `src/ui/chrome.ts`, `src/ui/app.css`, `scripts/build-nl-border.mjs`, and from Slice 3 `src/ui/map-core.ts`, `src/ui/map-style.ts` and `src/ui/spot-view.ts`.
+**Architecture:** An offline Node script (`scripts/build-data.ts`) turns the NDW OCPI feeds into a 0.1° tile snapshot under `public/data/`. The page is plain TypeScript in four layers: UI views → controller (`src/app.ts`) → services (settings, location, data) → a pure engine that simulates each tariff minute by minute over 24 h. Next to the files the design names, the plan adds small single-purpose modules inside the same layers: `src/engine/clock.ts`, `src/engine/results.ts`, `src/ui/entry-view.ts`, `src/ui/dom.ts`, `src/ui/chrome.ts`, `src/ui/app.css`, `scripts/build-nl-border.mjs`, from Slice 3 `src/ui/map-core.ts`, `src/ui/map-style.ts` and `src/ui/spot-view.ts`, and from Slice 4 `src/ui/results-map-view.ts` and `src/ui/map-loader.ts`.
 **Tech Stack:** TypeScript 7.0.2, Vite 8.3.4, Vitest 5.0.3, tsx 4.23.15, `@fontsource/sora` and `@fontsource/ibm-plex-mono` 5.3.0, MapLibre GL JS 6.11.2 and `@maplibre/maplibre-gl-style-spec` 26.4.4 (Slice 3), Node ≥ 20.19 locally and Node 22 in CI, GitHub Actions and GitHub Pages
 **Design:** [solution-design.md](solution-design.md) · UI mockup [ui-mockup.html](ui-mockup.html)
 **PRD:** [prd.md](prd.md)
@@ -20,11 +20,11 @@
 
 ## TL;DR
 
-This plan builds the first shippable cut of Plug or Not. It's a web page that tells a plug-in hybrid driver whether the nearest public chargers are cheaper than petrol for their stay. It ships as 4 vertical slices, one pull request each. Only Slice 1 is written out here: data snapshot, cost engine, settings, browser location, and ranked results with a details panel and a ranked strip, deployed to GitHub Pages. The work goes test-first. Two acceptance suites encode the PRD (Product Requirements Document) figures and flows. The engine, services, data build, controller and views follow, and a final run plus device checks closes the slice. Slices 2–4 (worth-it window and live stay changes, spot map, results map) get their own plan runs.
+This plan builds the first shippable cut of Plug or Not. It's a web page that tells a plug-in hybrid driver whether the nearest public chargers are cheaper than petrol for their stay. It ships as 4 vertical slices, one pull request each. Slice 1 covers the data snapshot, cost engine, settings, browser location, and ranked results with a details panel and a ranked strip, deployed to GitHub Pages. The work goes test-first. Two acceptance suites encode the PRD (Product Requirements Document) figures and flows. The engine, services, data build, controller and views follow, and a final run plus device checks closes the slice. Slices 2–4 add the worth-it window and live stay changes, the spot map, and the results map; each was planned in its own run.
 
 ## Plan at a glance
 
-Slice 1 has 19 tasks, Slice 2 has 6 (Tasks 20–25) and Slice 3 has 9 (Tasks 26–34). Each title names the component or acceptance criterion it delivers, and each task ends with a runnable **Verify** command and its expected output.
+Slice 1 has 19 tasks, Slice 2 has 6 (Tasks 20–25), Slice 3 has 9 (Tasks 26–34) and Slice 4 has 7 (Tasks 35–41). Each title names the component or acceptance criterion it delivers, and each task ends with a runnable **Verify** command and its expected output.
 
 | Component | Slice | Phase | Tasks | Delivers |
 |-----------|-------|-------|-------|----------|
@@ -49,6 +49,11 @@ Slice 1 has 19 tasks, Slice 2 has 6 (Tasks 20–25) and Slice 3 has 9 (Tasks 26�
 | Parked map logic | 3 | 3 | [29](#task-29-map-core-start-watch-accuracy-circle-and-zoom), [30](#task-30-parked-map-view-model-and-wording) | Map start watch, accuracy circle, spot view model and wording — Task 26 goes green |
 | Map | 3 | 3 | [31](#task-31-night-and-day-map-styles), [32](#task-32-maplibre-wrapper), [33](#task-33-spot-map-on-the-parked-screen) | Night/Day map styles, the MapLibre wrapper, the spot map on the parked screen |
 | Acceptance | 3 | 4 | [34](#task-34-verify-slice-3-acceptance) | Full suite green, build clean, device checks done |
+| Results map acceptance tests | 4 | 1 | [35](#task-35-slice-4-acceptance-tests) | Pins, framing, several prices at one pin, selection after a stay change and map failure on results as one failing suite |
+| Controller | 4 | 2 | [36](#task-36-controller-the-searched-spot-and-no-spot-moves-off-the-parked-screen) | `searchedSpot`; only the parked map moves the spot |
+| Results map logic | 4 | 3 | [37](#task-37-map-core-framing-bounds-and-padding), [38](#task-38-results-map-view-model-and-wording) | Framing maths; the pin and results-map view model — Task 35 goes green |
+| Map | 4 | 3 | [39](#task-39-maplibre-wrapper-results-mode-and-one-loader-for-both-views), [40](#task-40-results-screen-on-the-map) | Results mode in the MapLibre wrapper; the results screen on the map |
+| Acceptance | 4 | 4 | [41](#task-41-verify-slice-4-acceptance) | Full suite green, build clean, device checks done |
 
 ## Slice Status
 
@@ -57,9 +62,9 @@ Slice 1 has 19 tasks, Slice 2 has 6 (Tasks 20–25) and Slice 3 has 9 (Tasks 26�
 | 1 | Answer for my location (no map) | S1; S2 (scenarios 1–5, battery full, outside the Netherlands, load error, approximate notice, location denied + Try again); S3 (parked-screen slider, − and +, limits) | done |
 | 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | done |
 | 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | done |
-| 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | todo (separate plan run) |
+| 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | todo |
 
-_Slices 1–3 are authored in this plan; Slice 2 was added by a second plan-skill run on 2026-10-12, and Slice 3 by a third on 2026-10-12. Slices 3..N will be authored via subsequent plan-skill invocations against the same design artifact, one per PR._
+_All four slices are authored in this plan: Slice 1 by the first plan-skill run, and Slices 2, 3 and 4 by a second, third and fourth run on 2026-10-12, one per PR._
 
 ## Slice 1: Answer for my location (no map)
 
@@ -7485,6 +7490,1515 @@ On iPhone Safari, Android Chrome, and desktop Chrome, Edge and Safari, with the 
 11. Stopwatch (G8-AC2) once more with the map on the parked screen: under 30 s in each of 5 trials on a phone over mobile data, not waiting for map tiles.
 
 **Verify:** `npm test && npm run build` — `Tests  246 passed (246)` and `✓ built in`; the step 3 and 4 checks recorded in `implementation-log.md`
+
+## Slice 4: Results on a map
+
+**In scope:** G6-AC8 (the map parts: one pin per location at its coordinates, labelled with the best entry's saving ("€4.23") or extra cost ("−€0.82"), marked by verdict with colour and icon, "×N" for a location with N entries, an icon-only "Price unknown" pin, "<€0.01" for a tiny amount; the map frames the spot and all 10 locations with padding for the top bar and the details panel; the spot as a blue dot; "Change spot" in the top bar back to the parked view; tapping a pin selects its location's best entry; the selection stays on the same entry while the pins re-label after a stay change (D-30)), G6-AC9 (the results part: "Map couldn't load." in the map area, and the results still in full through the details panel and the ranked strip, without pins), G7-AC6 (the results map follows the device theme, through the Slice 3 style swap), D-22 (the one map instance moved between the parked and the results view; the attribution as a compact control just above the details panel on results), FR-024, the PRD S2 scenario 1 pins and the S2 edge case "Several prices at one pin".
+
+**Left for later slices:** none. This is the last slice of v0.1.
+
+**What already exists from Slices 1–3:** the details panel opening on #1 with "#R of N", the ranked strip with tap selection, the "Also here" rows and the selection kept after a re-rank (`App.select`, `rerank` in `src/app.ts`, `entryViews` in `src/ui/entry-view.ts`); `amountChip` ("€4.23", "−€0.82", "<€0.01") and `savingPhrase` in `src/ui/format.ts`; the shared map `sharedMap` in `src/ui/map.ts`, with the start watch, the Night/Day style swap and the attribution; `reportMapFailure` and `reportMapRecovered` in the controller; `spotFor(state)`. Today the results screen is a top bar and the details panel in the page flow, re-rendered whole on each state change (`renderResults`), with no map.
+
+**How the parts fit:** the controller records `searchedSpot`, the spot the shown results were searched for, because a map failure afterwards drops a moved spot (Slice 3) while the results stay for the place they were searched at. A pure view model, `resultsMapView(state)` in `src/ui/results-map-view.ts`, decides everything the results map shows: the pins, the blue dot, the spot line, the bounds to frame, a key that only changes with a new search (so a stay change never reframes the map under the driver), and "Map couldn't load.". The acceptance tests and unit tests pin that view model, because this repo has no DOM tests (D-17). The framing maths sits in `src/ui/map-core.ts`. The MapLibre wrapper gets a results mode: it places HTML markers that the results view builds, frames bounds, makes the attribution compact, stops reporting moves (panning the results map never moves the spot; the controller ignores a move off the parked view as well), and on the way back to the parked view removes the markers and puts back the camera the driver left. The results screen becomes a mounted view like the parked screen: the map layer is built once per visit, and only the top bar and the panel re-render.
+
+**Commands used throughout:** `npm test` runs `TZ=America/New_York vitest run`; `npm test -- <path>` runs one file with the same time zone; `npm test -- --exclude <glob>` leaves files out. `npm run build` runs `tsc --noEmit` and then `vite build`. Until Task 38 adds `src/ui/results-map-view.ts`, the Task 35 acceptance file imports a module that doesn't exist yet, so `tsc` fails. Tasks 35–37 therefore verify with Vitest only, and `npm run build` comes back from Task 38.
+
+### Phase 1: Acceptance Tests
+
+### Task 35: Slice 4 acceptance tests
+
+Encodes the slice's PRD and design behaviour as one new acceptance file. Like `test/acceptance/spot-map.test.ts`, it goes through the controller with stubbed browser APIs (`stubDeps`), and it reads what the results map shows through its view model, `resultsMapView` (Task 38), because there are no DOM tests (D-17). User-facing strings are written out as literals, copied from the design, so a wording slip fails here. A tap on a pin is `app.select(pin.entryId)`, the call the pin's click handler makes (Task 40). A map failure is `app.reportMapFailure()`, the call the wrapper makes on a failed start or a style error.
+
+The two-location Nuenen fixture gets real coordinates, so the framing has something to frame. Nothing reads its coordinates today: the stub returns the distances as given. A second fixture adds a location with two entries and a location with only "Price unknown".
+
+The file fails to load until Task 38 adds `src/ui/results-map-view.ts`. After Task 36 (controller) and Task 38 (view model), all 8 pass.
+
+**Files:**
+- Modify: `test/fixtures/app-deps.ts`
+- Create: `test/acceptance/results-map.test.ts`
+
+**Interfaces:**
+- Consumes: `createApp` (`src/app.ts`); `entryViews` (`src/ui/entry-view.ts`); fixtures `stubDeps`, `EXAMPLE_RAW`, `KLOKGEBOUW`, `location`, `TARIFFS`
+- Produces: fixture `NEAREST_MIXED`; coordinates on the `NEAREST` locations. The test expects `AppState.searchedSpot` (Task 36) and `resultsMapView(state): ResultsMapView` (Task 38).
+
+- [ ] **Step 1: Give the Nuenen fixture coordinates and add a mixed fixture**
+
+In `test/fixtures/app-deps.ts`, replace the `NEAREST` constant with:
+
+```ts
+export const NEAREST: NearestResult = {
+  nearby: [
+    { location: location('ALL:kerk6', [{ tariffKey: 'ALL:t', powerKw: 11 }], { operator: 'Allego', address: 'Kerkstraat 6', lat: 51.4458, lon: 5.5522 }), distanceM: 266 },
+    { location: location('VAT:park21', [{ tariffKey: 'VAT:t', powerKw: 11 }], { operator: 'Vattenfall', address: 'Parkstraat 21', lat: 51.4442, lon: 5.5527 }), distanceM: 74 },
+  ],
+  tariffs: { 'VAT:t': TARIFFS.vattenfall, 'ALL:t': TARIFFS.allego },
+};
+
+/** PRD S2 "Several prices at one pin": a priced and an unpriced connector at one location, and a location with no price at all. */
+export const NEAREST_MIXED: NearestResult = {
+  nearby: [
+    {
+      location: location('VAT:park21', [{ tariffKey: 'VAT:t', powerKw: 11 }, { tariffKey: null, powerKw: null, unknown: 'no-tariff' }], {
+        operator: 'Vattenfall', address: 'Parkstraat 21', lat: 51.4442, lon: 5.5527,
+      }),
+      distanceM: 74,
+    },
+    {
+      location: location('LMS:molen5', [{ tariffKey: null, powerKw: null, unknown: 'no-tariff' }], {
+        operator: 'Last Mile Solutions', address: 'Molenstraat 5', lat: 51.4471, lon: 5.5478,
+      }),
+      distanceM: 902,
+    },
+  ],
+  tariffs: { 'VAT:t': TARIFFS.vattenfall },
+};
+```
+
+- [ ] **Step 2: Write the failing acceptance test**
+
+Create `test/acceptance/results-map.test.ts`:
+
+```ts
+// Acceptance: results on a map (Slice 4) — PRD S2 scenario 1 (pins), FR-024, the S2 edge case "Several prices at one
+// pin" and the S2 error "Map can't load" on the results screen — through the controller with stubbed browser APIs and
+// the results map's view model.
+import { describe, expect, it } from 'vitest';
+import { createApp, type App } from '../../src/app.ts';
+import { entryViews } from '../../src/ui/entry-view.ts';
+import { resultsMapView } from '../../src/ui/results-map-view.ts';
+import { EXAMPLE_RAW, KLOKGEBOUW, NEAREST_MIXED, stubDeps } from '../fixtures/app-deps.ts';
+
+const MAP_FAILED = "Map couldn't load.";
+
+/** Settings saved, location found, battery 20% and the stay set, then "Find chargers" — optionally at a moved spot. */
+async function resultsApp(deps = stubDeps(), opts: { stay?: number; move?: { lat: number; lon: number }; mapFailed?: boolean } = {}) {
+  const app = createApp(deps);
+  await app.start();
+  app.saveSettings(EXAMPLE_RAW);
+  await deps.locate.mock.results.at(-1)!.value;
+  app.setBattery(20);
+  app.setStay(opts.stay ?? 45);
+  if (opts.move) app.moveSpot(opts.move.lat, opts.move.lon);
+  if (opts.mapFailed) app.reportMapFailure();
+  await app.findChargers();
+  return app;
+}
+
+const view = (app: App) => resultsMapView(app.getState());
+
+describe('PRD S2 scenario 1 — results as pins on a map (G6-AC8, FR-024)', () => {
+  it('one pin per location, labelled with the saving or extra cost and marked by verdict; the best one selected', async () => {
+    const app = await resultsApp();
+    expect(view(app).pins).toEqual([
+      {
+        locationId: 'VAT:park21', entryId: 'VAT:park21#VAT:t', lat: 51.4442, lon: 5.5527,
+        tone: 'w', icon: 'check', label: '€0.39', count: null, selected: true,
+        ariaLabel: '1. Vattenfall, Parkstraat 21: Worth it, saves €0.39',
+      },
+      {
+        locationId: 'ALL:kerk6', entryId: 'ALL:kerk6#ALL:t', lat: 51.4458, lon: 5.5522,
+        tone: 'n', icon: 'cross', label: '−€0.98', count: null, selected: false,
+        ariaLabel: '2. Allego, Kerkstraat 6: Never worth it, costs €0.98 more',
+      },
+    ]);
+  });
+
+  it('frames the spot and every location, with the spot as a blue dot and the spot line "Your location"', async () => {
+    const app = await resultsApp();
+    expect(view(app)).toMatchObject({
+      spot: { lat: 51.4436, lon: 5.5519 }, spotLabel: 'Your location', spotCoords: '51.4436, 5.5519',
+      bounds: [[5.5519, 51.4436], [5.5527, 51.4458]], mapMessage: null,
+    });
+  });
+
+  it('results for a moved spot frame that spot and say "Moved spot"', async () => {
+    const app = await resultsApp(stubDeps(), { move: KLOKGEBOUW });
+    expect(view(app)).toMatchObject({
+      spot: { lat: 51.4484, lon: 5.4573 }, spotLabel: 'Moved spot', spotCoords: '51.4484, 5.4573',
+      bounds: [[5.4573, 51.4442], [5.5527, 51.4484]],
+    });
+  });
+
+  it('tapping a pin selects its location\'s best entry, and the details panel shows "#2 of 2"', async () => {
+    const app = await resultsApp();
+    const kerk = view(app).pins[1]!;
+    app.select(kerk.entryId);
+    expect(view(app).pins.map((p) => p.selected)).toEqual([false, true]);
+    const selected = entryViews(app.getState().results).find((e) => e.id === app.getState().selectedId)!;
+    expect(selected.rankText).toBe('#2 of 2 · best saving first');
+  });
+});
+
+describe('PRD S2 edge case — several prices at one pin (G6-AC8)', () => {
+  it('the pin shows the best entry\'s saving and verdict with "×2"; a "Price unknown" pin shows only its icon', async () => {
+    const app = await resultsApp(stubDeps({ nearest: NEAREST_MIXED }));
+    expect(view(app).pins).toMatchObject([
+      {
+        locationId: 'VAT:park21', entryId: 'VAT:park21#VAT:t', tone: 'w', label: '€0.39', count: '×2', selected: true,
+        ariaLabel: '1. Vattenfall, Parkstraat 21: Worth it, saves €0.39, and 1 more price here',
+      },
+      {
+        locationId: 'LMS:molen5', entryId: 'LMS:molen5#no-tariff', tone: 'u', icon: 'question', label: '', count: null,
+        ariaLabel: '3. Last Mile Solutions, Molenstraat 5: Price unknown',
+      },
+    ]);
+    // The details panel links to the other entry; selecting it keeps the location's pin selected.
+    expect(entryViews(app.getState().results)[0]!.alsoHere).toEqual([{ id: 'VAT:park21#no-tariff', text: 'Also here: Price unknown' }]);
+    app.select('VAT:park21#no-tariff');
+    expect(view(app).pins.map((p) => p.selected)).toEqual([true, false]);
+  });
+});
+
+describe('PRD S3 scenario 1 on the map — a stay change keeps the selection (D-30)', () => {
+  it('the pins re-label and the selected entry stays selected; the map isn\'t reframed', async () => {
+    const app = await resultsApp();
+    app.select('ALL:kerk6#ALL:t');
+    const key = view(app).frameKey;
+    app.setStay(15);
+    expect(view(app).pins).toMatchObject([
+      { locationId: 'VAT:park21', tone: 'n', icon: 'clock', label: '−€0.46', selected: false },
+      { locationId: 'ALL:kerk6', label: '−€0.92', selected: true },
+    ]);
+    expect(app.getState().selectedId).toBe('ALL:kerk6#ALL:t');
+    expect(view(app).frameKey).toBe(key);
+  });
+});
+
+describe('PRD S2 error — map can\'t load, on the results screen (G6-AC9)', () => {
+  it('a map that fails with the results open shows the message and no pins; the results stay in full', async () => {
+    const app = await resultsApp(stubDeps(), { move: KLOKGEBOUW });
+    const framedKey = view(app).frameKey;
+    app.reportMapFailure();
+    expect(view(app)).toMatchObject({
+      mapMessage: MAP_FAILED, pins: [], bounds: null, spotLabel: 'Moved spot', spotCoords: '51.4484, 5.4573',
+    });
+    expect(app.getState()).toMatchObject({ view: 'results', search: 'results', selectedId: 'VAT:park21#VAT:t' });
+    expect(entryViews(app.getState().results).map((e) => e.stripText)).toEqual(['1. Parkstraat 21', '2. Kerkstraat 6']);
+    // A map that loads after all brings the pins back and is framed again.
+    app.reportMapRecovered();
+    expect(view(app)).toMatchObject({ mapMessage: null, frameKey: framedKey });
+    expect(view(app).pins).toHaveLength(2);
+  });
+
+  it('a map that failed before the search: results without pins, calculated for the browser position', async () => {
+    const deps = stubDeps();
+    const app = await resultsApp(deps, { mapFailed: true });
+    expect(deps.findNearest).toHaveBeenCalledWith(51.4436, 5.5519, expect.anything());
+    expect(view(app)).toMatchObject({ mapMessage: MAP_FAILED, pins: [], spotLabel: 'Your location' });
+    expect(entryViews(app.getState().results).map((e) => [e.verdictText, e.savingText])).toEqual([
+      ['Worth it', 'Saves €0.39 compared with €2.16 of petrol'],
+      ['Never worth it', 'Costs €0.98 more than €2.16 of petrol'],
+    ]);
+  });
+});
+```
+
+The figures at a 15-minute stay come from the PRD Story 1 settings with a battery at 20%: Vattenfall delivers 0.9 kWh for €0.89 + 0.9 × €0.2691 × 1.21 = €1.1830 against €0.7197 of petrol (−€0.46, inside no window, so "Not worth it for this stay"); Allego costs €0.89 + 0.25 h × €2.479 × 1.21 = €1.6399 (−€0.92).
+
+- [ ] **Step 3: Run it to see it fail**
+
+Run: `npm test -- test/acceptance/results-map.test.ts`
+Expected: FAIL — `Cannot find module '../../src/ui/results-map-view.ts'`, then `Test Files  1 failed (1)` and `Tests  no tests`
+
+- [ ] **Step 4: Check that the rest of the suite is unaffected by the fixture change**
+
+Run: `npm test -- --exclude test/acceptance/results-map.test.ts`
+Expected: PASS — `Test Files  22 passed (22)` and `Tests  261 passed (261)`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add test/fixtures/app-deps.ts test/acceptance/results-map.test.ts
+git commit -m "test: Slice 4 acceptance tests for the results on a map"
+```
+
+**Verify:** `npm test -- test/acceptance/results-map.test.ts` — `Test Files  1 failed (1)` with `Cannot find module '../../src/ui/results-map-view.ts'`
+
+### Phase 2: Interfaces & Contracts
+
+### Task 36: Controller: the searched spot, and no spot moves off the parked screen
+
+Two controller changes the results map needs.
+
+1. `AppState.searchedSpot` is the spot the shown results were searched for. The results map reads it for the blue dot and the spot line. `spotFor(state)` can't be used for that: a map failure on the results screen drops a moved spot (Slice 3, G6-AC9), so `spotFor` would jump to the browser position while the results are still for the moved spot. It is set once "Find chargers" has passed the Netherlands check, so an outside-the-Netherlands answer never sets it.
+2. `moveSpot` is ignored off the parked view. The results map can be panned to look around the pins, and that must not move the spot (FR-025 is about the parked map). The wrapper stops reporting moves in results mode too (Task 39). This guard keeps the rule in the tested layer.
+
+**Files:**
+- Modify: `src/app.ts`
+- Test: `src/app.test.ts`
+
+**Interfaces:**
+- Consumes: `Spot`, `spotFor` (same file)
+- Produces: `AppState.searchedSpot: Exclude<Spot, { kind: 'none' }> | null` (it is set only after the `none` check, so it is never `none`); `App.moveSpot` ignored unless `view === 'parked'`
+
+- [ ] **Step 1: Write the failing tests**
+
+In `src/app.test.ts`, add at the end of the `describe('createApp — controller state machine (G7-AC5)', …)` block, before its closing `});`:
+
+```ts
+  it('records the searched spot for the results, and keeps it when the map fails afterwards (G6-AC8, G6-AC9)', async () => {
+    const { app } = await parked();
+    app.setBattery(20);
+    app.moveSpot(51.4484, 5.4573);
+    await app.findChargers();
+    expect(app.getState().searchedSpot).toEqual({ kind: 'moved', lat: 51.4484, lon: 5.4573 });
+    app.reportMapFailure();
+    expect(app.getState()).toMatchObject({ movedSpot: null, searchedSpot: { kind: 'moved', lat: 51.4484, lon: 5.4573 } });
+  });
+
+  it('a map move off the parked screen is not a spot move: panning the results map keeps the spot', async () => {
+    const { app } = await searched();
+    app.moveSpot(51.4484, 5.4573);
+    expect(app.getState()).toMatchObject({ view: 'results', movedSpot: null });
+    expect(app.getState().searchedSpot).toMatchObject({ kind: 'browser', lat: 51.4436, lon: 5.5519 });
+  });
+```
+
+- [ ] **Step 2: Run them to see them fail**
+
+Run: `npm test -- src/app.test.ts`
+Expected: FAIL — `Tests  2 failed | 18 passed (20)`. `searchedSpot` is `undefined`, and the move on the results screen sets `movedSpot`.
+
+- [ ] **Step 3: Add `searchedSpot` to the state**
+
+In `src/app.ts`, in `interface AppState`, after the `mapFailed` field, add:
+
+```ts
+  /** The spot the shown results were searched for: the results map's blue dot and spot line (G6-AC8). Kept when the map fails afterwards. */
+  searchedSpot: Exclude<Spot, { kind: 'none' }> | null;
+```
+
+In the initial state in `createApp`, after `mapFailed: false,`, add:
+
+```ts
+    searchedSpot: null,
+```
+
+- [ ] **Step 4: Ignore moves off the parked view, and record the spot of a search**
+
+In `src/app.ts`, replace the start of `moveSpot`:
+
+```ts
+    moveSpot(lat, lon) {
+      // No dragging while the location is being found (G3-AC1), and none once the map has failed (G6-AC9).
+      if (state.location.status === 'locating' || state.mapFailed) return;
+```
+
+with:
+
+```ts
+    moveSpot(lat, lon) {
+      // Only the parked map moves the spot (FR-025): panning the results map doesn't. No dragging while the location
+      // is being found (G3-AC1), and none once the map has failed (G6-AC9).
+      if (state.view !== 'parked' || state.location.status === 'locating' || state.mapFailed) return;
+```
+
+In `findChargers`, replace:
+
+```ts
+      if (!isInNetherlands(spot.lat, spot.lon)) {
+        set({ search: 'outside-nl' });
+        return;
+      }
+```
+
+with:
+
+```ts
+      if (!isInNetherlands(spot.lat, spot.lon)) {
+        set({ search: 'outside-nl' });
+        return;
+      }
+      set({ searchedSpot: spot });
+```
+
+- [ ] **Step 5: Run the controller and acceptance suites to see them pass**
+
+Run: `npm test -- src/app.test.ts test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts test/acceptance/spot-map.test.ts`
+Expected: PASS — `Test Files  4 passed (4)` and `Tests  51 passed (51)` (20 + 13 + 9 + 9)
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/app.ts src/app.test.ts
+git commit -m "feat: record the searched spot; only the parked map moves the spot"
+```
+
+**Verify:** `npm test -- src/app.test.ts test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts test/acceptance/spot-map.test.ts` — `Tests  51 passed (51)`
+
+### Phase 3: Component Implementation
+
+### Task 37: Map core: framing bounds and padding
+
+The pure maths of G6-AC8's framing, next to the Slice 3 map maths so Vitest runs it without MapLibre. `boundsOf` is the box around the spot and every location, in the `[[west, south], [east, north]]` shape MapLibre's `fitBounds` takes. `framePadding` turns the measured top bar and details panel into `fitBounds` padding, so no pin sits under either. MapLibre refuses to frame (it logs "Map cannot fit within canvas…" and doesn't move) when the padding leaves no room. So on a short or narrow map the padding shrinks until at least `FRAME_MIN_PX` stays free. `FRAME_MAX_ZOOM` stops a framing of points close together at one zoom above street level (`SPOT_ZOOM` 15), so a single nearby charger doesn't fill the screen.
+
+**Files:**
+- Modify: `src/ui/map-core.ts`
+- Test: `src/ui/map-core.test.ts`
+
+**Interfaces:**
+- Consumes: none
+- Produces: `Bounds`, `Padding`, `boundsOf(points)`, `framePadding(topBarPx, panelPx, widthPx, heightPx)`, `FRAME_MARGIN_PX`, `FRAME_MIN_PX`, `FRAME_MAX_ZOOM`
+
+- [ ] **Step 1: Write the failing tests**
+
+In `src/ui/map-core.test.ts`, change the import to:
+
+```ts
+import {
+  ACCURACY_FIT_PX, FRAME_MARGIN_PX, FRAME_MIN_PX, MAP_LOAD_TIMEOUT_MS, SPOT_ZOOM, accuracyRadiusPx, boundsOf, framePadding, hasMoved,
+  isDriverMove, liveMoveCentre, metresPerPixel, spotZoom, startMap, type MapErrorLike,
+} from './map-core.ts';
+```
+
+and add at the end of the file:
+
+```ts
+describe('boundsOf (G6-AC8)', () => {
+  it('is null without points', () => {
+    expect(boundsOf([])).toBeNull();
+  });
+
+  it('is [[west, south], [east, north]] around the spot and every location', () => {
+    expect(boundsOf([{ lat: 51.4436, lon: 5.5519 }, { lat: 51.4458, lon: 5.5522 }, { lat: 51.4442, lon: 5.5527 }]))
+      .toEqual([[5.5519, 51.4436], [5.5527, 51.4458]]);
+  });
+});
+
+describe('framePadding (G6-AC8)', () => {
+  it('keeps the pins clear of the top bar and the details panel, with a margin on every side', () => {
+    expect(framePadding(110, 360, 390, 780)).toEqual({
+      top: 110 + FRAME_MARGIN_PX, bottom: 360 + FRAME_MARGIN_PX, left: FRAME_MARGIN_PX, right: FRAME_MARGIN_PX,
+    });
+  });
+
+  it('on a short or narrow map, shrinks the padding so FRAME_MIN_PX stays free and fitBounds can still frame', () => {
+    const p = framePadding(110, 360, 150, 500);
+    expect(p.top + p.bottom).toBeCloseTo(500 - FRAME_MIN_PX, 9);
+    expect(p.top / p.bottom).toBeCloseTo((110 + FRAME_MARGIN_PX) / (360 + FRAME_MARGIN_PX), 9);
+    expect(p.left + p.right).toBe(150 - FRAME_MIN_PX);
+  });
+});
+```
+
+- [ ] **Step 2: Run them to see them fail**
+
+Run: `npm test -- src/ui/map-core.test.ts`
+Expected: FAIL — `Tests  4 failed | 19 passed (23)`. `boundsOf` and `framePadding` aren't functions, and `FRAME_MARGIN_PX` is `undefined`.
+
+- [ ] **Step 3: Add the framing maths**
+
+In `src/ui/map-core.ts`, after the `ACCURACY_FIT_PX` constant, add:
+
+```ts
+/** G6-AC8: room around the framed pins, in CSS pixels — half a labelled pin plus a margin. */
+export const FRAME_MARGIN_PX = 48;
+/** The least free map, in CSS pixels, left between the paddings so fitBounds can still frame. */
+export const FRAME_MIN_PX = 80;
+/** G6-AC8: framing never zooms in past this, so a lone nearby charger doesn't fill the screen. */
+export const FRAME_MAX_ZOOM = 16;
+```
+
+and at the end of the file, add:
+
+```ts
+/** [[west, south], [east, north]], the shape MapLibre's fitBounds takes. */
+export type Bounds = [[number, number], [number, number]];
+
+export interface Padding {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+/** G6-AC8: the box around the spot and every result location; null for no points. */
+export function boundsOf(points: Array<{ lat: number; lon: number }>): Bounds | null {
+  if (points.length === 0) return null;
+  let west = Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  for (const p of points) {
+    west = Math.min(west, p.lon);
+    east = Math.max(east, p.lon);
+    south = Math.min(south, p.lat);
+    north = Math.max(north, p.lat);
+  }
+  return [[west, south], [east, north]];
+}
+
+/**
+ * G6-AC8: fitBounds padding that keeps every pin clear of the top bar and the details panel. On a map too short for
+ * both, the top and bottom shrink in proportion until FRAME_MIN_PX stays free; on a narrow one, the sides do.
+ */
+export function framePadding(topBarPx: number, panelPx: number, widthPx: number, heightPx: number): Padding {
+  const side = Math.max(0, Math.min(FRAME_MARGIN_PX, (widthPx - FRAME_MIN_PX) / 2));
+  let top = topBarPx + FRAME_MARGIN_PX;
+  let bottom = panelPx + FRAME_MARGIN_PX;
+  const room = Math.max(0, heightPx - FRAME_MIN_PX);
+  if (top + bottom > room) {
+    const k = room / (top + bottom);
+    top *= k;
+    bottom *= k;
+  }
+  return { top, bottom, left: side, right: side };
+}
+```
+
+- [ ] **Step 4: Run them to see them pass**
+
+Run: `npm test -- src/ui/map-core.test.ts`
+Expected: PASS — `Tests  23 passed (23)`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/ui/map-core.ts src/ui/map-core.test.ts
+git commit -m "feat: framing bounds and padding for the results map"
+```
+
+**Verify:** `npm test -- src/ui/map-core.test.ts` — `Tests  23 passed (23)`
+
+### Task 38: Results map view model and wording
+
+The pure view model of the results map (G6-AC8, G6-AC9, FR-024), and the three strings the results map adds.
+
+`pinViews(ranked, selectedId)` makes one pin per location, in ranking order. The ranking is best first, so a location's first entry is its best one: that entry gives the pin its colour, icon, label and the entry a tap selects. Colours follow FR-024: green for "Worth it", red for both "Not worth it for this stay" (clock) and "Never worth it" (✕), grey and dashed for "Price unknown" (?). The label is `amountChip`, the same short amount as the ranked strip: "€4.23", "−€0.82", or "<€0.01" below €0.005 (D-19). A "Price unknown" pin has no label. "×N" shows when the location has N > 1 entries. The pin of the selected entry's location is selected, so selecting another entry at the same location (through "Also here") keeps it selected. The accessible name follows the UI mockup: "1. Vattenfall, Parkstraat 21: Worth it, saves €4.23, and 1 more price here".
+
+`resultsMapView(state)` adds the searched spot (Task 36) as the blue dot and the spot line, the bounds to frame (Task 37), a `frameKey` that changes only with a new search or when pins appear or go (so a stay change never reframes the map, but a recovered map is framed again), and "Map couldn't load." with no pins once the map has failed.
+
+The verdict-to-icon map moves here from `src/ui/results.ts` next to a verdict-to-tone map, so the panel, the strip and the pins share them (Task 40 switches `results.ts` over). The verdict itself comes from one helper, `verdictKind(outcome)` in `src/ui/entry-view.ts`, which replaces the two inline copies there, so the pins and the panel can't work it out differently.
+
+**Files:**
+- Create: `src/ui/results-map-view.ts`
+- Test: `src/ui/results-map-view.test.ts`
+- Modify: `src/ui/entry-view.ts`
+- Modify: `src/ui/messages.ts`
+- Test: `src/ui/messages.test.ts`
+
+**Interfaces:**
+- Consumes: `AppState.searchedSpot`, `AppState.mapFailed`, `AppState.results`, `AppState.selectedId`; `RankedEntry`; `Outcome` (`src/engine/compare.ts`); `VERDICT_TEXT`, `VerdictKind` (`src/ui/entry-view.ts`); `amountChip`, `savingPhrase`, `coords` (`src/ui/format.ts`); `boundsOf`, `Bounds` (Task 37); `IconName` (`src/ui/dom.ts`, type only, so Vitest never loads the DOM module); `MAP_FAILED`, `MOVED_SPOT`, `YOUR_LOCATION`
+- Produces: `verdictKind(outcome)` in `src/ui/entry-view.ts`; `PinView`, `ResultsMapView`, `pinViews(ranked, selectedId)`, `resultsMapView(state)`, `VERDICT_ICON`, `VERDICT_TONE`; messages `CHANGE_SPOT`, `YOUR_SPOT`, `RESULTS_MAP_LABEL`
+
+- [ ] **Step 1: Write the failing wording tests**
+
+In `src/ui/messages.test.ts`, add these rows to the `it.each` table, after the `SPOT_MAP_LABEL` row:
+
+```ts
+    ['CHANGE_SPOT', m.CHANGE_SPOT, 'Change spot'],
+    ['YOUR_SPOT', m.YOUR_SPOT, 'Your spot'],
+    ['RESULTS_MAP_LABEL', m.RESULTS_MAP_LABEL, 'Map of the nearest chargers. Tap a pin to see its details.'],
+```
+
+- [ ] **Step 2: Write the failing view-model tests**
+
+Create `src/ui/results-map-view.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { createApp, type AppState } from '../app.ts';
+import { computeEntries, rankAtStay, type RankedEntry } from '../engine/results.ts';
+import type { TileLocation, TileTariff } from '../shared/data-format.ts';
+import { pinViews, resultsMapView } from './results-map-view.ts';
+import { MAP_FAILED, YOUR_LOCATION } from './messages.ts';
+import { stubDeps } from '../../test/fixtures/app-deps.ts';
+import { EXAMPLE_SETTINGS, FRIDAY_1000, TARIFFS, location } from '../../test/fixtures/prd-tariffs.ts';
+
+/** One location (51.44, 5.55) with the given entries, at battery 20%, ranked at the stay. */
+function ranked(entries: TileLocation['entries'], tariffs: Record<string, TileTariff>, stay = 45): RankedEntry[] {
+  const computed = computeEntries(
+    [{ location: location('L:1', entries, { operator: 'Vattenfall', address: 'Parkstraat 21' }), distanceM: 74 }],
+    tariffs, EXAMPLE_SETTINGS, 20, FRIDAY_1000,
+  );
+  return rankAtStay(computed, stay, EXAMPLE_SETTINGS);
+}
+
+const SPOT = { kind: 'browser' as const, lat: 51.4436, lon: 5.5519, accuracyM: 20, approximate: false };
+const base: AppState = createApp(stubDeps()).getState();
+const at = (patch: Partial<AppState>): AppState => ({ ...base, view: 'results', search: 'results', searchedSpot: SPOT, ...patch });
+
+describe('pinViews (G6-AC8, FR-024)', () => {
+  it('labels a saving or an extra cost below €0.005 "<€0.01" (D-19)', () => {
+    const r = ranked([{ tariffKey: 'V:t', powerKw: 11 }], { 'V:t': TARIFFS.vattenfall })[0]!;
+    const outcome = r.outcome;
+    if (outcome.kind !== 'priced') throw new Error('expected a priced entry');
+    expect(pinViews([{ ...r, outcome: { ...outcome, saving: 0.003 } }], r.id)[0]).toMatchObject({ label: '<€0.01', tone: 'w' });
+    expect(pinViews([{ ...r, outcome: { ...outcome, saving: -0.003, verdict: 'never' } }], r.id)[0]).toMatchObject({
+      label: '<€0.01', tone: 'n', icon: 'cross',
+    });
+  });
+
+  it('marks "Not worth it for this stay" red with a clock', () => {
+    expect(pinViews(ranked([{ tariffKey: 'V:t', powerKw: 11 }], { 'V:t': TARIFFS.vattenfall }, 15), null)[0]).toMatchObject({
+      tone: 'n', icon: 'clock', label: '−€0.46', selected: false,
+    });
+  });
+
+  it('a location with three entries shows its best entry with "×3" and "and 2 more prices here"', () => {
+    const r = ranked(
+      [{ tariffKey: 'E:t', powerKw: 11 }, { tariffKey: null, powerKw: null, unknown: 'no-tariff' }, { tariffKey: 'V:t', powerKw: 11 }],
+      { 'V:t': TARIFFS.vattenfall, 'E:t': TARIFFS.efluxLab },
+    );
+    // The "Price unknown" entry (#3) is selected: its location's pin is.
+    expect(pinViews(r, r[2]!.id)).toEqual([{
+      locationId: 'L:1', entryId: 'L:1#V:t', lat: 51.44, lon: 5.55, tone: 'w', icon: 'check', label: '€0.39', count: '×3', selected: true,
+      ariaLabel: '1. Vattenfall, Parkstraat 21: Worth it, saves €0.39, and 2 more prices here',
+    }]);
+  });
+});
+
+describe('resultsMapView (G6-AC8, G6-AC9)', () => {
+  it('a map that can\'t load: the message, no pins and nothing to frame; the spot line stays', () => {
+    const results = ranked([{ tariffKey: 'V:t', powerKw: 11 }], { 'V:t': TARIFFS.vattenfall });
+    expect(resultsMapView(at({ results, selectedId: results[0]!.id, mapFailed: true }))).toMatchObject({
+      mapMessage: MAP_FAILED, pins: [], bounds: null, spotLabel: YOUR_LOCATION, spotCoords: '51.4436, 5.5519',
+    });
+  });
+
+  it('battery full: the spot dot only, with nothing to frame', () => {
+    expect(resultsMapView(at({ search: 'battery-full', results: [] }))).toMatchObject({
+      pins: [], bounds: null, spot: { lat: 51.4436, lon: 5.5519 }, mapMessage: null,
+    });
+  });
+});
+```
+
+`efluxLab` at a battery of 20% saves less per kWh than its €0.89 start fee can ever earn back in the 12 kWh of room, so it ranks #2 as "Never worth it", behind Vattenfall's +€0.39, with the "Price unknown" entry last.
+
+- [ ] **Step 3: Run them to see them fail**
+
+Run: `npm test -- src/ui/messages.test.ts src/ui/results-map-view.test.ts`
+Expected: FAIL — `Test Files  2 failed (2)` and `Tests  3 failed | 21 passed (24)`: `src/ui/results-map-view.test.ts` can't load `./results-map-view.ts`, and the three new message constants are `undefined`.
+
+- [ ] **Step 4: Add the wording**
+
+In `src/ui/messages.ts`, after the `SPOT_MAP_LABEL` constant, add:
+
+```ts
+/** G6-AC8 link in the results top bar, back to the parked view (UI mockup wording). */
+export const CHANGE_SPOT = 'Change spot';
+/** Accessible name of the blue dot on the results map (UI mockup wording; not a PRD string). */
+export const YOUR_SPOT = 'Your spot';
+/** Accessible name of the results map (not a PRD string). */
+export const RESULTS_MAP_LABEL = 'Map of the nearest chargers. Tap a pin to see its details.';
+```
+
+- [ ] **Step 5: Share the verdict helper**
+
+In `src/ui/entry-view.ts`, change the second import line to:
+
+```ts
+import type { Outcome, UnknownReason, Verdict } from '../engine/compare.ts';
+```
+
+After the `VerdictKind` type, add:
+
+```ts
+/** The verdict an entry shows: its priced verdict, or "Price unknown". */
+export function verdictKind(outcome: Outcome): VerdictKind {
+  return outcome.kind === 'priced' ? outcome.verdict : 'unknown';
+}
+```
+
+In `entryViews`, replace
+
+```ts
+    const verdict: VerdictKind = e.outcome.kind === 'priced' ? e.outcome.verdict : 'unknown';
+```
+
+with
+
+```ts
+    const verdict = verdictKind(e.outcome);
+```
+
+and replace
+
+```ts
+        const ov: VerdictKind = o.outcome.kind === 'priced' ? o.outcome.verdict : 'unknown';
+```
+
+with
+
+```ts
+        const ov = verdictKind(o.outcome);
+```
+
+- [ ] **Step 6: Write the view model**
+
+Create `src/ui/results-map-view.ts`:
+
+```ts
+// What the map on the results screen shows, read from app state (G6-AC8, G6-AC9, FR-024). Pure, so Vitest pins it.
+import type { AppState } from '../app.ts';
+import type { RankedEntry } from '../engine/results.ts';
+import type { IconName } from './dom.ts';
+import { VERDICT_TEXT, verdictKind, type VerdictKind } from './entry-view.ts';
+import { amountChip, coords, savingPhrase } from './format.ts';
+import { boundsOf, type Bounds } from './map-core.ts';
+import { MAP_FAILED, MOVED_SPOT, YOUR_LOCATION } from './messages.ts';
+
+/** FR-024: ✓ for "Worth it", a clock for "Not worth it for this stay", ✕ for "Never worth it", ? for "Price unknown". */
+export const VERDICT_ICON: Record<VerdictKind, IconName> = {
+  'worth-it': 'check', 'not-for-this-stay': 'clock', never: 'cross', unknown: 'question',
+};
+/** FR-024: green, red for both "not worth it" verdicts, grey and dashed for "Price unknown". */
+export const VERDICT_TONE: Record<VerdictKind, 'w' | 'n' | 'u'> = {
+  'worth-it': 'w', 'not-for-this-stay': 'n', never: 'n', unknown: 'u',
+};
+
+export interface PinView {
+  locationId: string;
+  /** The entry a tap selects: the location's best-ranked one. */
+  entryId: string;
+  lat: number;
+  lon: number;
+  tone: 'w' | 'n' | 'u';
+  icon: IconName;
+  /** "€4.23", "−€0.82" or "<€0.01"; empty for "Price unknown", whose pin shows only its icon. */
+  label: string;
+  /** "×2" when the location has more than one entry. */
+  count: string | null;
+  /** The selected entry is at this location. */
+  selected: boolean;
+  ariaLabel: string;
+}
+
+export interface ResultsMapView {
+  pins: PinView[];
+  /** The searched spot, shown as a blue dot. */
+  spot: { lat: number; lon: number } | null;
+  /** "Your location" or "Moved spot", for the spot line in the top bar. */
+  spotLabel: string | null;
+  spotCoords: string | null;
+  /** The spot and every pin, to frame; null without pins. */
+  bounds: Bounds | null;
+  /** Changes only with a new search or when the pins appear or go, so a stay change never reframes the map. */
+  frameKey: string;
+  mapMessage: string | null;
+}
+
+/** One pin per location, in ranking order; the ranking is best first, so a location's first entry is its best. */
+export function pinViews(ranked: RankedEntry[], selectedId: string | null): PinView[] {
+  const selectedLocation = ranked.find((e) => e.id === selectedId)?.locationId ?? null;
+  const counts = new Map<string, number>();
+  for (const e of ranked) counts.set(e.locationId, (counts.get(e.locationId) ?? 0) + 1);
+  const seen = new Set<string>();
+  const pins: PinView[] = [];
+  for (const e of ranked) {
+    if (seen.has(e.locationId)) continue;
+    seen.add(e.locationId);
+    const verdict = verdictKind(e.outcome);
+    const n = counts.get(e.locationId) ?? 1;
+    const more = n - 1;
+    const saving = e.outcome.kind === 'priced' ? e.outcome.saving : null;
+    const loc = e.entry.location;
+    pins.push({
+      locationId: e.locationId,
+      entryId: e.id,
+      lat: loc.lat,
+      lon: loc.lon,
+      tone: VERDICT_TONE[verdict],
+      icon: VERDICT_ICON[verdict],
+      label: saving === null ? '' : amountChip(saving),
+      count: n > 1 ? `×${n}` : null,
+      selected: e.locationId === selectedLocation,
+      ariaLabel: `${e.rank}. ${loc.operator}, ${loc.address}: ${VERDICT_TEXT[verdict]}`
+        + (saving === null ? '' : `, ${savingPhrase(saving)}`)
+        + (more > 0 ? `, and ${more} more ${more > 1 ? 'prices' : 'price'} here` : ''),
+    });
+  }
+  return pins;
+}
+
+export function resultsMapView(state: AppState): ResultsMapView {
+  const searched = state.searchedSpot;
+  const spot = searched ? { lat: searched.lat, lon: searched.lon } : null;
+  // G6-AC9: without a map there are no pins; the details panel and the ranked strip still show everything.
+  const pins = state.mapFailed ? [] : pinViews(state.results, state.selectedId);
+  return {
+    pins,
+    spot,
+    spotLabel: searched === null ? null : searched.kind === 'moved' ? MOVED_SPOT : YOUR_LOCATION,
+    spotCoords: spot ? coords(spot.lat, spot.lon) : null,
+    bounds: spot && pins.length > 0 ? boundsOf([spot, ...pins]) : null,
+    frameKey: `${spot ? `${spot.lat},${spot.lon}` : ''}|${pins.map((p) => p.locationId).sort().join(',')}`,
+    mapMessage: state.mapFailed ? MAP_FAILED : null,
+  };
+}
+```
+
+- [ ] **Step 7: Run the unit tests to see them pass**
+
+Run: `npm test -- src/ui/messages.test.ts src/ui/results-map-view.test.ts src/ui/entry-view.test.ts`
+Expected: PASS — `Test Files  3 passed (3)` and `Tests  35 passed (35)` (24 + 5 + 6)
+
+- [ ] **Step 8: Run the Slice 4 acceptance tests to see them pass**
+
+Run: `npm test -- test/acceptance/results-map.test.ts`
+Expected: PASS — `Tests  8 passed (8)`
+
+- [ ] **Step 9: Typecheck, build and run everything**
+
+Run: `npm run build && npm test`
+Expected: `✓ built in`, then `Test Files  24 passed (24)` and `Tests  283 passed (283)`
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add src/ui/results-map-view.ts src/ui/results-map-view.test.ts src/ui/entry-view.ts src/ui/messages.ts src/ui/messages.test.ts
+git commit -m "feat: results map view model — pins, spot, framing and map failure"
+```
+
+**Verify:** `npm test -- test/acceptance/results-map.test.ts src/ui/results-map-view.test.ts src/ui/messages.test.ts` — `Tests  37 passed (37)`
+
+### Task 39: MapLibre wrapper: results mode, and one loader for both views
+
+The one shared map (D-22) gets a results mode. `showResults()` saves the camera the parked view left, makes the attribution a compact control (the results view puts it just above the details panel, Task 40), and stops reporting moves, so panning the results map never moves the spot. `setMarkers` places HTML elements on the map. The results view builds them (pins and the blue dot, Task 40), so the wrapper stays free of view code. `frame` fits bounds inside a padding without animation, as one of the wrapper's own jumps, so it isn't a move either. `showSpot()` is the way back: it removes the markers, spells the attribution out again (the Slice 3 parked map), and puts back the saved camera. A moved spot then sits under the parked pin again, because the parked view leaves a moved spot's map where it is (`spotView.centre` is `null`).
+
+MapLibre's Marker sets the element's own `transform` to place it. That's why the results view wraps each pin button in a marker element and scales the button, not the marker (Task 40).
+
+The parked view's MapLibre loading moves into `src/ui/map-loader.ts`, so the results view loads and binds the same map the same way. The behaviour is Slice 3's: one dynamic import into MapLibre's own chunk, bound to the app's `moveSpot`, `reportMapFailure` and `reportMapRecovered`. A failed import reports a map that can't load, once, and isn't retried. Each caller catches the rejection itself. The parked view now calls `showSpot()` when it takes the map.
+
+`src/ui/map.ts` imports `maplibre-gl`, which needs a browser, so nothing under test imports it (Slice 3, Task 32). The checks here are the typecheck, the build and the full suite. The map is first seen working in Task 40's dev-server check.
+
+**Files:**
+- Modify: `src/ui/map.ts`
+- Create: `src/ui/map-loader.ts`
+- Modify: `src/ui/parked.ts`
+
+**Interfaces:**
+- Consumes: `FRAME_MAX_ZOOM`, `Bounds`, `Padding` (Task 37); `App.moveSpot` (Task 36), `App.reportMapFailure`, `App.reportMapRecovered`
+- Produces: `MapMarker`; `MapHandle.showResults()`, `MapHandle.showSpot()`, `MapHandle.setMarkers(markers)`, `MapHandle.frame(bounds, padding)`; `loadSharedMap(app): Promise<MapHandle>`
+
+- [ ] **Step 1: Replace `src/ui/map.ts`**
+
+```ts
+// The one MapLibre map (D-22): OpenFreeMap tiles in the Night or Day style (D-32), with the load and error detection
+// of G6-AC9. On the parked view it is dragged under a fixed spot pin (G3-AC3); on the results view it carries the
+// result pins and the spot dot (G6-AC8).
+import * as maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+// MapLibre looks for its worker next to its own module file, which isn't there once Vite has bundled it
+// (dev or build). Let Vite emit the worker as its own file and point MapLibre at it.
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import { NL_CENTRE } from '../services/location.ts';
+import {
+  FRAME_MAX_ZOOM, accuracyRadiusPx, isDriverMove, liveMoveCentre, startMap, type Bounds, type Padding,
+} from './map-core.ts';
+import { mapStyle, themeFor, type Theme } from './map-style.ts';
+
+maplibregl.setWorkerUrl(workerUrl);
+
+export interface MapEvents {
+  /** The driver moved the parked map; its new centre is the spot. Never called for the wrapper's own jumps, nor on results. */
+  moved(lat: number, lon: number): void;
+  /** The map can't start, or its style failed (a lost tile after `load` is not a failure). Never synchronously. */
+  failed(): void;
+  /** A map that failed before `load` (the timeout, a tile error during startup) has loaded after all. */
+  recovered(): void;
+}
+
+/** An HTML element placed on the map at a point: a result pin or the spot dot (G6-AC8). */
+export interface MapMarker {
+  lat: number;
+  lon: number;
+  element: HTMLElement;
+}
+
+export interface MapHandle {
+  /** Moves the map into `parent`, as its first child (one map, moved between views: D-22). */
+  attachTo(parent: HTMLElement): void;
+  /** Centres the map without animation; not reported as a move. */
+  centreOn(lat: number, lon: number, zoom: number): void;
+  /** G3-AC1: no dragging while the location is being found. */
+  setDraggable(on: boolean): void;
+  /** G3-AC2: the accuracy circle around the pin, or none. */
+  setAccuracy(metres: number | null): void;
+  /** Follows the centre while the driver drags, for the coordinates chip; one listener at a time. */
+  onLiveMove(listener: ((lat: number, lon: number) => void) | null): void;
+  /**
+   * G6-AC8, results mode: saves the camera for showSpot, makes the attribution compact, and stops reporting moves,
+   * so panning the results map never moves the spot.
+   */
+  showResults(): void;
+  /** Back to spot mode for the parked view: the markers go, the attribution is spelled out, the saved camera returns. */
+  showSpot(): void;
+  /** Replaces every marker. */
+  setMarkers(markers: MapMarker[]): void;
+  /** G6-AC8: fits the bounds inside the padding, without animation; not reported as a move. */
+  frame(bounds: Bounds, padding: Padding): void;
+}
+
+const LIGHT = window.matchMedia('(prefers-color-scheme: light)');
+const theme = (): Theme => themeFor(LIGHT.matches);
+
+function createMap(events: MapEvents): MapHandle {
+  const el = document.createElement('div');
+  el.className = 'mapcanvas';
+  const map = startMap(() => new maplibregl.Map({
+    container: el,
+    style: mapStyle(theme()),
+    center: [NL_CENTRE.lon, NL_CENTRE.lat],
+    zoom: NL_CENTRE.zoom,
+    attributionControl: false,
+    dragRotate: false,
+    pitchWithRotate: false,
+    touchPitch: false,
+    doubleClickZoom: false,
+  }), () => events.failed(), () => events.recovered());
+  const circle = document.createElement('div');
+  circle.className = 'acc';
+  circle.hidden = true;
+  el.append(circle);
+  let accuracyM: number | null = null;
+  let live: ((lat: number, lon: number) => void) | null = null;
+  let jumping = false;
+  let last: { lat: number; lon: number } = { lat: NL_CENTRE.lat, lon: NL_CENTRE.lon };
+  let mode: 'spot' | 'results' = 'spot';
+  /** The parked camera, saved by showResults and put back by showSpot. */
+  let saved: { centre: maplibregl.LngLat; zoom: number } | null = null;
+  let markers: maplibregl.Marker[] = [];
+  let attribution: maplibregl.AttributionControl | null = null;
+
+  function drawCircle(): void {
+    if (!map || accuracyM === null) {
+      circle.hidden = true;
+      return;
+    }
+    const d = 2 * accuracyRadiusPx(accuracyM, map.getCenter().lat, map.getZoom());
+    circle.style.width = `${d}px`;
+    circle.style.height = `${d}px`;
+    circle.hidden = false;
+  }
+
+  /** The attribution is always shown (D-22): spelled out on the parked map, compact above the panel on results. */
+  function showAttribution(compact: boolean): void {
+    if (!map) return;
+    if (attribution) map.removeControl(attribution);
+    attribution = new maplibregl.AttributionControl({ compact });
+    map.addControl(attribution, 'bottom-right');
+  }
+
+  /** A camera move of the wrapper's own. MapLibre fires its move events synchronously, so the flag covers them all. */
+  function jump(move: () => void): void {
+    jumping = true;
+    try {
+      move();
+    } finally {
+      jumping = false;
+    }
+    drawCircle();
+  }
+
+  function clearMarkers(): void {
+    for (const m of markers) m.remove();
+    markers = [];
+  }
+
+  if (map) {
+    // The attribution comes from OpenFreeMap's TileJSON, always spelled out on the parked map (D-22).
+    showAttribution(false);
+    // Zooming keeps the spot under the pin: only a drag moves it.
+    map.scrollZoom.enable({ around: 'center' });
+    map.touchZoomRotate.enable({ around: 'center' });
+    map.touchZoomRotate.disableRotation();
+    // Only a gesture on the parked map moves the spot (isDriverMove): not our jumps, not MapLibre's own resizes,
+    // not a zoom, and nothing on the results map.
+    map.on('move', (e) => {
+      if (!live || mode !== 'spot') return;
+      const now = liveMoveCentre({ jumping, originalEvent: e.originalEvent }, last, map.getCenter());
+      if (now) live(now.lat, now.lon);
+    });
+    map.on('moveend', (e) => {
+      const c = map.getCenter();
+      const now = { lat: c.lat, lon: c.lng };
+      if (mode === 'spot' && isDriverMove({ jumping, originalEvent: e.originalEvent }, last, now)) events.moved(now.lat, now.lon);
+      last = now;
+    });
+    map.on('zoom', drawCircle);
+    // G7-AC6: follow a device theme switch without a reload; the pin, the circle and the markers are HTML and stay.
+    LIGHT.addEventListener('change', () => map.setStyle(mapStyle(theme())));
+  }
+
+  return {
+    attachTo(parent) {
+      parent.prepend(el);
+      map?.resize();
+    },
+    centreOn(lat, lon, zoom) {
+      const m = map;
+      if (!m) return;
+      jump(() => m.jumpTo({ center: [lon, lat], zoom }));
+    },
+    setDraggable(on) {
+      if (!map) return;
+      if (on) {
+        map.dragPan.enable();
+        map.keyboard.enable();
+      } else {
+        map.dragPan.disable();
+        map.keyboard.disable();
+      }
+    },
+    setAccuracy(metres) {
+      accuracyM = metres;
+      drawCircle();
+    },
+    onLiveMove(listener) {
+      live = listener;
+    },
+    showResults() {
+      if (!map || mode === 'results') return;
+      mode = 'results';
+      saved = { centre: map.getCenter(), zoom: map.getZoom() };
+      showAttribution(true);
+    },
+    showSpot() {
+      const m = map;
+      if (!m || mode === 'spot') return;
+      mode = 'spot';
+      clearMarkers();
+      showAttribution(false);
+      const back = saved;
+      saved = null;
+      if (back) jump(() => m.jumpTo({ center: back.centre, zoom: back.zoom }));
+    },
+    setMarkers(list) {
+      const m = map;
+      if (!m) return;
+      clearMarkers();
+      markers = list.map((x) => new maplibregl.Marker({ element: x.element }).setLngLat([x.lon, x.lat]).addTo(m));
+    },
+    frame(bounds, padding) {
+      const m = map;
+      if (!m) return;
+      jump(() => m.fitBounds(bounds, { padding, maxZoom: FRAME_MAX_ZOOM, animate: false }));
+    },
+  };
+}
+
+let shared: MapHandle | null = null;
+
+/** The one map (D-22), made on first use. The first caller's events stay bound: the app is a singleton. */
+export function sharedMap(events: MapEvents): MapHandle {
+  shared ??= createMap(events);
+  return shared;
+}
+```
+
+Next to the new methods, two things change. `centreOn` now goes through `jump`, which is the same flag-and-redraw as before. The `moved` event and the live chip now fire only in spot mode.
+
+- [ ] **Step 2: Create `src/ui/map-loader.ts`**
+
+```ts
+import type { App } from '../app.ts';
+import type { MapHandle } from './map.ts';
+
+let shared: Promise<MapHandle> | null = null;
+
+/**
+ * MapLibre and the wrapper, in their own chunk, loaded once and bound to the app (D-22). The parked and the results
+ * view both take the map from here. A failed load reports a map that can't load (G6-AC9), once, and is not retried:
+ * nothing would clear that report if a later retry worked. Each caller handles the rejection itself.
+ */
+export function loadSharedMap(app: App): Promise<MapHandle> {
+  shared ??= import('./map.ts').then(
+    (mod) => mod.sharedMap({
+      moved: (lat, lon) => app.moveSpot(lat, lon),
+      failed: () => app.reportMapFailure(),
+      recovered: () => app.reportMapRecovered(),
+    }),
+    (e: unknown) => {
+      app.reportMapFailure();
+      throw e;
+    },
+  );
+  return shared;
+}
+```
+
+- [ ] **Step 3: Take the map from the loader in the parked view**
+
+In `src/ui/parked.ts`, after the line `import type { MapHandle } from './map.ts';`, add:
+
+```ts
+import { loadSharedMap } from './map-loader.ts';
+```
+
+Delete the block:
+
+```ts
+/**
+ * MapLibre and the wrapper, in their own chunk; loaded once. A failed load is not retried: it reported a map that
+ * can't load (G6-AC9), and nothing would clear that if a later visit's retry worked.
+ */
+let mapModule: Promise<typeof import('./map.ts')> | null = null;
+function loadMap(): Promise<typeof import('./map.ts')> {
+  mapModule ??= import('./map.ts');
+  return mapModule;
+}
+```
+
+In `spotMap`, replace:
+
+```ts
+  void loadMap().then((mod) => {
+    const m = mod.sharedMap({
+      moved: (lat, lon) => app.moveSpot(lat, lon),
+      failed: () => app.reportMapFailure(),
+      recovered: () => app.reportMapRecovered(),
+    });
+    // While dragging, the chip follows the map; the spot is committed when the move ends (`moved`).
+```
+
+with:
+
+```ts
+  // The loader reports a failed load itself (G6-AC9).
+  void loadSharedMap(app).then((m) => {
+    // Back from the results: the pins go, and the camera the driver left comes back (G6-AC8).
+    m.showSpot();
+    // While dragging, the chip follows the map; the spot is committed when the move ends (`moved`).
+```
+
+and replace the end of that call:
+
+```ts
+  }, () => app.reportMapFailure());
+```
+
+with:
+
+```ts
+  }, () => undefined);
+```
+
+- [ ] **Step 4: Check that MapLibre is still imported in exactly one place**
+
+Run: `grep -rn "from 'maplibre-gl'" src/ test/`
+Expected: one line, `src/ui/map.ts:4:import * as maplibregl from 'maplibre-gl';`
+
+- [ ] **Step 5: Typecheck, build and run everything**
+
+Run: `npm run build && npm test`
+Expected: `✓ built in`, then `Test Files  24 passed (24)` and `Tests  283 passed (283)`
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/ui/map.ts src/ui/map-loader.ts src/ui/parked.ts
+git commit -m "feat: results mode for the shared map; one map loader for both views"
+```
+
+**Verify:** `npm run build && npm test` — `✓ built in` and `Tests  283 passed (283)`
+
+### Task 40: Results screen on the map
+
+Turns the results screen into the UI mockup's style B layout (`ui-mockup.html` lines 194–261): the map fills the screen, with the top bar floating at the top and the details panel at the bottom (G6-AC8, D-23).
+
+- **Map layer.** It is built once per visit: `mountResults` returns an updater, like `mountParked`. Only the top bar and the panel re-render on a state change, so the shared map isn't moved on every stay change. The layer takes the shared map (Task 39) and switches it to results mode. On each update it places the blue dot and the pins from `resultsMapView` (Task 38), and frames the map when `frameKey` changes: on the first update and after a recovered map, never after a stay change. With no pins (battery full, a load error) it centres the spot at street level instead. The padding comes from the measured top bar and panel (Task 37).
+- **Pins.** Each pin is a button inside a marker element, because MapLibre sets the marker's own `transform`. The button carries the colour (`w`, `n`, `u`), the icon, the label and "×N", and a tap selects its entry. The selected pin is scaled and outlined, and its marker sits above the others. A pin that had keyboard focus gets it back after the pins are rebuilt.
+- **Top bar.** Under the Battery pill, the stay slider and Settings, a spot line reads "YOUR LOCATION · 51.4436, 5.5519" (or "MOVED SPOT …") with the "Change spot" link. Like the Battery pill, it goes back to the parked view. The approximate notice moves into the top bar, so the framing padding includes it.
+- **Map failure (G6-AC9).** "Map couldn't load." fills the map area above the panel, the map takes no gestures and there are no pins. The panel and the strip are unchanged. Results never wait for the map: it arrives when MapLibre has loaded (G8-AC2).
+- **Attribution.** The compact attribution control (Task 39) sits just above the panel. The updater sets the panel's height as `--sheet-h` on the screen, and the CSS lifts the map's bottom-right controls by it.
+- **Shared maps.** The panel and the strip take their icons and tones from `VERDICT_ICON` and `VERDICT_TONE` (Task 38), so the strip and the pins can't disagree. The panel's verdict colour classes (`w`, `n`, `x`, `u`) stay.
+
+The CSS follows the mockup's results rules, adapted to the real map. The mockup's hand-placed `.canvas` and `fitPins()` are replaced by MapLibre markers and `fitBounds`. `.pin.sel` scales the button instead of translating it. The selection outline uses `--ink`, the mockup's `--ring` in both colour sets. The panel's grab handle is left out, because the panel isn't draggable.
+
+There's no DOM test in this repo (D-17). The automated checks are the typecheck, the build and the full suite. A dev-server check follows in Step 5, and the device checks are in Task 41.
+
+**Files:**
+- Modify: `src/ui/results.ts`
+- Modify: `src/main.ts`
+- Modify: `src/ui/app.css`
+
+**Interfaces:**
+- Consumes: `resultsMapView`, `ResultsMapView`, `PinView`, `VERDICT_ICON`, `VERDICT_TONE` (Task 38); `framePadding`, `SPOT_ZOOM` (`src/ui/map-core.ts`); `loadSharedMap` (Task 39); `MapHandle`, `MapMarker` (Task 39); `App.select`, `App.backToParked`; `CHANGE_SPOT`, `YOUR_SPOT`, `RESULTS_MAP_LABEL` (Task 38)
+- Produces: `mountResults(root, app): (state: AppState) => void`, replacing `renderResults`
+
+- [ ] **Step 1: Replace `src/ui/results.ts`**
+
+```ts
+import type { App, AppState } from '../app.ts';
+import { STAY_MAX, STAY_MIN, STAY_STEP } from '../engine/compare.ts';
+import { h, icon, rangeFill } from './dom.ts';
+import { notice } from './chrome.ts';
+import { duration } from './format.ts';
+import { SPOT_ZOOM, framePadding } from './map-core.ts';
+import { loadSharedMap } from './map-loader.ts';
+import type { MapHandle, MapMarker } from './map.ts';
+import { VERDICT_ICON, VERDICT_TONE, resultsMapView, type PinView, type ResultsMapView } from './results-map-view.ts';
+import {
+  APPROXIMATE, APPROXIMATE_RESULTS, BATTERY_FULL, CHANGE_SPOT, LOAD_ERROR, RESULTS_MAP_LABEL, TRY_AGAIN, YOUR_SPOT,
+} from './messages.ts';
+import { entryViews, type EntryView, type VerdictKind } from './entry-view.ts';
+
+const VERDICT_CLASS: Record<VerdictKind, string> = { 'worth-it': 'w', 'not-for-this-stay': 'n', never: 'x', unknown: 'u' };
+/** The results slider's id; the focus restore looks it up after each re-render. */
+const STAY_SLIDER_ID = 'rstay';
+
+/** G7-AC2: the label follows the drag; the results update on release (G7-AC4). */
+function staySlider(state: AppState, app: App): HTMLElement {
+  const value = h('b', { class: 'num' });
+  const input = h('input', {
+    type: 'range', class: 'range', id: STAY_SLIDER_ID, min: STAY_MIN, max: STAY_MAX, step: STAY_STEP, value: state.stayMin,
+    'aria-label': 'Length of stay',
+  });
+  const show = (v: number) => {
+    value.textContent = duration(v);
+    input.style.setProperty('--p', rangeFill(v, STAY_MIN, STAY_MAX));
+    input.setAttribute('aria-valuetext', duration(v));
+  };
+  show(state.stayMin);
+  input.addEventListener('input', () => show(Number(input.value)));
+  input.addEventListener('change', () => app.setStay(Number(input.value)));
+  return h('label', { class: 'pill sl' }, h('span', { class: 't' }, h('small', {}, 'Stay'), value), input);
+}
+
+/** G6-AC8: Battery, the stay slider and Settings; under them the spot the results are for, with "Change spot". */
+function topBar(state: AppState, app: App, v: ResultsMapView): HTMLElement {
+  return h('div', { class: 'rtop' },
+    h('div', { class: 'row' },
+      h('button', { type: 'button', class: 'pill', 'aria-label': `Battery ${state.battery}%, change`, onclick: () => app.backToParked() },
+        h('small', {}, 'Battery'), h('span', { class: 'num' }, `${state.battery}%`)),
+      staySlider(state, app),
+      h('button', { type: 'button', class: 'pill round', 'aria-label': 'Settings', onclick: () => app.openSettings() }, icon('gear', 17)),
+    ),
+    v.spotLabel !== null && h('div', { class: 'spot' },
+      h('span', { class: 'num' }, h('b', {}, v.spotLabel), ` · ${v.spotCoords ?? ''}`),
+      // Like the Battery pill, back to the parked view, where the spot can be moved.
+      h('button', { type: 'button', class: 'linkbtn', onclick: () => app.backToParked() }, CHANGE_SPOT)),
+    state.approximateResults && notice('info', 'status', h('p', {}, APPROXIMATE), h('p', { class: 'plain' }, APPROXIMATE_RESULTS)),
+  );
+}
+
+function message(kind: 'load' | 'full', app: App): HTMLElement {
+  return kind === 'load'
+    ? h('div', { class: 'rmsg', role: 'alert' },
+        h('div', { class: 'big bad' }, icon('wifi', 32)),
+        h('p', {}, LOAD_ERROR),
+        h('button', { type: 'button', class: 'btn btn-primary', onclick: () => void app.findChargers() }, TRY_AGAIN))
+    : h('div', { class: 'rmsg', role: 'status' },
+        h('div', { class: 'big good' }, icon('full', 32)),
+        h('p', {}, BATTERY_FULL));
+}
+
+function panel(e: EntryView, all: EntryView[], app: App): HTMLElement {
+  const cls = VERDICT_CLASS[e.verdict];
+  return h('section', { class: 'sheet', 'aria-label': 'Charger details' },
+    h('div', { class: 'sbody' },
+      h('div', { class: 'rk' }, h('span', {}, e.rankText), h('span', { class: 'num' }, e.distanceText)),
+      h('div', { class: `verdict ${cls}` }, icon(VERDICT_ICON[e.verdict], e.verdict === 'not-for-this-stay' ? 24 : 30), e.verdictText),
+      e.savingText && h('p', { class: 'sub' }, e.savingText),
+      e.priceText && h('p', { class: 'sub price-line' }, e.priceText),
+      h('p', { class: 'name' }, e.operator),
+      h('p', { class: 'addr' }, e.address),
+      ...e.alsoHere.map((o) => h('button', { type: 'button', class: 'also', 'data-id': o.id, onclick: () => app.select(o.id) },
+        h('span', {}, o.text), h('span', { class: 'go2' }, 'Show'))),
+      e.windowText && h('p', { class: e.hasWindow ? 'window-line ok' : 'window-line' },
+        icon(e.hasWindow ? 'win' : 'cross', 16), h('span', {}, e.windowText)),
+      e.reasonText && h('p', { class: 'reason' }, e.reasonText),
+    ),
+    h('div', { class: 'strip', role: 'list', 'aria-label': 'All chargers, best saving first' },
+      ...all.map((x) => h('div', { role: 'listitem', class: 'strip-item' }, h('button', {
+        type: 'button', 'data-id': x.id, 'aria-current': x.id === e.id ? 'true' : 'false', onclick: () => app.select(x.id),
+      }, h('b', { class: VERDICT_TONE[x.verdict] }, icon(VERDICT_ICON[x.verdict], 12), x.chipText), x.stripText)))),
+  );
+}
+
+/** The top bar and the message or the details panel; replaced on every update, with focus put back where it was. */
+function renderContent(content: HTMLElement, state: AppState, app: App, v: ResultsMapView): void {
+  // Every render replaces the controls; put focus back on the one the driver used:
+  // the stay slider, or the strip item / "Also here" row of a selection.
+  const active = document.activeElement instanceof HTMLElement && content.contains(document.activeElement) ? document.activeElement : null;
+  const stayFocused = active?.id === STAY_SLIDER_ID;
+  const focused = active?.dataset.id
+    ? { id: active.dataset.id, inStrip: active.closest('.strip') !== null }
+    : undefined;
+  if (state.search === 'load-error' || state.search === 'battery-full') {
+    content.replaceChildren(topBar(state, app, v), message(state.search === 'load-error' ? 'load' : 'full', app));
+    if (stayFocused) document.getElementById(STAY_SLIDER_ID)?.focus();
+    return;
+  }
+  const views = entryViews(state.results);
+  const selected = views.find((x) => x.id === state.selectedId) ?? views[0];
+  content.replaceChildren(topBar(state, app, v), ...(selected ? [panel(selected, views, app)] : []));
+  content.querySelector('.strip [aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  if (stayFocused) {
+    document.getElementById(STAY_SLIDER_ID)?.focus();
+  } else if (focused) {
+    const id = CSS.escape(focused.id);
+    // Back where it was if that control still exists (an "Also here" row disappears once selected), else its strip item.
+    const same = content.querySelector<HTMLElement>(focused.inStrip ? `.strip [data-id="${id}"]` : `.also[data-id="${id}"]`);
+    (same ?? content.querySelector<HTMLElement>(`.strip [data-id="${id}"]`))?.focus();
+  }
+}
+
+/** FR-024: a pin button in a marker element; MapLibre positions the marker with its own transform. */
+function pinElement(p: PinView, app: App): HTMLElement {
+  return h('div', { class: p.selected ? 'pinm sel' : 'pinm' },
+    h('button', {
+      type: 'button', class: p.selected ? `pin ${p.tone} sel` : `pin ${p.tone}`, 'data-pin': p.locationId,
+      'aria-label': p.ariaLabel, 'aria-pressed': p.selected ? 'true' : 'false', onclick: () => app.select(p.entryId),
+    }, icon(p.icon, 13), p.label, p.count && h('span', { class: 'x2' }, p.count)));
+}
+
+function spotDot(): HTMLElement {
+  return h('span', { class: 'me', role: 'img', 'aria-label': YOUR_SPOT });
+}
+
+/**
+ * Builds the results screen once per visit and returns an updater that patches it (G6-AC8). The map layer stays while
+ * the top bar and the panel re-render, so the shared map isn't moved on every stay change. Results never wait for the
+ * map: it arrives once MapLibre has loaded, and a map that can't load leaves the panel and the strip in full (G6-AC9).
+ */
+export function mountResults(root: HTMLElement, app: App): (state: AppState) => void {
+  const mapMessage = h('div', { class: 'mapmsg', role: 'status' });
+  const layer = h('div', { class: 'rmap', role: 'application', 'aria-label': RESULTS_MAP_LABEL }, mapMessage);
+  const content = h('div', { class: 'rlayer' });
+  const wrap = h('div', { class: 'rwrap' }, layer, content);
+  root.replaceChildren(wrap);
+  let map: MapHandle | null = null;
+  /** The last view and the panel height measured with it, for a map that arrives after the first update. */
+  let last: { v: ResultsMapView; panelPx: number } | null = null;
+  /** The frameKey last framed: a stay change keeps it, so the map isn't reframed under the driver. */
+  let framed: string | null = null;
+
+  function applyMap(m: MapHandle, v: ResultsMapView, panelPx: number): void {
+    const focusedPin = document.activeElement instanceof HTMLElement ? document.activeElement.dataset.pin : undefined;
+    m.setDraggable(v.mapMessage === null);
+    m.setAccuracy(null);
+    const markers: MapMarker[] = v.spot ? [{ lat: v.spot.lat, lon: v.spot.lon, element: spotDot() }] : [];
+    for (const p of v.pins) markers.push({ lat: p.lat, lon: p.lon, element: pinElement(p, app) });
+    m.setMarkers(markers);
+    if (focusedPin) layer.querySelector<HTMLElement>(`[data-pin="${CSS.escape(focusedPin)}"]`)?.focus();
+    if (v.mapMessage !== null) {
+      framed = null;
+      return;
+    }
+    if (v.frameKey === framed) return;
+    framed = v.frameKey;
+    const topPx = content.querySelector<HTMLElement>('.rtop')?.offsetHeight ?? 0;
+    if (v.bounds) m.frame(v.bounds, framePadding(topPx, panelPx, layer.clientWidth, layer.clientHeight));
+    else if (v.spot) m.centreOn(v.spot.lat, v.spot.lon, SPOT_ZOOM);
+  }
+
+  // The loader reports a failed load itself (G6-AC9).
+  void loadSharedMap(app).then((m) => {
+    m.showResults();
+    m.attachTo(layer);
+    map = m;
+    if (last) applyMap(m, last.v, last.panelPx);
+  }, () => undefined);
+
+  return (state) => {
+    const v = resultsMapView(state);
+    renderContent(content, state, app, v);
+    // Measured once per update: the framing padding, the attribution and "Map couldn't load." all sit above the panel
+    // (G6-AC8, D-22, G6-AC9).
+    const panelPx = content.querySelector<HTMLElement>('.sheet')?.offsetHeight ?? 0;
+    last = { v, panelPx };
+    wrap.style.setProperty('--sheet-h', `${panelPx}px`);
+    mapMessage.hidden = v.mapMessage === null;
+    mapMessage.textContent = v.mapMessage ?? '';
+    if (map) applyMap(map, v, panelPx);
+  };
+}
+```
+
+- [ ] **Step 2: Mount the results screen in `src/main.ts`**
+
+Replace the import:
+
+```ts
+import { renderResults } from './ui/results.ts';
+```
+
+with:
+
+```ts
+import { mountResults } from './ui/results.ts';
+```
+
+Replace the comment:
+
+```ts
+/** Updater of the mounted setup or parked screen; both patch in place while the view stays open. */
+```
+
+with:
+
+```ts
+/** Updater of the mounted setup, parked or results screen; each patches in place while the view stays open. */
+```
+
+and replace:
+
+```ts
+  } else {
+    renderResults(containers.results, state, app);
+  }
+```
+
+with:
+
+```ts
+  } else {
+    update ??= mountResults(containers.results, app);
+    update(state);
+  }
+```
+
+The loading view also renders into the results container. Entering the results view resets `update`, so the results screen is mounted fresh after it.
+
+- [ ] **Step 3: Restyle the results screen in `src/ui/app.css`**
+
+Replace the first line:
+
+```css
+/* Component styles from the UI mockup (style B); the results map comes with Slice 4. */
+```
+
+with:
+
+```css
+/* Component styles from the UI mockup (style B). */
+```
+
+Replace the two attribution rules:
+
+```css
+.spotmap .maplibregl-ctrl.maplibregl-ctrl-attrib { font-size: 10px; background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--soft); }
+.spotmap .maplibregl-ctrl-attrib a { color: inherit; }
+```
+
+with:
+
+```css
+.spotmap .maplibregl-ctrl.maplibregl-ctrl-attrib, .rmap .maplibregl-ctrl.maplibregl-ctrl-attrib { font-size: 10px; background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--soft); }
+.spotmap .maplibregl-ctrl-attrib a, .rmap .maplibregl-ctrl-attrib a { color: inherit; }
+```
+
+Replace:
+
+```css
+.rwrap { display: flex; flex-direction: column; min-height: 100dvh; }
+.rwrap > .notice { margin: 0 14px 10px; padding: 9px 11px; font-size: 13px; }
+.rtop { padding: 14px; }
+```
+
+with:
+
+```css
+/* Results (G6-AC8): the map fills the screen; the top bar and the details panel float over it. */
+.rwrap { position: relative; height: 100dvh; overflow: hidden; background: var(--map-land); }
+.rmap { position: absolute; inset: 0; }
+.rmap .mapcanvas { position: absolute; inset: 0; }
+.rmap .mapmsg { position: absolute; inset: 0; display: grid; place-items: center; padding-bottom: var(--sheet-h, 0px); background: var(--map-land); color: var(--muted); font-weight: 600; font-size: 14px; z-index: 1; }
+.rmap .maplibregl-ctrl-bottom-right { bottom: var(--sheet-h, 0px); }
+.rlayer { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; pointer-events: none; }
+.rlayer > * { pointer-events: auto; }
+.rtop { padding: 14px 14px 30px; background: linear-gradient(var(--bg) 58%, color-mix(in srgb, var(--bg) 0%, transparent)); }
+.rtop .spot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font: 500 11px/1.2 var(--f-data); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.rtop .spot b { font-weight: 500; color: var(--soft); }
+.linkbtn { background: none; border: 0; padding: 2px 0; color: var(--focus); font: 600 11px/1.2 var(--f-ui); letter-spacing: 0; text-transform: none; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.rtop > .notice { margin: 8px 0 0; padding: 9px 11px; font-size: 13px; }
+.me { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--me); border: 3px solid #fff; box-shadow: 0 0 0 9px color-mix(in srgb, var(--me) 20%, transparent); }
+.pinm { z-index: 1; }
+.pinm.sel { z-index: 2; }
+.pin { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 9px 0 6px; border-radius: 9px; font: 700 12.5px/1 var(--f-ui); white-space: nowrap; border: 0; transition: transform .15s; }
+.pin.w { background: var(--go); color: var(--go-ink); box-shadow: 0 0 18px -2px color-mix(in srgb, var(--go) calc(var(--glow) * 100%), transparent), 0 3px 8px -3px rgba(0, 0, 0, .35); }
+.pin.n { background: var(--no); color: var(--no-ink); box-shadow: 0 0 18px -4px color-mix(in srgb, var(--no) calc(var(--glow) * 100%), transparent), 0 3px 8px -3px rgba(0, 0, 0, .35); }
+.pin.u { background: var(--surface); color: var(--unknown); outline: 1.5px dashed var(--dash); outline-offset: -2px; padding: 0 6px; }
+.pin.sel { transform: scale(1.2); outline: 2px solid var(--ink); outline-offset: 2px; }
+.pin .x2 { opacity: .75; font-size: 10px; }
+@media (prefers-reduced-motion: reduce) { .pin { transition: none; } }
+```
+
+In the `.rmsg` rule, change `margin: 24px 16px;` to `margin: auto 16px;`, so the battery-full and load-error cards sit in the middle of the map.
+
+Replace the `.sheet` rule:
+
+```css
+.sheet { margin: 0 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 18px 18px 14px; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, calc(.2 + var(--glow) * .7)); }
+```
+
+with:
+
+```css
+.sheet { margin-top: auto; max-height: 66%; display: flex; flex-direction: column; background: var(--surface); border-top: 1px solid var(--line); border-radius: 28px 28px 0 0; padding: 14px 18px; box-shadow: 0 -20px 40px -10px rgba(0, 0, 0, calc(.2 + var(--glow) * .7)); }
+.sbody { overflow-y: auto; min-height: 0; flex: 1 1 auto; margin: 0 -18px; padding: 0 18px; }
+```
+
+- [ ] **Step 4: Typecheck, build and run everything**
+
+Run: `npm run build && npm test`
+Expected: `✓ built in`, then `Test Files  24 passed (24)` and `Tests  283 passed (283)`
+
+- [ ] **Step 5: Check the results map in the dev server**
+
+Run `npm run dev` and open `http://localhost:5173/plug-or-not/` in the browser pane. Save the PRD Story 1 settings. In the page, stub `navigator.geolocation.getCurrentPosition` to answer 51.4436, 5.5519 with accuracy 20, then press "Try again". Set the battery to 20% and tap "Find chargers". Check:
+1. The map fills the screen behind the top bar and the details panel. The blue dot sits at the spot, and there are 10 pins, each labelled with an amount (or only "?") and coloured by verdict. None are hidden under the top bar or the panel. The spot line reads "YOUR LOCATION · 51.4436, 5.5519" with "Change spot". The compact attribution sits just above the panel.
+2. Tapping a pin opens its best entry in the panel, the pin grows with an outline, and the strip marks the same entry. Tapping a strip item moves the outline to that entry's pin.
+3. Releasing the stay slider at another stay re-labels the pins. The selected entry stays selected, and the map doesn't jump.
+4. Panning the results map, then tapping "Change spot": the parked map is back where it was, with "Your location". Dragging the map there, then "Find chargers", gives "MOVED SPOT" on the results.
+5. With `prefers-color-scheme` emulated dark, then light, the results map switches between the Night and Day colours without a reload, and the pins stay.
+6. With `tiles.openfreemap.org` blocked and the page reloaded, a search shows "Map couldn't load." above the panel, with no pins. The panel and the strip are complete.
+
+Record the outcome of each check in `implementation-log.md`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/ui/results.ts src/main.ts src/ui/app.css
+git commit -m "feat: results on the map — pins, framing, Change spot and the map-failure fallback"
+```
+
+**Verify:** `npm run build && npm test` — `✓ built in` and `Tests  283 passed (283)`; the Step 5 checks recorded in `implementation-log.md`
+
+### Phase 4: Acceptance Verification
+
+### Task 41: Verify Slice 4 acceptance
+
+No new code. Run everything, then do the manual checks that unit tests can't cover (D-17; Testing & verification, "Devices").
+
+- [ ] **Step 1: Run the whole suite**
+
+Run: `npm test`
+Expected: `Test Files  24 passed (24)` and `Tests  283 passed (283)`. That's Slice 3's 261 plus 22:
+- `test/acceptance/results-map.test.ts` 8
+- `src/app.test.ts` +2
+- `src/ui/map-core.test.ts` +4
+- `src/ui/messages.test.ts` +3
+- `src/ui/results-map-view.test.ts` 5
+
+- [ ] **Step 2: Typecheck and build**
+
+Run: `npm run build`
+Expected: exits 0 with `✓ built in`. The chunk-size warning for the lazily loaded MapLibre chunk stays, as approved for Slice 3.
+
+- [ ] **Step 3: After the PR merges to `main`: check the deployment**
+
+Run: `gh run list --workflow deploy.yml --branch main --limit 1`
+Expected: the latest run shows `completed  success`
+
+- [ ] **Step 4: Manual device checks on the Pages link**
+
+On iPhone Safari, Android Chrome, and desktop Chrome, Edge and Safari, with the PRD Story 1 settings:
+1. Pins (PRD S2 scenario 1, G6-AC8): at Parkstraat Nuenen with a battery at 20% and a stay of 45 min, the results show the 10 nearest locations as pins around the blue dot. Every pin is in view, clear of the top bar and the panel. Each one is green with ✓, red with a clock, red with ✕, or grey and dashed with "?". A "Price unknown" pin has no amount. The panel opens on #1.
+2. Several prices: a pin with "×2" (or more) opens its best entry, and the panel's "Also here" row selects the other entry while the same pin stays outlined.
+3. Selection: tapping pins and strip items keeps the panel, the strip and the outlined pin in step. On a phone, every pin can be tapped without opening a neighbour.
+4. Stay change: releasing the results slider re-labels the pins and keeps the selected entry (D-30). The map doesn't reframe.
+5. "Change spot" and the Battery pill both go back to the parked view, with the spot where it was. Do the round trip results → parked → results 10 times on the iPhone; the map keeps drawing, so one WebGL context is reused (D-22).
+6. Theme: switch the device between light and dark with the results open. The page, the map and the pins switch together without a reload. Check the Day set outdoors in daylight.
+7. Attribution: on results, the compact attribution sits just above the panel and opens to "OpenFreeMap © OpenMapTiles Data from OpenStreetMap". On the parked map it is spelled out in the bottom-right corner again.
+8. Map blocked: in desktop Chrome, block `tiles.openfreemap.org` (DevTools → Network request blocking) and reload. A search shows "Map couldn't load." above the panel and no pins, and the panel and the strip give every result.
+9. Privacy: in DevTools → Network, the only requests that leave the site go to `tiles.openfreemap.org`.
+10. Stopwatch (G8-AC2) with the results map: under 30 s in each of 5 trials on a phone over mobile data, from opening the page to the #1 details panel, not waiting for map tiles.
+
+**Verify:** `npm test && npm run build` — `Tests  283 passed (283)` and `✓ built in`; the step 3 and 4 checks recorded in `implementation-log.md`
 
 ## Deviations from Design
 
