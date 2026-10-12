@@ -23,6 +23,12 @@ export const MY_LOCATION = 'My location';
 export const MAP_HINT = 'Drag the map to adjust the spot';
 /** Accessible name of the spot map (not a PRD string). */
 export const SPOT_MAP_LABEL = 'Map of your spot. Drag to move the spot under the pin.';
+/** G6-AC8 link in the results top bar, back to the parked view (UI mockup wording). */
+export const CHANGE_SPOT = 'Change spot';
+/** Accessible name of the blue dot on the results map (UI mockup wording; not a PRD string). */
+export const YOUR_SPOT = 'Your spot';
+/** Accessible name of the results map (not a PRD string). */
+export const RESULTS_MAP_LABEL = 'Map of the nearest chargers. Tap a pin to see its details.';
 /** G3-AC2, accuracy worse than 1 km (also repeated on the results). */
 export const APPROXIMATE = 'Your location is approximate';
 /** Results line under the approximate notice (UI mockup wording; not a PRD string). */

@@ -12,6 +12,7 @@
 **Agent Sessions:** claude-code: 4def9f23-a51e-417b-b327-10901565e942
 **Agent Sessions:** claude-code: a23146ca-79b6-4ab5-8438-6d08d1321484
 **Agent Sessions:** claude-code: 0ef86631-d1ec-46ad-99a2-5d397c9b06ce
+**Agent Sessions:** claude-code: 4626c188-d2ad-43a5-8126-5a96dcf065de
 
 ## Pre-Flight
 
@@ -890,6 +891,360 @@ The warning is for the lazily loaded MapLibre chunk only. The entry chunk is ≈
 
 ---
 
+## Slice 4: Results on a map
+
+- **Started:** 2026-10-12 (session 4626c188-d2ad-43a5-8126-5a96dcf065de)
+- **Base SHA:** b98b2df
+- **Worker isolation:** normal
+- **Completed:** 2026-10-12
+- **Chunk layout:** one chunk, Tasks 35–41 (Slice 3 peaked at ≈110k over ~1,850 plan lines; Slice 4 is ~1,500 plan lines, inside one window)
+
+### Pre-Flight (Slice 4)
+
+```
+$ node --version
+v20.19.5
+$ npm --version
+11.14.0
+$ npm test
+ Test Files  22 passed (22)
+      Tests  261 passed (261)
+$ npm run build
+✓ built in 534ms
+(!) Some chunks are larger than 500 kB after minification. (lazily loaded MapLibre chunk, approved in Slice 3)
+$ npm view maplibre-gl@6.11.2 version
+6.11.2
+$ curl -sSI https://tiles.openfreemap.org/styles/liberty | head -1
+HTTP/2 200 
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account christianrexwinkel-tomtom (keyring)
+  - Active account: true
+  - Git operations protocol: https
+$ ls .pre-commit-config.yaml
+ls: .pre-commit-config.yaml: No such file or directory
+(no non-sample git hooks)
+```
+
+Result: ☑ all green
+
+<!-- Chunk-workers append `### Chunk N: Tasks A–B` entries for Slice 4 below this line. -->
+
+### Chunk 1: Tasks 35–41
+
+- **Plan tasks covered:** Tasks 35–41 (Slice 4 acceptance tests, controller `searchedSpot` and no spot moves off the parked screen, framing bounds and padding, results map view model and wording, MapLibre wrapper results mode and the shared map loader, results screen on the map, verify Slice 4 acceptance). Code follows the plan's listings as written. Task 40 step 5 dev-server checks 1–6 were run against `npm run dev` here (results below). Task 41 steps 1–2 ran here. Steps 3–4 (post-merge Pages deployment check, manual device checks 1–10 incl. the G8-AC2 stopwatch) are **pending — owned by the user after merge**
+- **Tests written:** test/acceptance/results-map.test.ts (8, new; fails to load until Task 38, all green after it), src/app.test.ts (+2, 20 total), src/ui/map-core.test.ts (+4, 23 total), src/ui/messages.test.ts (+3), src/ui/results-map-view.test.ts (5, new); test/fixtures/app-deps.ts gains coordinates on `NEAREST` and the `NEAREST_MIXED` fixture. Suite: 261 → 283 tests, 22 → 24 files, matching the plan
+- **Worker reported peak context:** ≈95k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 28592bc (Task 35), 8b2bb11 (Task 36), f2b66a0 (Task 37), a9a7f87 (Task 38), d05856a (Task 39), 891ddc3 (Task 40); this log entry in the following docs commit
+- **Deviations:** none from the plan's code. The dev-server check ran in a headless Chromium (Playwright, SwiftShader WebGL) instead of the browser pane, because the pane was hidden: with no animation frames MapLibre never fires `load`, and the 8 s start watch showed "Map couldn't load." (the Slice 3 background-tab finding). That run did confirm the G6-AC9 results layout: "Map couldn't load." in the map area above the panel, the top bar, the panel and all 11 strip items in full
+- **Open findings (not fixed, for the end-review / user):**
+  1. **Check 6 fails (G6-AC9, pre-existing from Slice 3):** with every `tiles.openfreemap.org` request blocked, "Map couldn't load." never shows, on the parked map (polled 0–12 s) or on results; the results map shows the pins on an empty map, and the attribution is empty. The style object is local (`src/ui/map-style.ts`), so MapLibre still fires `load` with the TileJSON, sprite and glyphs failing; source/tile errors are ignored after `load`, and a `load` after an earlier error recovers (deviation rows 6–7). So a blocked or unreachable tile server isn't treated as "Map can't load". Task 41 device check 8 will hit this. Not a Slice 4 regression; needs a design decision (e.g. treat a failed TileJSON for the one vector source as a style failure)
+  2. **Pins overlap in a dense area:** at Parkstraat Nuenen the 10 real pins cluster in two groups; several labelled pins overlap and one ("−€0.0…") is partly hidden behind its neighbour, so a scripted tap on pin #2 was intercepted by pin #7. The plan has no collision handling. Relevant to device check 3 ("every pin can be tapped without opening a neighbour")
+
+#### Verify output (verbatim)
+
+```
+$ npm test -- test/acceptance/results-map.test.ts                 # Task 35, at 28592bc
+Error: Cannot find module '../../src/ui/results-map-view.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/test/acceptance/results-map.test.ts
+ Test Files  1 failed (1)
+      Tests  no tests
+$ npm test -- --exclude test/acceptance/results-map.test.ts      # Task 35 step 4
+ Test Files  22 passed (22)
+      Tests  261 passed (261)
+$ npm test -- src/app.test.ts                                     # Task 36 step 2 (red)
+      Tests  2 failed | 18 passed (20)
+$ npm test -- src/app.test.ts test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts test/acceptance/spot-map.test.ts   # Task 36 verify
+ Test Files  4 passed (4)
+      Tests  51 passed (51)
+$ npm test -- src/ui/map-core.test.ts                             # Task 37 (red, then green)
+      Tests  4 failed | 19 passed (23)
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+$ npm test -- src/ui/messages.test.ts src/ui/results-map-view.test.ts   # Task 38 step 3 (red)
+Error: Cannot find module './results-map-view.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/src/ui/results-map-view.test.ts
+ Test Files  2 failed (2)
+      Tests  3 failed | 21 passed (24)
+$ npm test -- src/ui/messages.test.ts src/ui/results-map-view.test.ts src/ui/entry-view.test.ts   # Task 38 step 7
+ Test Files  3 passed (3)
+      Tests  35 passed (35)
+$ npm test -- test/acceptance/results-map.test.ts                 # Task 38 step 8
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+$ npm run build && npm test                                       # Task 38 step 9
+✓ built in 541ms
+ Test Files  24 passed (24)
+      Tests  283 passed (283)
+$ npm test -- test/acceptance/results-map.test.ts src/ui/results-map-view.test.ts src/ui/messages.test.ts   # Task 38 verify
+ Test Files  3 passed (3)
+      Tests  37 passed (37)
+$ grep -rn "from 'maplibre-gl'" src/ test/                        # Task 39 step 4
+src/ui/map.ts:4:import * as maplibregl from 'maplibre-gl';
+$ npm run build && npm test                                       # Task 39 verify, at d05856a
+✓ built in 533ms
+ Test Files  24 passed (24)
+      Tests  283 passed (283)
+$ npm test; npm run build; npx tsc --noEmit                       # Task 40 verify / Task 41 steps 1–2, at 891ddc3
+ Test Files  24 passed (24)
+      Tests  283 passed (283)
+   Start at  10:49:28
+   Duration  977ms (tests 42%, transform 28%, import 27%, worker 4%)
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-CuyxfeAx.css                                       22.48 kB │ gzip:   4.95 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-Di6xjIPT.js                                        46.38 kB │ gzip:  17.53 kB
+dist/assets/map-BdeO5bhc.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 594ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+(tsc: no output)
+```
+
+Task 40 step 5 (dev server `http://localhost:5173/plug-or-not/`, headless Chromium 390×780, geolocation 51.4436, 5.5519 ±20 m, PRD Story 1 settings, battery 20%, stay 45 min; seen at 891ddc3):
+1. The map fills the screen behind the top bar and the panel. Blue dot at the spot, 10 pins (green ✓ "€0.39"…, red "−€0.05"…, one "−€0.10 ×2", one grey dashed "?" with no amount). Every pin lies between the top bar's bottom (113 px) and the panel's top (497 px). Spot line "YOUR LOCATION · 51.4436, 5.5519" with "Change spot". The compact attribution (`maplibregl-compact`) sits at 463–487 px, just above the panel. Panel "#1 of 11 · best saving first". ☑ (pins overlap each other in places; open finding 2)
+2. Tapping pin #3 (Nuenenseweg 68) opened "#3 of 11", outlined and scaled that pin, and marked the same strip item. Tapping strip item 5 moved the outline to the Grote Heiakker 2 pin. ☑
+3. Releasing the results slider at 15 min re-labelled every pin (e.g. "€0.39" → "−€0.46"), the selected entry stayed the same id, and the blue dot's marker transform was unchanged (no reframe). ☑
+4. After panning the results map and "Change spot": the parked map was back on the spot with "Your location · 51.4436, 5.5519". Dragging the parked map, then "Find chargers": the results read "MOVED SPOT · 51.4445, 5.5542". ☑
+5. Emulating `prefers-color-scheme` light after dark switched the page and the map from Night to Day without a reload; all 10 pins stayed. ☑
+6. With `tiles.openfreemap.org` blocked and the page reloaded: **no** "Map couldn't load."; the search showed the 10 pins on an empty map and the panel and strip complete. ☒ — pre-existing Slice 3 behaviour, open finding 1. The failure layout itself was seen in the hidden browser pane (map timed out): "Map couldn't load." centred above the panel, no pins, panel and all 11 strip items in full.
+
+Privacy: the only host outside `localhost:5173` requested during checks 1–5 was `tiles.openfreemap.org`.
+
+### Chunk 2: End-Review round 1 fixes
+
+- **Issues covered:** 1 (blocking, G6-AC9 / D-29: a blocked tile server recovered on the late `load`), 2 (`frameKey` doc comment), 3 (recovery test claimed a reframe it didn't check), 4 (D-22: `loadSharedMap` unit tests)
+- **Tests written:** src/ui/map-core.test.ts (the stub-shaped "a load after an error before load recovers" replaced by 5: a source/tile error then `load` (plus metadata/style `data`, past the timeout) stays failed with no `onRecover`; error, `load`, tile `data` recovers once; error, tile `data`, `load` recovers once at `load`; timeout, tile error, `load` needs a loaded tile too; a style error after `load` is not recovered by tile `data`. The fake map gains `data`. The existing "a load after the timeout recovers, once" is kept; 23 → 27 in the file, net +4); src/ui/map-loader.test.ts (2, new: two calls give the same handle from one import, bound to the app; a failed import reports one failure and isn't retried. Uses `vi.resetModules` + `vi.doMock('./map.ts')`; both tests were seen failing against a loader that resets or re-imports). test/acceptance/results-map.test.ts: name and comment only. Suite: 283 → 289 tests, 24 → 25 files
+- **Change (issue 1):** `startMap` also listens to `data`. A failure before `load` stays recoverable; `load` alone recovers it unless a tile or source error came before `load`, in which case a `data` event with `dataType: 'source'` and a `tile` (before or after `load`) is also needed. A failure after `load` never recovers. No change in `src/ui/map.ts`: it passes the `maplibregl.Map` itself to `startMap`. Deviation row 8
+- **Blocked-tiles dev check (headless Chromium 1217 via Playwright, SwiftShader, 390×780, geolocation 51.4436, 5.5519 ±20 m, Story 1 settings, battery 20%):** with `tiles.openfreemap.org` aborted, "Map couldn't load." shows on the parked map from the 3 s poll through 12 s, and on results right after "Find chargers" and 6 s later, with 0 pins and the panel in full. ☑ Unblocked: no message on the parked map (0–12 s), results show the map with 10 pins and the OpenFreeMap attribution. ☑ Hosts requested: `localhost:5173`, `tiles.openfreemap.org`. Closes Chunk 1 open finding 1 / check 6
+- **Worker reported peak context:** ≈75k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 9156d48 (fixes); this log entry in the following docs commit
+- **Deviations:** row 8 in the Deviations from Plan table
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  25 passed (25)
+      Tests  289 passed (289)
+   Start at  11:01:31
+   Duration  1.12s (tests 45%, transform 26%, import 25%, worker 4%)
+
+$ npm run build
+dist/assets/index-CuyxfeAx.css                                       22.48 kB │ gzip:   4.95 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-DQrlMfdJ.js                                        46.54 kB │ gzip:  17.59 kB
+dist/assets/map-m67kxXKT.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 632ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+### Chunk 3: End-Review round 2 fixes
+
+- **Issue covered:** 1 (Important, G6-AC9: `startMap`'s `data` listener ignored a tile that loaded before the first startup tile/source error. In MapLibre's real order (good tiles finish, then one bad tile errors, then `load`; no new tile `data` after `load` until the camera moves, and a failed map isn't draggable), "Map couldn't load." stayed for good on a map whose tiles mostly loaded)
+- **Tests written:** src/ui/map-core.test.ts (1, new: tile `data`, then a tile `error` (fails once), then `load` recovers once; a second `load` and more tile `data` don't recover again. Seen failing on the old code: `onRecover` 0 calls at `load`). The blocked-server test (error, `load`, no tile `data` stays failed) is kept unchanged. 27 → 28 in the file; suite 289 → 290
+- **Change:** the `data` listener records every loaded tile (`if (!isTileData(e)) return; tileLoaded = true; maybeRecover();`), no longer only after a source error. Recovery rules otherwise unchanged; doc comment updated. Optional startup-flash change (decide source-error failures at `load`) not taken. Deviation row 8
+- **Worker reported peak context:** ≈70k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** ebf26bf (fix); this log entry in the following docs commit
+- **Deviations:** row 8 in the Deviations from Plan table (description updated)
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  25 passed (25)
+      Tests  290 passed (290)
+   Start at  11:07:20
+   Duration  1.07s (tests 44%, transform 27%, import 26%, worker 4%)
+
+$ npm run build
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-DcWVlWno.js                                        46.54 kB │ gzip:  17.59 kB
+dist/assets/map-BjQkpDPz.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 565ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+### End-Review (Slice 4)
+
+Range reviewed: `b98b2df..HEAD`. Opus reviewer, given no worker narrative and with the implementation log excluded.
+
+- **Verdict:** CAP_REACHED — round-2 findings fixed, not re-reviewed
+- **Issues found:**
+  - Round 1 (ISSUES_FOUND), all fixed in Chunk 2 (9156d48, e111dbc):
+    1. (Misunderstanding, G6-AC9 / D-29) `src/ui/map-core.ts:61-73`: with OpenFreeMap unreachable, MapLibre fires `error{sourceId}` before `load` and then still fires `load`, because an errored source counts as loaded. The late `load` cleared `mapFailed`, so "Map couldn't load." flashed and disappeared, and results showed pins on a blank background. `map-core.test.ts:91` locked this in with the stub's order.
+    2. (Minor) The `frameKey` doc comment in `src/ui/results-map-view.ts:45-46` claimed it changes only with a new search.
+    3. (Test shaped around code) `test/acceptance/results-map.test.ts:116` said "framed again" but asserted `frameKey` unchanged.
+    4. (Coverage, D-22) `loadSharedMap` had no test. `src/ui/map-loader.test.ts` was added.
+    - Accepted, no action: marker DOM rebuilt on each update (churn only). The design's "pins on a plain background when only the tiles fail" contradicts G6-AC9's "without pins". The code follows G6-AC9 (no pins).
+  - Round 2 (ISSUES_FOUND), fixed in Chunk 3 (ebf26bf, 40edaf2) and not re-reviewed:
+    1. (Important, G6-AC9) `src/ui/map-core.ts:96-100`: the `data` listener ignored tiles that loaded before the first startup tile error. In MapLibre's real order (good tiles first, one bad tile errors, then `load`; no further tile `data` until the camera moves), one lost tile left "Map couldn't load." up for good. Fixed: every loaded tile is recorded. New test: tile `data` → tile `error` → `load` recovers once. The blocked-server test is unchanged.
+    - Accepted, no action: a selected "Price unknown" pin loses its dashed outline (`app.css:122-123`); the panel height is measured on every update.
+- **Tests-vs-spec audit:** round 2 found that the pins (label, tone, icon, order, "×N", the icon-only unknown pin, "<€0.01"), the framing bounds, the D-30 selection kept after a stay change, G6-AC9 on results, the parked-only spot moves and the map loader are all pinned by tests that check the specified behaviour. The `startMap` tests had followed the code rather than MapLibre's event order. The missing order was added in Chunk 3. The remaining gaps are within D-17: the padding wiring to the measured top bar and panel, the "Change spot" button action, the pin click wiring, the G7-AC6 theme swap and the compact attribution. The Task 41 manual device checks cover these.
+- **Reviewer rounds:** 2
+- **Cap outcome:** cap reached. The round-2 finding was fixed in ebf26bf and not re-reviewed.
+
+#### Final full verify output (verbatim)
+
+Command: `npm test 2>&1 | tail -8; npm run build 2>&1 | tail -8`
+
+```
+ Test Files  25 passed (25)
+      Tests  290 passed (290)
+   Start at  11:08:17
+   Duration  886ms (tests 47%, transform 25%, import 24%, worker 3%)
+
+dist/assets/map-BjQkpDPz.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 557ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+The warning is for the lazily loaded MapLibre chunk only, as approved for Slice 3. The plan expected 283 tests. The 7 extra come from the review fixes: map-core +5 net, map-loader +2.
+
+**Task 41 steps 3–4 (post-merge Pages deployment check, device checks 1–10, G8-AC2 stopwatch):** pending, owned by the user after merge.
+
+---
+
+### Chunk 4: Whole-branch review round 1 fixes
+
+- **Issues covered:** whole-branch self-review round 1, issues 1, 2, 3, 4 and 7 (issues 5–6 left alone as briefed: the design-doc contradiction on pins when tiles fail, and the approved chunk-size warning).
+  1. (Important, G6-AC8) `src/ui/results.ts` `applyMap` framed once per `frameKey` with the panel height measured on the first update, so selecting a taller entry raised the sheet over the pins. Now the bottom padding is `framingPanelPx(measured, layer height)` = the larger of the measured panel and `SHEET_MAX_FRACTION` (0.66, `.sheet`'s `max-height: 66%`, comment added in `app.css` to keep the two in step) of the map height. A stay change or a selection still never reframes. On a short map `framePadding` still shrinks both paddings to leave `FRAME_MIN_PX`, so there the tallest possible panel can reach the edge of the framed area.
+  2. (Minor) Back on the parked view, the fresh updater had `applied = null`, so `centreOn` overwrote the camera `showSpot()` had restored (the driver's zoom on an unmoved browser spot). The centre memory is now a module-level `createCentreTracker()` (`src/ui/map-core.ts`) shared by every parked visit, like the one map it describes. An unchanged spot keeps the camera; a new spot (a location found later, "My location" after a drag) still centres.
+  3. (Minor) The results stay slider was rebuilt on every update, so an async update (`reportMapFailure`/`reportMapRecovered`) cancelled a drag. The top bar's row (Battery, stay slider, Settings) is now built once per visit; updates sync the slider's value and labels (skipped while dragging, like `slider()` in `parked.ts`), the Battery text and label, and replace only the spot line and the notice after the row. The slider keeps its focus without the old id-based restore (the `rstay` id is gone).
+  4. (Minor) `findChargers` from the results load-error "Try again" re-derived the spot; after a map failure (clears `movedSpot`) with location denied it was `none` and set `blocked: 'location'`, shown only on the parked view. On the results view it now falls back to `searchedSpot` when `spotFor(state)` is none.
+  7. (Minor) `src/main.ts` re-ran `renderLoading` on every `set()` while loading, re-creating the `role="status"` live region. It now renders only on entering the loading view.
+- **Tests written:** `src/ui/map-core.test.ts` (+5: `framingPanelPx` ×2, `createCentreTracker` ×3; seen failing before the helpers existed); `src/app.test.ts` (+1: denied location, moved spot, load error, map failure, "Try again" searches at the searched spot; seen failing on the old code with `search: 'load-error'`). Issues 3 and 7 are DOM-only (D-17) and were checked in the browser only.
+- **Browser check:** `vite preview` (`http://localhost:4173/plug-or-not/`), headless Chromium 1217 via Playwright, SwiftShader, 390×780, geolocation 51.4436, 5.5519, Story 1 settings, battery 20%:
+  1. Selecting each of the 11 strip items in turn (panel 232–329 px high, incl. the entry with the reason line): every one of the 10 pins stayed between the top bar and the panel; the smallest gap between the lowest pin and the panel's top was 201 px. ☑
+  2. Accuracy 1500 m (so the accuracy circle shows, sized by zoom): circle 180 px, one wheel zoom without a drag 199.9 px, "Find chargers", then "Change spot": 199.9 px (the zoom stayed). On the old `parked.ts` the same run went back to 180 px. ☑
+  3. The results slider: two ArrowRight presses 90 → 120 min ("2h"), the same element and still focused; the same element after a selection update; a mouse drag with a pin selection (an update) mid-drag kept the element and the drag, which ended at "16h45". ☑
+  - Hosts requested: `localhost:4173`, `tiles.openfreemap.org`.
+- **Worker reported peak context:** ≈80k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 50e6938 (fix); this log entry in the following docs commit
+- **Deviations:** row 9 in the Deviations from Plan table (issue 1)
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  25 passed (25)
+      Tests  296 passed (296)
+
+$ npm run build
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-CuyxfeAx.css                                       22.48 kB │ gzip:   4.95 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-DA-s9Eij.js                                        46.88 kB │ gzip:  17.75 kB
+dist/assets/map-BYN3tjSV.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 538ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+---
+
+### Chunk 5: Whole-branch review round 2 fixes
+
+- **Issues covered:** whole-branch review round 2, issues 1–4 (final fix round, not re-reviewed).
+  1. (Important, G6-AC8) Framing for `SHEET_MAX_FRACTION · H` made `framePadding` take its shrink branch on any map under ~871 px, so on phones the pins were squeezed into the `FRAME_MIN_PX` band and the map zoomed far out. `applyMap` now, only when it reframes (`v.frameKey !== framed`), builds each entry's panel off-screen in the panel's place (`position:absolute;visibility:hidden;inset:auto 0 0 0` in `.rlayer`, same width and `max-height`), `aria-hidden` and `inert`, reads `offsetHeight` and removes it at once; `framingPanelPx(measured, tallest, H)` = `max(measured, min(tallest, SHEET_MAX_FRACTION · H))`. A stay change or a selection still never reframes.
+  2. (Important, G6-AC9) `findChargers`: on the results view "Try again" always searches at `searchedSpot` when it exists (`state.view === 'results' && state.searchedSpot ? state.searchedSpot : spotFor(state)`), so a map failure that cleared `movedSpot` no longer falls back to the browser position.
+  3. (Minor) The results stay slider also clears `dragging` on `pointerup`, `pointercancel` and `blur`: a drag ending on its start value fires no `change`, which left `sync` off for the visit.
+  4. (Minor) The spot line ("Change spot") and the approximate notice (`role="status"`) are built once in the top bar and patched in place (`textContent`, `hidden`); `replaceAfter` is now used only for the panel or message.
+- **Tests written:** `src/ui/map-core.test.ts` (`framingPanelPx` rewritten for the 3-argument rule: tallest wins, capped at the CSS limit, never below measured, plus a 390×780 case leaving more than `FRAME_MIN_PX`; the first two seen failing on the old helper); `src/app.test.ts` (+1: found location, moved spot, load error, map failure, "Try again" → `findNearest` last called with the moved coordinates; seen failing on the old code). The existing denied-location test kept. Issues 3 and 4 are DOM-only (D-17), checked in the browser.
+- **Browser check:** `vite preview` (`http://localhost:4173/plug-or-not/`), headless Chromium 1217 via Playwright, SwiftShader, 390×780, geolocation 51.4436, 5.5519 (accuracy 20 m; repeated at 1500 m for the approximate notice), Story 1 settings, battery 20%:
+  1. Selecting each of the 11 strip items (panel 232–329 px; tallest 329 px): all 10 pins between the top bar (bottom 113 px) and the panel (top 451–548 px) for every selection; pins span y 144–420, a vertical spread of 271 px of the 384 px between the top bar and the panel at the default selection (Chunk 4 left the lowest pin 201 px above the panel). Smallest gaps: 34 px to the panel, 31 px to the top bar. One `.sheet` in the DOM after each update (the probes are removed). At 1500 m (notice shown, taller top bar): spread 206 px of 318 px, gaps 34/31 px. ☑
+  2. Covered by the Vitest case (no browser path to a load error). ☑
+  3. Click on the track (stay 345), press there, drag to 1440, back to 345, release: 0 `change` events; then a stale value written into the input and a pin selection (an update): the slider shows 345 again. With the `pointerup`/`blur` listeners disabled the same run left 600 (sync skipped). ☑
+  4. Focus "Change spot", Shift+Tab ×2 to the slider, ArrowRight (345 → 360, an update), Tab ×2: focus on the same "Change spot" element; still focused after a further update (a pin selection); the notice element is the same node across the stay change (shown at 1500 m, built and hidden at 20 m). ☑
+  - Hosts requested: `localhost:4173`, `tiles.openfreemap.org`.
+- **Worker reported peak context:** ≈95k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 54f614c (fix); this log entry in the following docs commit
+- **Deviations:** row 9 in the Deviations from Plan table updated to the final framing rule (issue 1)
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  25 passed (25)
+      Tests  299 passed (299)
+
+$ npm run build
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-CuyxfeAx.css                                       22.48 kB │ gzip:   4.95 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-DAbHPtKd.js                                        47.34 kB │ gzip:  17.92 kB
+dist/assets/map-BvEGz5eP.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 515ms
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+---
+
+### Whole-branch self-review (end of feature)
+
+Run by the `requesting-code-review` skill after the last slice. `main` already holds Slices 1–3, so the reviewer was pointed at the whole app at HEAD and the seams between slices. Opus reviewer, with the implementation log excluded.
+
+- **Verdict:** CAP_REACHED — round-2 findings fixed, not re-reviewed
+- **Round 1 (with fixes):** no Critical issues.
+  - Fixed in Chunk 4 (50e6938, e2afffd):
+    - 1 (Important): framing used the first panel height, so a taller entry hid pins.
+    - 2: the zoom was lost on return to the parked view.
+    - 3: the results slider was rebuilt on async updates.
+    - 4: "Try again" could do nothing after a map failure with location denied.
+    - 7: the loading view re-rendered on every change.
+  - Left for the user:
+    - 5: the design text contradicts itself on pins when only the tiles fail. D-29 and solution-design.md:191 say pins stay; G6-AC9 says "without pins", and the code follows G6-AC9.
+    - 6: the chunk-size warning, already approved.
+- **Round 2 (with fixes):** fixed in Chunk 5 (54f614c, 321b846), not re-reviewed:
+  1. (Important) `src/ui/map-core.ts:206` `framingPanelPx`: padding for the 66% CSS cap squeezed the pins into the 80 px `FRAME_MIN_PX` band on phones. It now pads for the tallest panel any entry renders, measured off-screen and capped by the CSS limit. At 390×780 the pins span 271 of the 384 px left free.
+  2. (Important) `src/app.ts:260-261`: "Try again" on results now always searches at `searchedSpot`.
+  3. (Minor) The stay slider clears `dragging` on `pointerup`, `pointercancel` and `blur`.
+  4. (Minor) The spot line and the approximate notice are built once and patched in place.
+  - Accepted, no action: no DOM tests for the results-view wiring (D-17); `v.centre` is checked twice in `parked.ts:103`.
+- **Reviewer rounds:** 2
+
+#### Final verify (verbatim)
+
+```
+ Test Files  25 passed (25)
+      Tests  299 passed (299)
+✓ built in 599ms
+```
+
+---
+
+
 ## Deviations from Plan
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
@@ -901,10 +1256,14 @@ The warning is for the lazily loaded MapLibre chunk only. The entry chunk is ≈
 | 5   | Task 32 / Chunk 1 | change | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
 | 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
+| 8   | Task 29 / Slice 4 Chunk 2 | change | Slice 4: changes row 7 ("any `load` after any failure recovers"). MapLibre counts an errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors, and row 7 cleared "Map couldn't load." (G6-AC9 / D-29). Now `startMap` also listens to `data`: a failure before `load` recovers, once, at `load` only if no tile or source error came before `load` (the timeout: slow network, background tab); after such an error it also needs a tile that loaded at any point (`data` with `dataType: 'source'` and a `tile`, before or after the error and before or after `load`; every loaded tile is recorded, since MapLibre usually finishes the good tiles before one bad tile errors), so one tile lost during startup still recovers and a blocked tile server, which never delivers a tile, stays failed. A failure after `load` (the style) never recovers, tile data included. Post-`load` tile/source errors are still ignored (row 6) (Slice 4 End-Review round 1, issue 1; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
+| 9   | Task 40 / Slice 4 Chunk 4 | change | Slice 4: the results map frames for the tallest details panel any entry renders, measured off-screen when it reframes and capped at the panel's CSS limit: bottom padding = `max(measured, min(tallest, SHEET_MAX_FRACTION · H))` (`SHEET_MAX_FRACTION` = 0.66, `.sheet` `max-height: 66%`), not the panel height measured at the first update. Selecting a taller entry (a "Never worth it" reason line) never hides pins under the panel, and a phone map isn't padded for a panel no entry fills. A stay change or a selection still never reframes (whole-branch review rounds 1 and 2, issue 1) | yes — plan §Task 40 edited 2026-10-12 | approved | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
 Slice 3: rows 2–7 approved by the user on 2026-10-12. Rows 4 and 5 were converted from gap to change, since both gaps were closed in code. A G6-AC9 row was also added to the plan's Deviations from Design and signed off. The user chose to leave the Vite chunk-size warning for the lazily loaded MapLibre chunk as is.
+
+Slice 4: rows 8 and 9 approved by the user on 2026-10-12. Pins on a failed map stay hidden, following G6-AC9 ("without pins") over D-29's "pins on a plain background". The user will check the overlap of dense pins (device check 3) after merge.
 
 <!-- If there are no deviations, write "None." below the table and confirm verbally with the user. -->
 

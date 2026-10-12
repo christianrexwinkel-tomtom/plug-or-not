@@ -1,8 +1,13 @@
 import type { RankedEntry } from '../engine/results.ts';
-import type { UnknownReason, Verdict } from '../engine/compare.ts';
+import type { Outcome, UnknownReason, Verdict } from '../engine/compare.ts';
 import { amountChip, metres, priceLine, savingPhrase, savingSentence, windowSentence } from './format.ts';
 
 export type VerdictKind = Verdict | 'unknown';
+
+/** The verdict an entry shows: its priced verdict, or "Price unknown". */
+export function verdictKind(outcome: Outcome): VerdictKind {
+  return outcome.kind === 'priced' ? outcome.verdict : 'unknown';
+}
 
 export const VERDICT_TEXT: Record<VerdictKind, string> = {
   'worth-it': 'Worth it',
@@ -46,7 +51,7 @@ export interface EntryView {
 
 export function entryViews(ranked: RankedEntry[]): EntryView[] {
   return ranked.map((e) => {
-    const verdict: VerdictKind = e.outcome.kind === 'priced' ? e.outcome.verdict : 'unknown';
+    const verdict = verdictKind(e.outcome);
     const others = ranked.filter((o) => o.locationId === e.locationId && o.id !== e.id);
     const loc = e.entry.location;
     const priced = e.outcome.kind === 'priced' ? e.outcome : null;
@@ -65,7 +70,7 @@ export function entryViews(ranked: RankedEntry[]): EntryView[] {
       hasWindow: priced !== null && e.entry.window !== null,
       reasonText: e.outcome.kind === 'unknown' ? REASON_TEXT[e.outcome.reason] : null,
       alsoHere: others.map((o) => {
-        const ov: VerdictKind = o.outcome.kind === 'priced' ? o.outcome.verdict : 'unknown';
+        const ov = verdictKind(o.outcome);
         const amount = o.outcome.kind === 'priced' ? savingPhrase(o.outcome.saving) : '';
         return { id: o.id, text: `Also here: ${VERDICT_TEXT[ov]}${amount ? ` · ${amount}` : ''}` };
       }),

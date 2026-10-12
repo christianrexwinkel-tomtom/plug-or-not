@@ -1,23 +1,25 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  ACCURACY_FIT_PX, MAP_LOAD_TIMEOUT_MS, SPOT_ZOOM, accuracyRadiusPx, hasMoved, isDriverMove, liveMoveCentre, metresPerPixel, spotZoom,
-  startMap, type MapErrorLike,
+  ACCURACY_FIT_PX, FRAME_MARGIN_PX, FRAME_MIN_PX, MAP_LOAD_TIMEOUT_MS, SHEET_MAX_FRACTION, SPOT_ZOOM, accuracyRadiusPx, boundsOf,
+  createCentreTracker, framePadding, framingPanelPx, hasMoved, isDriverMove, liveMoveCentre, metresPerPixel, spotZoom, startMap, type MapEventLike,
 } from './map-core.ts';
 
 /** A stand-in for maplibregl.Map: records listeners so a test can fire `load` and `error`. */
 function fakeMap() {
-  const listeners: Record<string, Array<(e: MapErrorLike) => void>> = {};
+  const listeners: Record<string, Array<(e: MapEventLike) => void>> = {};
   return {
-    on(type: 'load' | 'error', listener: (e: MapErrorLike) => void) {
+    on(type: 'load' | 'error' | 'data', listener: (e: MapEventLike) => void) {
       (listeners[type] ??= []).push(listener);
     },
-    fire(type: 'load' | 'error', e: MapErrorLike = { error: new Error('style') }) {
+    fire(type: 'load' | 'error' | 'data', e: MapEventLike = { error: new Error('style') }) {
       for (const l of listeners[type] ?? []) l(e);
     },
   };
 }
 
-const TILE_ERROR: MapErrorLike = { error: new Error('tile'), sourceId: 'openmaptiles', tile: {} };
+/** MapLibre's `data` event for a tile that did load. */
+const TILE_DATA: MapEventLike = { dataType: 'source', sourceId: 'openmaptiles', tile: {} };
+const TILE_ERROR: MapEventLike = { error: new Error('tile'), sourceId: 'openmaptiles', tile: {} };
 
 describe('startMap (G6-AC9)', () => {
   afterEach(() => {
@@ -88,16 +90,86 @@ describe('startMap (G6-AC9)', () => {
     expect(onFail).toHaveBeenCalledTimes(1);
   });
 
-  it('a load after an error before load recovers, once (a tile lost during startup)', () => {
+  it('a source or tile error before load is not recovered by load alone (OpenFreeMap unreachable)', () => {
+    vi.useFakeTimers();
     const onFail = vi.fn();
     const onRecover = vi.fn();
     const map = fakeMap();
     startMap(() => map, onFail, onRecover);
     map.fire('error', TILE_ERROR);
     expect(onFail).toHaveBeenCalledTimes(1);
+    // MapLibre counts an errored source as loaded, so `load` still fires.
     map.fire('load');
+    map.fire('data', { dataType: 'source', sourceId: 'openmaptiles' }); // metadata, no tile
+    map.fire('data', { dataType: 'style' });
+    vi.advanceTimersByTime(MAP_LOAD_TIMEOUT_MS + 1);
+    expect(onRecover).not.toHaveBeenCalled();
+    expect(onFail).toHaveBeenCalledTimes(1);
+  });
+
+  it('a tile error before load, then load, then a tile that loads, recovers once (a tile lost during startup)', () => {
+    const onFail = vi.fn();
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, onFail, onRecover);
+    map.fire('error', TILE_ERROR);
+    map.fire('load');
+    expect(onRecover).not.toHaveBeenCalled();
+    map.fire('data', TILE_DATA);
+    map.fire('data', TILE_DATA);
+    expect(onRecover).toHaveBeenCalledTimes(1);
+    expect(onFail).toHaveBeenCalledTimes(1);
+  });
+
+  it('a tile error before load, a tile that loads, then load, recovers once at load', () => {
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, vi.fn(), onRecover);
+    map.fire('error', TILE_ERROR);
+    map.fire('data', TILE_DATA);
+    expect(onRecover).not.toHaveBeenCalled();
     map.fire('load');
     expect(onRecover).toHaveBeenCalledTimes(1);
+  });
+
+  it('a tile that loaded before the first tile error counts: tile, error, load recovers once (MapLibre\'s order)', () => {
+    const onFail = vi.fn();
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, onFail, onRecover);
+    map.fire('data', TILE_DATA);
+    map.fire('error', TILE_ERROR);
+    expect(onFail).toHaveBeenCalledTimes(1);
+    map.fire('load');
+    expect(onRecover).toHaveBeenCalledTimes(1);
+    map.fire('load');
+    map.fire('data', TILE_DATA);
+    expect(onRecover).toHaveBeenCalledTimes(1);
+  });
+
+  it('a timeout with a tile error before the late load needs a loaded tile too', () => {
+    vi.useFakeTimers();
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, vi.fn(), onRecover);
+    vi.advanceTimersByTime(MAP_LOAD_TIMEOUT_MS);
+    map.fire('error', TILE_ERROR);
+    map.fire('load');
+    expect(onRecover).not.toHaveBeenCalled();
+    map.fire('data', TILE_DATA);
+    expect(onRecover).toHaveBeenCalledTimes(1);
+  });
+
+  it('a style error after load is not recovered by tile data', () => {
+    const onFail = vi.fn();
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, onFail, onRecover);
+    map.fire('load');
+    map.fire('error');
+    map.fire('data', TILE_DATA);
+    expect(onFail).toHaveBeenCalledTimes(1);
+    expect(onRecover).not.toHaveBeenCalled();
   });
 
   it('a load in time reports no recovery', () => {
@@ -181,5 +253,76 @@ describe('accuracy circle and zoom (G3-AC2)', () => {
     expect(hasMoved(a, { ...a })).toBe(false);
     expect(hasMoved(a, { lat: a.lat + 1e-9, lon: a.lon })).toBe(false);
     expect(hasMoved(a, { lat: a.lat, lon: a.lon + 1e-5 })).toBe(true);
+  });
+});
+
+describe('boundsOf (G6-AC8)', () => {
+  it('is null without points', () => {
+    expect(boundsOf([])).toBeNull();
+  });
+
+  it('is [[west, south], [east, north]] around the spot and every location', () => {
+    expect(boundsOf([{ lat: 51.4436, lon: 5.5519 }, { lat: 51.4458, lon: 5.5522 }, { lat: 51.4442, lon: 5.5527 }]))
+      .toEqual([[5.5519, 51.4436], [5.5527, 51.4458]]);
+  });
+});
+
+describe('framePadding (G6-AC8)', () => {
+  it('keeps the pins clear of the top bar and the details panel, with a margin on every side', () => {
+    expect(framePadding(110, 360, 390, 780)).toEqual({
+      top: 110 + FRAME_MARGIN_PX, bottom: 360 + FRAME_MARGIN_PX, left: FRAME_MARGIN_PX, right: FRAME_MARGIN_PX,
+    });
+  });
+
+  it('on a short or narrow map, shrinks the padding so FRAME_MIN_PX stays free and fitBounds can still frame', () => {
+    const p = framePadding(110, 360, 150, 500);
+    expect(p.top + p.bottom).toBeCloseTo(500 - FRAME_MIN_PX, 9);
+    expect(p.top / p.bottom).toBeCloseTo((110 + FRAME_MARGIN_PX) / (360 + FRAME_MARGIN_PX), 9);
+    expect(p.left + p.right).toBe(150 - FRAME_MIN_PX);
+  });
+});
+
+describe('framingPanelPx (G6-AC8)', () => {
+  it('frames for the tallest panel any entry renders, so selecting a taller entry never hides a pin', () => {
+    expect(framingPanelPx(220, 300, 780)).toBe(300);
+  });
+
+  it('caps the tallest panel at the CSS limit, the most it can render', () => {
+    expect(framingPanelPx(220, 700, 780)).toBeCloseTo(SHEET_MAX_FRACTION * 780, 9);
+  });
+
+  it('never pads less than the panel as measured', () => {
+    expect(framingPanelPx(600, 300, 780)).toBe(600);
+  });
+
+  it('on a phone, leaves the pins more than FRAME_MIN_PX of room for a typical panel', () => {
+    const p = framePadding(110, framingPanelPx(300, 330, 780), 390, 780);
+    expect(780 - p.top - p.bottom).toBeGreaterThan(FRAME_MIN_PX);
+  });
+});
+
+describe('createCentreTracker (G3-AC3, G6-AC8)', () => {
+  const nuenen = { lat: 51.4436, lon: 5.5519, zoom: 15 };
+
+  it('centres on a new spot, once', () => {
+    const t = createCentreTracker();
+    expect(t.shouldCentre(nuenen)).toBe(true);
+    expect(t.shouldCentre({ ...nuenen })).toBe(false);
+    expect(t.shouldCentre({ ...nuenen, lat: 51.45 })).toBe(true);
+  });
+
+  it('a remounted parked view keeps the camera the driver left for an unchanged spot, and still centres a new one', () => {
+    const t = createCentreTracker();
+    t.shouldCentre(nuenen);
+    // Back from the results (or Settings): the same tracker answers the fresh view's first update.
+    expect(t.shouldCentre(nuenen)).toBe(false);
+    expect(t.shouldCentre({ lat: 51.4484, lon: 5.4573, zoom: 16 })).toBe(true);
+  });
+
+  it("after the driver's own move (no centre), the same browser spot centres again (My location)", () => {
+    const t = createCentreTracker();
+    t.shouldCentre(nuenen);
+    expect(t.shouldCentre(null)).toBe(false);
+    expect(t.shouldCentre(nuenen)).toBe(true);
   });
 });

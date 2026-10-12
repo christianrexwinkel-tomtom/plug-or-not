@@ -41,6 +41,8 @@ export interface AppState {
   movedSpot: LatLon | null;
   /** The map couldn't start, or its style failed (G6-AC9); cleared if the map loads after all (late, or after a tile error during startup). */
   mapFailed: boolean;
+  /** The spot the shown results were searched for: the results map's blue dot and spot line (G6-AC8). Kept when the map fails afterwards. */
+  searchedSpot: Exclude<Spot, { kind: 'none' }> | null;
 }
 
 export interface AppDeps {
@@ -99,6 +101,7 @@ export function createApp(deps: AppDeps): App {
     selectedId: null,
     movedSpot: null,
     mapFailed: false,
+    searchedSpot: null,
   };
   const listeners: Array<(s: AppState) => void> = [];
   let manifest: Promise<Manifest> | null = null;
@@ -203,8 +206,9 @@ export function createApp(deps: AppDeps): App {
     retryLocation: () => startLocating(),
 
     moveSpot(lat, lon) {
-      // No dragging while the location is being found (G3-AC1), and none once the map has failed (G6-AC9).
-      if (state.location.status === 'locating' || state.mapFailed) return;
+      // Only the parked map moves the spot (FR-025): panning the results map doesn't. No dragging while the location
+      // is being found (G3-AC1), and none once the map has failed (G6-AC9).
+      if (state.view !== 'parked' || state.location.status === 'locating' || state.mapFailed) return;
       set({
         movedSpot: { lat, lon },
         search: searchAfterSpotChange(),
@@ -250,8 +254,10 @@ export function createApp(deps: AppDeps): App {
         set({ blocked: 'battery' });
         return;
       }
-      // G3-AC1: no spot while locating, or after a denial until the map has been moved.
-      const spot = spotFor(state);
+      // G3-AC1: no spot while locating, or after a denial until the map has been moved. "Try again" on the results
+      // load error always searches the searched spot: a map failure after the search drops the moved spot, which
+      // would otherwise fall back to the browser position, or to no spot and a refused tap (G6-AC9).
+      const spot = state.view === 'results' && state.searchedSpot ? state.searchedSpot : spotFor(state);
       if (spot.kind === 'none') {
         set({ blocked: 'location' });
         return;
@@ -261,6 +267,7 @@ export function createApp(deps: AppDeps): App {
         set({ search: 'outside-nl' });
         return;
       }
+      set({ searchedSpot: spot });
       if (state.battery === 100) {
         computed = [];
         set({ view: 'results', search: 'battery-full', results: [], selectedId: null });
