@@ -13,17 +13,30 @@ const TILE_PX = 512;
 /** About 1 cm of latitude. */
 const MOVE_EPSILON_DEG = 1e-7;
 
+/** What MapLibre puts on an `error` event: a tile or source failure carries `sourceId` and/or `tile`. */
+export interface MapErrorLike {
+  error?: unknown;
+  sourceId?: string;
+  tile?: unknown;
+}
+
 export interface Startable {
-  on(type: 'load' | 'error', listener: () => void): unknown;
+  on(type: 'load' | 'error', listener: (e: MapErrorLike) => void): unknown;
 }
 
 /**
- * Creates the map and watches it start (G6-AC9). A constructor that throws (no WebGL), no `load` within the
- * timeout, or any `error` event (style or tiles) calls `onFail`, once. A throwing constructor reports on a
- * microtask, never synchronously, so a view that is still building itself isn't re-entered. Returns null then.
+ * Creates the map and watches it start (G6-AC9, "Map can't load"). A constructor that throws (no WebGL), no `load`
+ * within the timeout, or an `error` event before `load` calls `onFail`, once. After `load`, a tile or source error
+ * (one tile lost on flaky mobile data) is not a failure; any other error (the style) still is. A `load` that comes
+ * after a timeout-only failure calls `onRecover`, once: the map did start, just late. A throwing constructor reports
+ * on a microtask, never synchronously, so a view that is still building itself isn't re-entered. Returns null then.
  */
-export function startMap<M extends Startable>(create: () => M, onFail: () => void, timeoutMs = MAP_LOAD_TIMEOUT_MS): M | null {
+export function startMap<M extends Startable>(
+  create: () => M, onFail: () => void, onRecover: () => void = () => undefined, timeoutMs = MAP_LOAD_TIMEOUT_MS,
+): M | null {
   let failed = false;
+  let loaded = false;
+  let timedOut = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const fail = () => {
     if (failed) return;
@@ -38,9 +51,24 @@ export function startMap<M extends Startable>(create: () => M, onFail: () => voi
     queueMicrotask(fail);
     return null;
   }
-  timer = setTimeout(fail, timeoutMs);
-  map.on('load', () => clearTimeout(timer));
-  map.on('error', fail);
+  timer = setTimeout(() => {
+    timedOut = true;
+    fail();
+  }, timeoutMs);
+  map.on('load', () => {
+    if (loaded) return;
+    loaded = true;
+    clearTimeout(timer);
+    if (failed && timedOut) {
+      failed = false;
+      onRecover();
+    }
+  });
+  map.on('error', (e) => {
+    if (loaded && (e?.sourceId !== undefined || e?.tile !== undefined)) return;
+    timedOut = false;
+    fail();
+  });
   return map;
 }
 
@@ -64,4 +92,18 @@ export function spotZoom(accuracyM: number, lat: number): number {
 /** A centre change bigger than about 1 cm counts as a move; a zoom around the centre doesn't. */
 export function hasMoved(a: { lat: number; lon: number }, b: { lat: number; lon: number }): boolean {
   return Math.abs(a.lat - b.lat) > MOVE_EPSILON_DEG || Math.abs(a.lon - b.lon) > MOVE_EPSILON_DEG;
+}
+
+/**
+ * G3-AC3: whether a `move` or `moveend` is the driver's. The wrapper's own jumps (`jumping`) and MapLibre's own moves
+ * (a resize, which carry no DOM event) are not; MapLibre puts the DOM event on every move a gesture causes, inertia
+ * included. With both centres given (`moveend`), a gesture that leaves the centre where it was (a zoom) is not a move.
+ */
+export function isDriverMove(
+  e: { jumping: boolean; originalEvent?: unknown },
+  from?: { lat: number; lon: number },
+  to?: { lat: number; lon: number },
+): boolean {
+  if (e.jumping || e.originalEvent == null) return false;
+  return from === undefined || to === undefined || hasMoved(from, to);
 }

@@ -21,6 +21,8 @@ export const NO_LOCATION = 'No location yet';
 export const MY_LOCATION = 'My location';
 /** Hint at the bottom of the spot map (UI mockup wording; not a PRD string). */
 export const MAP_HINT = 'Drag the map to adjust the spot';
+/** Accessible name of the spot map (not a PRD string). */
+export const SPOT_MAP_LABEL = 'Map of your spot. Drag to move the spot under the pin.';
 /** G3-AC2, accuracy worse than 1 km (also repeated on the results). */
 export const APPROXIMATE = 'Your location is approximate';
 /** Results line under the approximate notice (UI mockup wording; not a PRD string). */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
-import { MAP_COLOURS, mapStyle, type Theme } from './map-style.ts';
+import { MAP_COLOURS, mapStyle, themeFor, type Theme } from './map-style.ts';
 
 /** `vector_layers` of OpenFreeMap's planet TileJSON (https://tiles.openfreemap.org/planet, read 2026-10-12). */
 const OFM_LAYERS = [
@@ -8,6 +8,13 @@ const OFM_LAYERS = [
   'park', 'place', 'poi', 'transportation', 'transportation_name', 'water', 'water_name', 'waterway',
 ];
 const THEMES: Theme[] = ['night', 'day'];
+
+describe('themeFor (G7-AC6)', () => {
+  it('a light device gets Day, anything else Night', () => {
+    expect(themeFor(true)).toBe('day');
+    expect(themeFor(false)).toBe('night');
+  });
+});
 
 describe('mapStyle (D-32)', () => {
   it.each(THEMES)('the %s style is a valid MapLibre style', (theme) => {

@@ -6,16 +6,18 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 // (dev or build). Let Vite emit the worker as its own file and point MapLibre at it.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { NL_CENTRE } from '../services/location.ts';
-import { accuracyRadiusPx, hasMoved, startMap } from './map-core.ts';
-import { mapStyle, type Theme } from './map-style.ts';
+import { accuracyRadiusPx, isDriverMove, startMap } from './map-core.ts';
+import { mapStyle, themeFor, type Theme } from './map-style.ts';
 
 maplibregl.setWorkerUrl(workerUrl);
 
 export interface MapEvents {
   /** The driver moved the map; its new centre is the spot. Never called for the wrapper's own jumps. */
   moved(lat: number, lon: number): void;
-  /** The map can't start, or its style or tiles failed. Called once, never synchronously. */
+  /** The map can't start, or its style failed (a lost tile after `load` is not a failure). Never synchronously. */
   failed(): void;
+  /** A map that timed out has loaded after all. */
+  recovered(): void;
 }
 
 export interface MapHandle {
@@ -32,7 +34,7 @@ export interface MapHandle {
 }
 
 const LIGHT = window.matchMedia('(prefers-color-scheme: light)');
-const theme = (): Theme => (LIGHT.matches ? 'day' : 'night');
+const theme = (): Theme => themeFor(LIGHT.matches);
 
 function createMap(events: MapEvents): MapHandle {
   const el = document.createElement('div');
@@ -47,7 +49,7 @@ function createMap(events: MapEvents): MapHandle {
     pitchWithRotate: false,
     touchPitch: false,
     doubleClickZoom: false,
-  }), () => events.failed());
+  }), () => events.failed(), () => events.recovered());
   const circle = document.createElement('div');
   circle.className = 'acc';
   circle.hidden = true;
@@ -75,17 +77,16 @@ function createMap(events: MapEvents): MapHandle {
     map.scrollZoom.enable({ around: 'center' });
     map.touchZoomRotate.enable({ around: 'center' });
     map.touchZoomRotate.disableRotation();
-    // Only a gesture moves the spot. MapLibre puts the DOM event on every move a gesture causes (inertia
-    // included) and none on its own moves, such as the resize when the map is attached or the window changes.
+    // Only a gesture moves the spot (isDriverMove): not our jumps, not MapLibre's own resizes.
     map.on('move', (e) => {
-      if (jumping || !live || !e.originalEvent) return;
+      if (!live || !isDriverMove({ jumping, originalEvent: e.originalEvent })) return;
       const c = map.getCenter();
       live(c.lat, c.lng);
     });
     map.on('moveend', (e) => {
       const c = map.getCenter();
       const now = { lat: c.lat, lon: c.lng };
-      if (!jumping && e.originalEvent && hasMoved(last, now)) events.moved(now.lat, now.lon);
+      if (isDriverMove({ jumping, originalEvent: e.originalEvent }, last, now)) events.moved(now.lat, now.lon);
       last = now;
     });
     map.on('zoom', drawCircle);

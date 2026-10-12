@@ -3,9 +3,11 @@ import { STAY_MAX, STAY_MIN, STAY_STEP } from '../engine/compare.ts';
 import { h, icon, rangeFill } from './dom.ts';
 import { appBar, errorText, notice, storageNotice } from './chrome.ts';
 import { coords, duration } from './format.ts';
-import { sharedMap } from './map.ts';
+import type { MapHandle } from './map.ts';
 import { spotView, type SpotNotice, type SpotView } from './spot-view.ts';
-import { BATTERY_NOT_SET, FINDING_CHARGERS, LOCATING, MAP_HINT, MY_LOCATION, STAY_LIMITS, TRY_AGAIN } from './messages.ts';
+import {
+  BATTERY_NOT_SET, FINDING_CHARGERS, LOCATING, MAP_HINT, MOVED_SPOT, MY_LOCATION, SPOT_MAP_LABEL, STAY_LIMITS, TRY_AGAIN,
+} from './messages.ts';
 
 /** A range slider whose element is never replaced, so a state change can't interrupt a drag. */
 function slider(opts: {
@@ -58,6 +60,16 @@ function slider(opts: {
   };
 }
 
+/** MapLibre and the wrapper, in their own chunk; loaded once, a failed load is retried on the next visit. */
+let mapModule: Promise<typeof import('./map.ts')> | null = null;
+function loadMap(): Promise<typeof import('./map.ts')> {
+  mapModule ??= import('./map.ts').catch((e: unknown) => {
+    mapModule = null;
+    throw e;
+  });
+  return mapModule;
+}
+
 function spotNotice(n: SpotNotice, highlight: boolean, app: App): HTMLElement {
   const el = notice(n.tone, n.role,
     h('p', {}, n.text),
@@ -68,9 +80,15 @@ function spotNotice(n: SpotNotice, highlight: boolean, app: App): HTMLElement {
   return el;
 }
 
-/** The spot map (G3-AC1–AC4, FR-025): the shared map under a fixed pin, with its chip and overlays. Built once per visit. */
+/**
+ * The spot map (G3-AC1–AC4, FR-025): the shared map under a fixed pin, with its chip and overlays. Built once per
+ * visit. MapLibre is loaded on first use, in its own chunk, so the setup screen doesn't wait for it; a failed load
+ * counts as a map that can't load (G6-AC9). The overlays work without it.
+ */
 function spotMap(app: App) {
-  const map = sharedMap({ moved: (lat, lon) => app.moveSpot(lat, lon), failed: () => app.reportMapFailure() });
+  let map: MapHandle | null = null;
+  let attached = false;
+  let last: SpotView | null = null;
   const pin = h('span', { class: 'target' });
   const chipLabel = h('b', {});
   const chipCoords = h('span', {});
@@ -79,20 +97,45 @@ function spotMap(app: App) {
   const busy = h('div', { class: 'busy', role: 'status' }, h('span', {}, h('i', { class: 'dot' }), LOCATING));
   const hint = h('span', { class: 'maphint' }, MAP_HINT);
   const failed = h('div', { class: 'mapmsg', role: 'status' });
-  const box = h('div', { class: 'spotmap', role: 'application', 'aria-label': 'Map of your spot. Drag to move the spot under the pin.' },
+  const box = h('div', { class: 'spotmap', role: 'application', 'aria-label': SPOT_MAP_LABEL },
     pin, h('div', { class: 'mapchips' }, chip, recentre), busy, hint, failed);
   /** The centre last applied; null while the driver's own move is showing. */
   let applied: string | null = null;
-  // While dragging, only the coordinates follow the map; the spot is committed when the move ends (`moved`).
-  map.onLiveMove((lat, lon) => {
-    chipCoords.textContent = ` · ${coords(lat, lon)}`;
-  });
+
+  function applyMap(m: MapHandle, v: SpotView): void {
+    m.setDraggable(v.draggable);
+    m.setAccuracy(v.accuracyM);
+    const key = v.centre && `${v.centre.lat},${v.centre.lon},${v.centre.zoom}`;
+    if (v.centre && key !== applied) m.centreOn(v.centre.lat, v.centre.lon, v.centre.zoom);
+    applied = key;
+  }
+
+  void loadMap().then((mod) => {
+    const m = mod.sharedMap({
+      moved: (lat, lon) => app.moveSpot(lat, lon),
+      failed: () => app.reportMapFailure(),
+      recovered: () => app.reportMapRecovered(),
+    });
+    // While dragging, the chip follows the map; the spot is committed when the move ends (`moved`).
+    m.onLiveMove((lat, lon) => {
+      chip.hidden = false;
+      chipLabel.textContent = MOVED_SPOT;
+      chipCoords.textContent = ` · ${coords(lat, lon)}`;
+    });
+    map = m;
+    if (attached) m.attachTo(box);
+    if (last) applyMap(m, last);
+  }, () => app.reportMapFailure());
 
   return {
     box,
-    /** Puts the shared map into this box; call once the box is in the page, so the map can size itself. */
-    attach: () => map.attachTo(box),
+    /** Puts the shared map into this box (now, or once MapLibre has loaded); call once the box is in the page. */
+    attach: () => {
+      attached = true;
+      map?.attachTo(box);
+    },
     update(v: SpotView) {
+      last = v;
       box.classList.toggle('hl', v.highlight);
       pin.className = v.pin === 'none' ? 'target none' : 'target';
       pin.hidden = v.mapMessage !== null;
@@ -104,11 +147,7 @@ function spotMap(app: App) {
       hint.hidden = !v.draggable;
       failed.hidden = v.mapMessage === null;
       failed.textContent = v.mapMessage ?? '';
-      map.setDraggable(v.draggable);
-      map.setAccuracy(v.accuracyM);
-      const key = v.centre && `${v.centre.lat},${v.centre.lon},${v.centre.zoom}`;
-      if (v.centre && key !== applied) map.centreOn(v.centre.lat, v.centre.lon, v.centre.zoom);
-      applied = key;
+      if (map) applyMap(map, v);
     },
   };
 }

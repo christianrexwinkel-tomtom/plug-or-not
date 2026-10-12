@@ -23,14 +23,15 @@ async function parked(deps = stubDeps()) {
 describe('createApp — controller state machine (G7-AC5)', () => {
   it('asks for the location when the parked view opens, with "locating" until it answers', async () => {
     const deps = stubDeps();
+    // A location that hasn't answered yet: a found one would answer the refused tap (Slice 3).
+    deps.locate.mockImplementation(() => new Promise(() => undefined));
     const app = createApp(deps);
     await app.start();
     app.saveSettings(EXAMPLE_RAW);
     expect(app.getState().location).toEqual({ status: 'locating' });
     app.setBattery(20);
-    const tap = app.findChargers();
+    await app.findChargers();
     expect(app.getState().blocked).toBe('location');
-    await tap;
   });
 
   it('shows the loading view while tiles and curves are resolved, and results complete at once', async () => {
@@ -199,6 +200,15 @@ describe('createApp — controller state machine (G7-AC5)', () => {
     expect(app.getState()).toMatchObject({ mapFailed: true, movedSpot: null, search: 'idle' });
     app.moveSpot(51.4484, 5.4573);
     expect(app.getState().movedSpot).toBeNull();
+  });
+
+  it('a map that loads late recovers: the map can be moved again, the browser position stays the spot (G6-AC9)', async () => {
+    const { app } = await parked();
+    app.reportMapFailure();
+    app.reportMapRecovered();
+    expect(app.getState()).toMatchObject({ mapFailed: false, movedSpot: null });
+    app.moveSpot(51.4484, 5.4573);
+    expect(app.getState().movedSpot).toEqual({ lat: 51.4484, lon: 5.4573 });
   });
 
   it('a search at a moved spot loads the tiles for that spot; a battery change there reuses them', async () => {

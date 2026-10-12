@@ -3,6 +3,11 @@ import type { ExpressionSpecification, LineLayerSpecification, StyleSpecificatio
 
 export type Theme = 'night' | 'day';
 
+/** G7-AC6: the map follows the device theme — Day on a light device, Night otherwise. */
+export function themeFor(prefersLight: boolean): Theme {
+  return prefersLight ? 'day' : 'night';
+}
+
 export interface MapColours {
   land: string;
   road: string;

@@ -12,6 +12,7 @@ describe('PRD error and notice wording', () => {
     ['NO_LOCATION', m.NO_LOCATION, 'No location yet'],
     ['MY_LOCATION', m.MY_LOCATION, 'My location'],
     ['MAP_HINT', m.MAP_HINT, 'Drag the map to adjust the spot'],
+    ['SPOT_MAP_LABEL', m.SPOT_MAP_LABEL, 'Map of your spot. Drag to move the spot under the pin.'],
     ['OUTSIDE_NL', m.OUTSIDE_NL, 'Charger prices are available for the Netherlands only for now.'],
     ['LOCATING', m.LOCATING, 'Finding your location…'],
     ['APPROXIMATE', m.APPROXIMATE, 'Your location is approximate'],

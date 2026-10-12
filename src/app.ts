@@ -3,14 +3,14 @@ import type { Manifest } from './shared/data-format.ts';
 import { computeEntries, rankAtStay, type ComputedEntry, type RankedEntry } from './engine/results.ts';
 import { STAY_DEFAULT, STAY_STEP, clampStay } from './engine/compare.ts';
 import { validate, type RawSettings, type Settings, type SettingsStore, type ValidationResult } from './services/settings.ts';
-import { isApproximate, isInNetherlands, spotOf, type LatLon, type LocateOutcome, type Position, type Spot } from './services/location.ts';
+import { isInNetherlands, spotOf, type LatLon, type LocateOutcome, type Position, type Spot } from './services/location.ts';
 import type { NearestResult } from './services/data.ts';
 
 export type View = 'setup' | 'parked' | 'loading' | 'results';
 
 export type LocationState =
   | { status: 'locating' }
-  | { status: 'found'; position: Position; approximate: boolean }
+  | { status: 'found'; position: Position }
   | { status: 'denied' };
 
 export type SearchStatus = 'idle' | 'outside-nl' | 'load-error' | 'battery-full' | 'results';
@@ -39,7 +39,7 @@ export interface AppState {
   selectedId: string | null;
   /** The map centre after the driver dragged the map; null = the browser position is the spot (G3-AC3). */
   movedSpot: LatLon | null;
-  /** The map couldn't start, or its style or tiles failed (G6-AC9). */
+  /** The map couldn't start, or its style failed (G6-AC9); cleared if a timed-out map loads late. */
   mapFailed: boolean;
 }
 
@@ -65,6 +65,8 @@ export interface App {
   recentre(): void;
   /** The map wrapper reports that the map can't be used (G6-AC9). */
   reportMapFailure(): void;
+  /** The map wrapper reports that a map which timed out has loaded after all (G6-AC9). */
+  reportMapRecovered(): void;
   setBattery(pct: number): void;
   setStay(min: number): void;
   nudgeStay(direction: 1 | -1): void;
@@ -133,7 +135,7 @@ export function createApp(deps: AppDeps): App {
     const outcome = await deps.locate();
     set({
       location: outcome.kind === 'found'
-        ? { status: 'found', position: outcome.position, approximate: isApproximate(outcome.position) }
+        ? { status: 'found', position: outcome.position }
         : { status: 'denied' },
       // A found location answers a "Find chargers" tap that was refused while locating.
       blocked: outcome.kind === 'found' && state.blocked === 'location' ? null : state.blocked,
@@ -219,6 +221,11 @@ export function createApp(deps: AppDeps): App {
       if (state.mapFailed) return;
       // Without a map the browser position is the spot (G6-AC9).
       set({ mapFailed: true, movedSpot: null, search: searchAfterSpotChange() });
+    },
+
+    reportMapRecovered() {
+      // The spot stays the browser position until the driver drags; the map can be moved again.
+      if (state.mapFailed) set({ mapFailed: false });
     },
 
     setBattery(pct) {

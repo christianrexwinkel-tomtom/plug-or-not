@@ -8,7 +8,7 @@ import { NUENEN, stubDeps } from '../../test/fixtures/app-deps.ts';
 const base: AppState = createApp(stubDeps()).getState();
 const at = (patch: Partial<AppState>): AppState => ({ ...base, view: 'parked', ...patch });
 const found = (accuracyM = 20): AppState['location'] => ({
-  status: 'found', position: { ...NUENEN, accuracyM }, approximate: accuracyM > 1000,
+  status: 'found', position: { ...NUENEN, accuracyM },
 });
 const NL_MAP = { lat: 52.13, lon: 5.29, zoom: 7 };
 
