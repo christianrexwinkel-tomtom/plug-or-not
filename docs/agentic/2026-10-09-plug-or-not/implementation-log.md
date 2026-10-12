@@ -1047,6 +1047,38 @@ dist/assets/map-m67kxXKT.js                                       1,032.86 kB �
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
 ```
 
+### Chunk 3: End-Review round 2 fixes
+
+- **Issue covered:** 1 (Important, G6-AC9: `startMap`'s `data` listener ignored a tile that loaded before the first startup tile/source error. In MapLibre's real order (good tiles finish, then one bad tile errors, then `load`; no new tile `data` after `load` until the camera moves, and a failed map isn't draggable), "Map couldn't load." stayed for good on a map whose tiles mostly loaded)
+- **Tests written:** src/ui/map-core.test.ts (1, new: tile `data`, then a tile `error` (fails once), then `load` recovers once; a second `load` and more tile `data` don't recover again. Seen failing on the old code: `onRecover` 0 calls at `load`). The blocked-server test (error, `load`, no tile `data` stays failed) is kept unchanged. 27 → 28 in the file; suite 289 → 290
+- **Change:** the `data` listener records every loaded tile (`if (!isTileData(e)) return; tileLoaded = true; maybeRecover();`), no longer only after a source error. Recovery rules otherwise unchanged; doc comment updated. Optional startup-flash change (decide source-error failures at `load`) not taken. Deviation row 8
+- **Worker reported peak context:** ≈70k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** ebf26bf (fix); this log entry in the following docs commit
+- **Deviations:** row 8 in the Deviations from Plan table (description updated)
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  25 passed (25)
+      Tests  290 passed (290)
+   Start at  11:07:20
+   Duration  1.07s (tests 44%, transform 27%, import 26%, worker 4%)
+
+$ npm run build
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-DcWVlWno.js                                        46.54 kB │ gzip:  17.59 kB
+dist/assets/map-BjQkpDPz.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 565ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
 ## Deviations from Plan
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
@@ -1058,7 +1090,7 @@ dist/assets/map-m67kxXKT.js                                       1,032.86 kB �
 | 5   | Task 32 / Chunk 1 | change | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
 | 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
-| 8   | Task 29 / Slice 4 Chunk 2 | change | Slice 4: changes row 7 ("any `load` after any failure recovers"). MapLibre counts an errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors, and row 7 cleared "Map couldn't load." (G6-AC9 / D-29). Now `startMap` also listens to `data`: a failure before `load` recovers, once, at `load` only if no tile or source error came before `load` (the timeout: slow network, background tab); after such an error it also needs a tile that loaded (`data` with `dataType: 'source'` and a `tile`, before or after `load`), so one tile lost during startup still recovers and a blocked tile server doesn't. A failure after `load` (the style) never recovers. Post-`load` tile/source errors are still ignored (row 6) (Slice 4 End-Review round 1, issue 1) | no | pending | 2026-10-12 |
+| 8   | Task 29 / Slice 4 Chunk 2 | change | Slice 4: changes row 7 ("any `load` after any failure recovers"). MapLibre counts an errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors, and row 7 cleared "Map couldn't load." (G6-AC9 / D-29). Now `startMap` also listens to `data`: a failure before `load` recovers, once, at `load` only if no tile or source error came before `load` (the timeout: slow network, background tab); after such an error it also needs a tile that loaded at any point (`data` with `dataType: 'source'` and a `tile`, before or after the error and before or after `load`; every loaded tile is recorded, since MapLibre usually finishes the good tiles before one bad tile errors), so one tile lost during startup still recovers and a blocked tile server, which never delivers a tile, stays failed. A failure after `load` (the style) never recovers, tile data included. Post-`load` tile/source errors are still ignored (row 6) (Slice 4 End-Review round 1, issue 1; round 2, issue 1) | no | pending | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
