@@ -20,6 +20,8 @@ describe('entryViews', () => {
       address: 'Parkstraat 21, Nuenen',
       savingText: 'Saves €0.39 compared with €2.16 of petrol',
       priceText: '€0.33/kWh · total €1.77',
+      windowText: 'Worth it if you stay at least 40 min',
+      hasWindow: true,
       reasonText: null,
       alsoHere: [],
       chipText: '€0.39',
@@ -27,13 +29,22 @@ describe('entryViews', () => {
     });
   });
 
+  it('a priced entry without a window gets the "Never worth it" sentence and no window icon', () => {
+    expect(viewsFor([{ tariffKey: 'E:t', powerKw: 11 }], { 'E:t': TARIFFS.efluxLab })[0]).toMatchObject({
+      verdictText: 'Never worth it',
+      windowText: 'Never worth it: always more expensive than petrol for your car',
+      hasWindow: false,
+    });
+  });
+
   it.each([
     ['no-tariff', { tariffKey: null, powerKw: null, unknown: 'no-tariff' as const }, {}, 'No price published for this charger.'],
     ['no-power', { tariffKey: 'V:t', powerKw: null, unknown: 'no-power' as const }, { 'V:t': TARIFFS.vattenfall }, "Charging power isn't published for this charger."],
     ['unreadable', { tariffKey: 'V:t', powerKw: 11 }, { 'V:t': { ...TARIFFS.vattenfall, currency: 'GBP' } }, "The published price is incomplete or can't be read."],
-  ])('unknown entry (%s) says what is missing and shows no figures (G6-AC7)', (_r, entry, tariffs, reason) => {
+  ])('unknown entry (%s) says what is missing and shows no figures and no window (G6-AC7)', (_r, entry, tariffs, reason) => {
     expect(viewsFor([entry], tariffs)[0]).toMatchObject({
-      verdict: 'unknown', verdictText: 'Price unknown', reasonText: reason, savingText: null, priceText: null, chipText: 'Unknown',
+      verdict: 'unknown', verdictText: 'Price unknown', reasonText: reason, savingText: null, priceText: null,
+      windowText: null, hasWindow: false, chipText: 'Unknown',
     });
   });
 

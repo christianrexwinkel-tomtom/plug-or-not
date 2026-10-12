@@ -10,6 +10,7 @@
 
 **Plugin version:** 0.5.3
 **Agent Sessions:** claude-code: 4def9f23-a51e-417b-b327-10901565e942
+**Agent Sessions:** claude-code: a23146ca-79b6-4ab5-8438-6d08d1321484
 
 ## Pre-Flight
 
@@ -518,11 +519,138 @@ $ git ls-files | grep -cE '\.json\.gz$|data\.next/'
 
 ---
 
+## Slice 2: Worth-it window and live stay changes
+
+- **Started:** 2026-10-12 (session a23146ca-79b6-4ab5-8438-6d08d1321484)
+- **Base SHA:** be1da03
+- **Worker isolation:** normal
+- **Chunk layout:** one chunk, Tasks 20–25 (about 150 LLOC, well inside one window)
+
+### Pre-Flight (Slice 2)
+
+```
+$ node --version
+v20.19.5
+$ npm --version
+11.14.0
+$ npm test
+
+ Test Files  17 passed (17)
+      Tests  182 passed (182)
+   Start at  08:11:28
+   Duration  610ms (tests 37%, transform 35%, import 24%, worker 4%)
+
+$ npm run build
+dist/assets/index-Dxdb_XU8.js                                     36.06 kB │ gzip: 13.87 kB
+
+✓ built in 525ms
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account christianrexwinkel-tomtom (keyring)
+  - Active account: true
+  - Git operations protocol: https
+$ ls .pre-commit-config.yaml
+ls: .pre-commit-config.yaml: No such file or directory
+(no non-sample git hooks)
+```
+
+Result: ☑ all green
+
+<!-- Chunk-workers append `### Chunk N: Tasks A–B` entries for Slice 2 below this line. -->
+
+### Chunk 1: Tasks 20–25
+
+- **Plan tasks covered:** Tasks 20–25 (Slice 2 acceptance tests, window sentence formatter, window line in the details panel, live stay change in the controller, stay slider in the results top bar, verify Slice 2 acceptance). Task 25 steps 1–2 run here; steps 3–4 (post-merge Pages deployment check, manual device checks incl. the G8-AC2 stopwatch) are **pending — owned by the user after merge**
+- **Tests written:** test/acceptance/window-and-stay.test.ts (9, new; 8 red at Task 20, all green after Task 23), src/ui/format.test.ts (+3, 14 total), src/ui/entry-view.test.ts (+1, 6 total; the 3 unknown-entry cases also assert windowText/hasWindow), src/app.test.ts (+2, 10 total), test/fixtures/app-deps.ts gains the `nearest` option. Suite: 182 → 197 tests, 17 → 18 files, matching the plan
+- **Worker reported peak context:** ≈55k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** d32086f (Task 20), 62799f0 (Task 21), 659e817 (Task 22), caca3fd (Task 23), 2a32447 (Task 24)
+
+#### Verify output (verbatim)
+
+```
+$ npm test -- test/acceptance/window-and-stay.test.ts      # Task 20, at d32086f
+     × scenario 1: Opcharge Zernikestraat "1h30 to 7h30" and Vattenfall Marconilaan "at least 40 min" at battery 10%
+     × scenario 2: a tariff that can't be interpreted shows "Price unknown" and no window
+     × scenario 3: E-Flux Laboratoriumstraat at battery 10% is never worth it
+     × stay outside the window: 45 min against a window from 1h10 reads "Not worth it for this stay"
+     × a window from the minimum stay with no upper limit reads "Worth it for any stay"
+     × a window from the minimum stay with an upper limit reads "Worth it for any stay up to X"
+     × battery level changes the window: Opcharge at 10%, then 70% after going back and searching again
+     × scenario 1: releasing the slider re-ranks every result from the cached curves and keeps the selected charger
+      Tests  8 failed | 1 passed (9)
+$ npm test -- test/acceptance/flows.test.ts src/app.test.ts   # Task 20 step 4
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+$ npm test -- src/ui/format.test.ts                          # Task 21
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+$ npm test -- src/ui/entry-view.test.ts                      # Task 22
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+$ npm run build && npm test -- test/acceptance/window-and-stay.test.ts   # Task 22 step 6, at 659e817
+✓ built in 498ms
+     × scenario 1: releasing the slider re-ranks every result from the cached curves and keeps the selected charger
+      Tests  1 failed | 8 passed (9)
+$ npm test -- src/app.test.ts test/acceptance/window-and-stay.test.ts test/acceptance/flows.test.ts   # Task 23 step 4
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
+$ npm test -- src/app.test.ts test/acceptance/window-and-stay.test.ts   # Task 23 verify
+ Test Files  2 passed (2)
+      Tests  19 passed (19)
+$ grep -rnE "pill grow|\bfill\(" src/                        # Task 24 step 4
+(no output, exit 1)
+$ npm test                                                   # Task 24 verify / Task 25 step 1, at 2a32447
+ Test Files  18 passed (18)
+      Tests  197 passed (197)
+   Start at  08:15:28
+   Duration  631ms (tests 42%, transform 32%, import 23%, worker 4%)
+$ npm run build                                              # Task 25 step 2
+dist/assets/index-CZihSCAV.js                                     37.47 kB │ gzip: 14.26 kB
+✓ built in 399ms
+```
+
+Task 25 step 3 (`gh run list --workflow deploy.yml --branch main --limit 1` after merge) and step 4 (manual checks on iPhone Safari, Android Chrome, desktop Chrome/Edge/Safari: window line in Night and Day, results slider drag/release, desktop keyboard focus, shared stay, G8-AC2 stopwatch ×5): pending — owned by the user after merge.
+
+### End-Review (Slice 2)
+
+Range reviewed: `be1da03..4f7f3f6`. Opus reviewer, given no worker narrative and with the implementation log excluded.
+
+- **Verdict:** APPROVED (round 1)
+- **Issues found:** none blocking. Part A ✅ (G6-AC1, G6-AC5, G6-AC7, G6-AC8/D-30, G7-AC2, G7-AC4, FR-018, PRD S4 and S3 scenario 1 all covered, nothing extra). Part B ✅ with three optional Minor notes left open:
+  - `src/app.ts:183-186`: `setStay` calls `set()` twice, once for `stayMin` and once inside `rerank()`. The results DOM is rebuilt twice per release, and the first build briefly pairs the new stay label with the old ranking.
+  - `src/ui/format.ts:55-60`: degenerate windows read oddly, e.g. "40 min to 40 min" or "for any stay up to 15 min". The spec doesn't cover these.
+  - `src/ui/entry-view.ts:39-40`: `hasWindow` only picks an icon. Acceptable.
+- **Tests-vs-spec audit:** the tests check specified behaviour, not the code that was written. The reviewer re-derived every hand-worked PRD figure independently and all match: the 1h10 window start (3.80 kWh at minute 64), −€0.52 at 45 min, the 1h upper limit at battery 90%, Opcharge at 70% never covering its fixed fees, and Cheapkwh against Vattenfall (−€1.48/+€0.39 at 45 min, €5.85/€5.51 at 4h). G7-AC4 is pinned four ways: one `findNearest` call, no 'loading' view, the same `entry` objects, and kWh moving from 5.4 to 2.7. The D-30 test really reorders the results, so a "jump to the new #1" implementation would fail. Remaining gap, within the plan (D-17): the slider wiring (input vs change) and the S4 "Pending" edge case have no DOM test and rely on the Task 25 manual checks. Minor lock-in: `hasWindow` in the entry-view tests.
+- **Reviewer rounds:** 1
+- **Cap outcome:** none. The reviewer approved in round 1.
+
+#### Final full verify output (verbatim)
+
+Command: `npm test 2>&1 | tail -6; npm run build 2>&1 | tail -3; grep -rnE "pill grow|\bfill\(" src/`
+
+```
+ Test Files  18 passed (18)
+      Tests  197 passed (197)
+   Start at  08:18:03
+   Duration  654ms (tests 42%, transform 32%, import 23%, worker 3%)
+
+dist/assets/index-CZihSCAV.js                                     37.47 kB │ gzip: 14.26 kB
+
+✓ built in 483ms
+$ grep -rnE "pill grow|fill\(" src/
+(exit 1)
+```
+
+---
+
 ## Deviations from Plan
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
 | --- | ---------- | ----------------- | ----------- | ------------- | ------ | ---- |
 | 1   | Task 14 / Chunk 4 | change | Slice 1: build drops locations outside a NL-and-neighbours bounding box (`DATA_BOUNDS`, lat 50.0–54.0, lon 2.5–7.5, edges kept) in `scripts/build-data.ts`, so bogus feed coordinates (0,0, swapped, Asia/US) no longer reach the snapshot or stretch the `coversAll` bounds. Snapshot: 580 tiles, 72516 locations | yes — plan §Task 14 edited 2026-10-12 | approved | 2026-10-12 |
+
+Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
 <!-- If there are no deviations, write "None." below the table and confirm verbally with the user. -->
 

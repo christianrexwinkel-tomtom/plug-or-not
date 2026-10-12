@@ -1,6 +1,6 @@
 import type { RankedEntry } from '../engine/results.ts';
 import type { UnknownReason, Verdict } from '../engine/compare.ts';
-import { amountChip, metres, priceLine, savingPhrase, savingSentence } from './format.ts';
+import { amountChip, metres, priceLine, savingPhrase, savingSentence, windowSentence } from './format.ts';
 
 export type VerdictKind = Verdict | 'unknown';
 
@@ -34,6 +34,10 @@ export interface EntryView {
   /** Null for "Price unknown" entries (G6-AC7). */
   savingText: string | null;
   priceText: string | null;
+  /** G6-AC1 window sentence; null for "Price unknown" entries (G6-AC7). */
+  windowText: string | null;
+  /** A window exists: the line gets the calendar icon instead of the cross. */
+  hasWindow: boolean;
   reasonText: string | null;
   alsoHere: AlsoHere[];
   chipText: string;
@@ -57,6 +61,8 @@ export function entryViews(ranked: RankedEntry[]): EntryView[] {
       address: `${loc.address}, ${loc.city}`,
       savingText: priced ? savingSentence(priced.saving, priced.petrolCost) : null,
       priceText: priced && curve ? priceLine(curve.startPrices, curve.variesByTime, priced.cost) : null,
+      windowText: priced ? windowSentence(e.entry.window) : null,
+      hasWindow: priced !== null && e.entry.window !== null,
       reasonText: e.outcome.kind === 'unknown' ? REASON_TEXT[e.outcome.reason] : null,
       alsoHere: others.map((o) => {
         const ov: VerdictKind = o.outcome.kind === 'priced' ? o.outcome.verdict : 'unknown';

@@ -32,6 +32,8 @@ export function stubDeps(opts: {
   storage?: () => Storage;
   locations?: LocateOutcome[];
   failFind?: number;
+  /** Nearby chargers to return instead of the two-location Nuenen set. */
+  nearest?: NearestResult;
 } = {}) {
   const outcomes = [...(opts.locations ?? [{ kind: 'found', position: NUENEN }])];
   let finds = 0;
@@ -42,7 +44,7 @@ export function stubDeps(opts: {
     findNearest: vi.fn(async (): Promise<NearestResult> => {
       finds++;
       if (opts.failFind && finds <= opts.failFind) throw new DataLoadError('offline');
-      return NEAREST;
+      return opts.nearest ?? NEAREST;
     }),
     now: () => FRIDAY_1000,
   } satisfies AppDeps;
