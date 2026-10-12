@@ -2,9 +2,14 @@
 // (G3-AC3), with the load and error detection of G6-AC9. Result pins come with Slice 4.
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+// MapLibre looks for its worker next to its own module file, which isn't there once Vite has bundled it
+// (dev or build). Let Vite emit the worker as its own file and point MapLibre at it.
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { NL_CENTRE } from '../services/location.ts';
 import { accuracyRadiusPx, hasMoved, startMap } from './map-core.ts';
 import { mapStyle, type Theme } from './map-style.ts';
+
+maplibregl.setWorkerUrl(workerUrl);
 
 export interface MapEvents {
   /** The driver moved the map; its new centre is the spot. Never called for the wrapper's own jumps. */
@@ -70,15 +75,17 @@ function createMap(events: MapEvents): MapHandle {
     map.scrollZoom.enable({ around: 'center' });
     map.touchZoomRotate.enable({ around: 'center' });
     map.touchZoomRotate.disableRotation();
-    map.on('move', () => {
-      if (jumping || !live) return;
+    // Only a gesture moves the spot. MapLibre puts the DOM event on every move a gesture causes (inertia
+    // included) and none on its own moves, such as the resize when the map is attached or the window changes.
+    map.on('move', (e) => {
+      if (jumping || !live || !e.originalEvent) return;
       const c = map.getCenter();
       live(c.lat, c.lng);
     });
-    map.on('moveend', () => {
+    map.on('moveend', (e) => {
       const c = map.getCenter();
       const now = { lat: c.lat, lon: c.lng };
-      if (!jumping && hasMoved(last, now)) events.moved(now.lat, now.lon);
+      if (!jumping && e.originalEvent && hasMoved(last, now)) events.moved(now.lat, now.lon);
       last = now;
     });
     map.on('zoom', drawCircle);
