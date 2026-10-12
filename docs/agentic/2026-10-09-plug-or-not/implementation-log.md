@@ -11,6 +11,7 @@
 **Plugin version:** 0.5.3
 **Agent Sessions:** claude-code: 4def9f23-a51e-417b-b327-10901565e942
 **Agent Sessions:** claude-code: a23146ca-79b6-4ab5-8438-6d08d1321484
+**Agent Sessions:** claude-code: 0ef86631-d1ec-46ad-99a2-5d397c9b06ce
 
 ## Pre-Flight
 
@@ -641,6 +642,51 @@ dist/assets/index-CZihSCAV.js                                     37.47 kB │ g
 $ grep -rnE "pill grow|fill\(" src/
 (exit 1)
 ```
+
+---
+
+## Slice 3: Spot on a map
+
+- **Started:** 2026-10-12 (session 0ef86631-d1ec-46ad-99a2-5d397c9b06ce)
+- **Base SHA:** 79bd1d2
+- **Worker isolation:** normal
+- **Chunk layout:** one chunk, Tasks 26–34 (Slice 2 peaked at ≈55k; Slice 3 is roughly 3× the plan text, well inside one window)
+
+### Pre-Flight (Slice 3)
+
+```
+$ node --version
+v20.19.5
+$ npm --version
+11.14.0
+$ npm test
+ Test Files  18 passed (18)
+      Tests  197 passed (197)
+   Start at  09:27:07
+   Duration  716ms (tests 38%, transform 32%, import 26%, worker 3%)
+$ npm run build
+dist/assets/index-CZihSCAV.js                                     37.47 kB │ gzip: 14.26 kB
+
+✓ built in 499ms
+$ npm view maplibre-gl@6.11.2 version
+6.11.2
+$ npm view @maplibre/maplibre-gl-style-spec@26.4.4 version
+26.4.4
+$ curl -sSI https://tiles.openfreemap.org/styles/liberty | head -1
+HTTP/2 200 
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account christianrexwinkel-tomtom (keyring)
+  - Active account: true
+  - Git operations protocol: https
+$ ls .pre-commit-config.yaml
+ls: .pre-commit-config.yaml: No such file or directory
+(no non-sample git hooks)
+```
+
+Result: ☑ all green
+
+<!-- Chunk-workers append `### Chunk N: Tasks A–B` entries for Slice 3 below this line. -->
 
 ---
 

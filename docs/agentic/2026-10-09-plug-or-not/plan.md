@@ -56,7 +56,7 @@ Slice 1 has 19 tasks, Slice 2 has 6 (Tasks 20–25) and Slice 3 has 9 (Tasks 26�
 |-------|------|-----------------|--------|
 | 1 | Answer for my location (no map) | S1; S2 (scenarios 1–5, battery full, outside the Netherlands, load error, approximate notice, location denied + Try again); S3 (parked-screen slider, − and +, limits) | done |
 | 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | done |
-| 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | todo |
+| 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | wip |
 | 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | todo (separate plan run) |
 
 _Slices 1–3 are authored in this plan; Slice 2 was added by a second plan-skill run on 2026-10-12, and Slice 3 by a third on 2026-10-12. Slices 3..N will be authored via subsequent plan-skill invocations against the same design artifact, one per PR._
