@@ -1125,6 +1125,48 @@ The warning is for the lazily loaded MapLibre chunk only, as approved for Slice 
 
 ---
 
+### Chunk 4: Whole-branch review round 1 fixes
+
+- **Issues covered:** whole-branch self-review round 1, issues 1, 2, 3, 4 and 7 (issues 5–6 left alone as briefed: the design-doc contradiction on pins when tiles fail, and the approved chunk-size warning).
+  1. (Important, G6-AC8) `src/ui/results.ts` `applyMap` framed once per `frameKey` with the panel height measured on the first update, so selecting a taller entry raised the sheet over the pins. Now the bottom padding is `framingPanelPx(measured, layer height)` = the larger of the measured panel and `SHEET_MAX_FRACTION` (0.66, `.sheet`'s `max-height: 66%`, comment added in `app.css` to keep the two in step) of the map height. A stay change or a selection still never reframes. On a short map `framePadding` still shrinks both paddings to leave `FRAME_MIN_PX`, so there the tallest possible panel can reach the edge of the framed area.
+  2. (Minor) Back on the parked view, the fresh updater had `applied = null`, so `centreOn` overwrote the camera `showSpot()` had restored (the driver's zoom on an unmoved browser spot). The centre memory is now a module-level `createCentreTracker()` (`src/ui/map-core.ts`) shared by every parked visit, like the one map it describes. An unchanged spot keeps the camera; a new spot (a location found later, "My location" after a drag) still centres.
+  3. (Minor) The results stay slider was rebuilt on every update, so an async update (`reportMapFailure`/`reportMapRecovered`) cancelled a drag. The top bar's row (Battery, stay slider, Settings) is now built once per visit; updates sync the slider's value and labels (skipped while dragging, like `slider()` in `parked.ts`), the Battery text and label, and replace only the spot line and the notice after the row. The slider keeps its focus without the old id-based restore (the `rstay` id is gone).
+  4. (Minor) `findChargers` from the results load-error "Try again" re-derived the spot; after a map failure (clears `movedSpot`) with location denied it was `none` and set `blocked: 'location'`, shown only on the parked view. On the results view it now falls back to `searchedSpot` when `spotFor(state)` is none.
+  7. (Minor) `src/main.ts` re-ran `renderLoading` on every `set()` while loading, re-creating the `role="status"` live region. It now renders only on entering the loading view.
+- **Tests written:** `src/ui/map-core.test.ts` (+5: `framingPanelPx` ×2, `createCentreTracker` ×3; seen failing before the helpers existed); `src/app.test.ts` (+1: denied location, moved spot, load error, map failure, "Try again" searches at the searched spot; seen failing on the old code with `search: 'load-error'`). Issues 3 and 7 are DOM-only (D-17) and were checked in the browser only.
+- **Browser check:** `vite preview` (`http://localhost:4173/plug-or-not/`), headless Chromium 1217 via Playwright, SwiftShader, 390×780, geolocation 51.4436, 5.5519, Story 1 settings, battery 20%:
+  1. Selecting each of the 11 strip items in turn (panel 232–329 px high, incl. the entry with the reason line): every one of the 10 pins stayed between the top bar and the panel; the smallest gap between the lowest pin and the panel's top was 201 px. ☑
+  2. Accuracy 1500 m (so the accuracy circle shows, sized by zoom): circle 180 px, one wheel zoom without a drag 199.9 px, "Find chargers", then "Change spot": 199.9 px (the zoom stayed). On the old `parked.ts` the same run went back to 180 px. ☑
+  3. The results slider: two ArrowRight presses 90 → 120 min ("2h"), the same element and still focused; the same element after a selection update; a mouse drag with a pin selection (an update) mid-drag kept the element and the drag, which ended at "16h45". ☑
+  - Hosts requested: `localhost:4173`, `tiles.openfreemap.org`.
+- **Worker reported peak context:** ≈80k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 50e6938 (fix); this log entry in the following docs commit
+- **Deviations:** row 9 in the Deviations from Plan table (issue 1)
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  25 passed (25)
+      Tests  296 passed (296)
+
+$ npm run build
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-CuyxfeAx.css                                       22.48 kB │ gzip:   4.95 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-DA-s9Eij.js                                        46.88 kB │ gzip:  17.75 kB
+dist/assets/map-BYN3tjSV.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 538ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+---
 
 ## Deviations from Plan
 
@@ -1138,6 +1180,7 @@ The warning is for the lazily loaded MapLibre chunk only, as approved for Slice 
 | 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 8   | Task 29 / Slice 4 Chunk 2 | change | Slice 4: changes row 7 ("any `load` after any failure recovers"). MapLibre counts an errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors, and row 7 cleared "Map couldn't load." (G6-AC9 / D-29). Now `startMap` also listens to `data`: a failure before `load` recovers, once, at `load` only if no tile or source error came before `load` (the timeout: slow network, background tab); after such an error it also needs a tile that loaded at any point (`data` with `dataType: 'source'` and a `tile`, before or after the error and before or after `load`; every loaded tile is recorded, since MapLibre usually finishes the good tiles before one bad tile errors), so one tile lost during startup still recovers and a blocked tile server, which never delivers a tile, stays failed. A failure after `load` (the style) never recovers, tile data included. Post-`load` tile/source errors are still ignored (row 6) (Slice 4 End-Review round 1, issue 1; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
+| 9   | Task 40 / Slice 4 Chunk 4 | change | Slice 4: the results map frames for the details panel at its maximum height (`SHEET_MAX_FRACTION` = 0.66 of the map, `.sheet` `max-height: 66%`), not the panel height measured at the first update, so selecting a taller entry (a "Never worth it" reason line) never hides pins under the panel; the pins sit in a smaller area above it. A stay change or a selection still never reframes (whole-branch review round 1, issue 1) | no | pending | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
