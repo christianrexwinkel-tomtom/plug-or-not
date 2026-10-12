@@ -1,0 +1,26 @@
+/* Night and Day colour sets of the same design, picked by the device setting (D-28, G7-AC6). */
+:root {
+  --bg: #0c1211; --surface: #121a18; --raised: #18211f; --raised2: #25302d; --line: #26312e;
+  --ink: #e8efec; --soft: #c9d4d0; --muted: #8b9a95; --faint: #6f7e79;
+  --go: #2fd39a; --go-ink: #04150e; --go-soft: #10291f;
+  --no: #ff6f5e; --no-text: #ff7d6d; --no-ink: #2a0703; --no-soft: #2a1513;
+  --info: #f2c14e; --info-soft: #2a2410;
+  --unknown: #a7b4b0; --focus: #7da5ff; --me: #4f86ff;
+  --dash: #6c7b76; --glow: .55;
+  --f-ui: "Sora", "Avenir Next", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f3f5f4; --surface: #ffffff; --raised: #eef2f0; --raised2: #e0e6e3; --line: #d3dbd7;
+    --ink: #0f1715; --soft: #2c3835; --muted: #56625e; --faint: #75817d;
+    --go: #0a8a5f; --go-ink: #ffffff; --go-soft: #dcf2e8;
+    --no: #d23b28; --no-text: #b42616; --no-ink: #ffffff; --no-soft: #fde8e4;
+    --info: #9a6200; --info-soft: #fff3d6;
+    --unknown: #56625e; --focus: #2a62d6; --me: #2a62d6;
+    --dash: #8a9692; --glow: 0;
+    color-scheme: light;
+  }
+}
