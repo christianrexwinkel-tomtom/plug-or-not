@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NEVER_WORTH_IT, amountChip, dataDate, duration, euro, metres, priceLine, roundCents, savingPhrase, savingSentence, windowSentence } from './format.ts';
+import { NEVER_WORTH_IT, amountChip, coords, dataDate, duration, euro, metres, priceLine, roundCents, savingPhrase, savingSentence, windowSentence } from './format.ts';
 
 describe('roundCents / euro', () => {
   it('rounds half up, including binary edge cases', () => {
@@ -94,5 +94,12 @@ describe('windowSentence (G6-AC1)', () => {
   it('adds "(not for every stay in between)" to a window with gaps', () => {
     expect(windowSentence(w(90, 450, true))).toBe('Worth it if you stay 1h30 to 7h30 (not for every stay in between)');
     expect(windowSentence(w(15, 1440, true))).toBe('Worth it for any stay (not for every stay in between)');
+  });
+});
+
+describe('coords (G3-AC3)', () => {
+  it('shows the spot to 4 decimals', () => {
+    expect(coords(51.4484, 5.4573)).toBe('51.4484, 5.4573');
+    expect(coords(51.45, 5.5)).toBe('51.4500, 5.5000');
   });
 });

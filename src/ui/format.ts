@@ -65,6 +65,11 @@ export function metres(m: number): string {
   return `${Math.round(m).toLocaleString('en-GB')} m`;
 }
 
+/** G3-AC3: the spot as "51.4436, 5.5519"; it is shown as coordinates, never as a place name. */
+export function coords(lat: number, lon: number): string {
+  return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+}
+
 /** G6-AC6 + G6-AC5: "€0.52/kWh · €0.61/h after full · €0.61 start · total €7.11". */
 export function priceLine(start: StartPrices, variesByTime: boolean, total: number): string {
   const parts: string[] = [];

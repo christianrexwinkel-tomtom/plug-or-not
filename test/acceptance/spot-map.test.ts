@@ -9,7 +9,7 @@ import { BRUSSELS, EXAMPLE_RAW, KLOKGEBOUW, MANIFEST, NUENEN, stubDeps } from '.
 const NL_MAP = { lat: 52.13, lon: 5.29, zoom: 7 };
 const DENIED = "We couldn't get your location. Allow location access in your browser and try again, or drag the map to your spot.";
 
-/** Settings saved and the parked screen open; the location answer is still pending. */
+/** Settings saved and the parked screen open (by the time the caller resumes, the stub's location may have answered). */
 async function opened(deps = stubDeps()) {
   const app = createApp(deps);
   await app.start();
@@ -29,7 +29,10 @@ const view = (app: App) => spotView(app.getState());
 describe('PRD S2 edge case — location still being found (G3-AC1)', () => {
   it('shows "Finding your location…" on the map with dragging off and "Find chargers" blocked; the answer centres the map', async () => {
     const deps = stubDeps();
-    const app = await opened(deps);
+    // Set up inline: awaiting an async helper would give the stub's locate() time to answer first.
+    const app = createApp(deps);
+    await app.start();
+    app.saveSettings(EXAMPLE_RAW);
     app.setBattery(20);
     expect(view(app)).toMatchObject({ busy: true, draggable: false, centre: NL_MAP });
     // A drag can't happen while locating; a stray move is ignored, so the answer never moves a spot the driver chose.
