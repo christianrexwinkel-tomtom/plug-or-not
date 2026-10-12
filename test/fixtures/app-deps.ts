@@ -16,6 +16,7 @@ export const EXAMPLE_RAW: RawSettings = {
 
 export const NUENEN = { lat: 51.4436, lon: 5.5519, accuracyM: 20 };
 export const BRUSSELS = { lat: 50.8467, lon: 4.3525, accuracyM: 20 };
+export const KLOKGEBOUW = { lat: 51.4484, lon: 5.4573, accuracyM: 20 };
 
 export const MANIFEST: Manifest = { formatVersion: FORMAT_VERSION, tileSizeDeg: 0.1, tiles: ['514_55'], dataTimestamp: '2026-10-09T06:12:00.000Z' };
 
