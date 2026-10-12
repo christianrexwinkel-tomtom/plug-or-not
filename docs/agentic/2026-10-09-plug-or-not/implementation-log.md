@@ -247,6 +247,121 @@ $ npm test -- src/engine/results.test.ts
 
 ```
 
+### Chunk 2: Tasks 9–14
+
+- **Plan tasks covered:** Tasks 9–14 (display formatting, entry view model, settings service, Netherlands border and browser location, tile data service nearest 10, data build script and committed snapshot)
+- **Tests written:** src/ui/format.test.ts (11), src/ui/entry-view.test.ts (5), src/services/settings.test.ts (29), src/services/location.test.ts (13), src/services/data.test.ts (10), scripts/build-data.test.ts (13), test/snapshot.test.ts (2) — 83 new tests; Task 1's test/acceptance/prd-figures.test.ts (7) now green. Full `npm test`: 143 passed, only test/acceptance/flows.test.ts fails (missing src/app.ts, Task 15), as expected.
+- **Live data (2026-10-12 feeds):** `npm run build-data` wrote 592 tiles, 72,534 locations, data of 2026-10-12T10:02:00.000Z (7.7 s, ≈1.16 GB peak RSS, 24 MB). Smoke check: Parkstraat Nuenen 11 entries, 1 unknown (9%); Klokgebouw Eindhoven 10 entries, 0 unknown (0%). Natural Earth border output matched the plan exactly (608 points, same SHA-256). Raw feeds and the Natural Earth file stayed out of the repo (feeds in memory; GeoJSON in the session scratchpad).
+- **Worker reported peak context:** ≈60k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 761d691, 000c266, 820833c, 1e4ef1a, 71d4b72, 7dd8f20
+
+#### Verify output (verbatim)
+
+```
+$ npm test -- src/ui/format.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/ui/format.test.ts
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  07:03:57
+   Duration  130ms (transform 47%, import 38%, tests 11%, worker 4%)
+
+$ npm test -- src/ui/entry-view.test.ts test/acceptance/prd-figures.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/ui/entry-view.test.ts test/acceptance/prd-figures.test.ts
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  07:04:03
+   Duration  224ms (tests 48%, transform 30%, import 20%, worker 2%)
+
+$ npm test -- src/services/settings.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/services/settings.test.ts
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+ Test Files  1 passed (1)
+      Tests  29 passed (29)
+   Start at  07:04:34
+   Duration  120ms (transform 57%, import 21%, tests 16%, worker 5%)
+
+$ npm test -- src/services/location.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/services/location.test.ts
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  07:04:58
+   Duration  128ms (transform 60%, import 22%, tests 13%, worker 5%)
+
+$ node scripts/build-nl-border.mjs "$SCRATCH/ne/ne_10m_admin_0_countries.geojson"
+rings 9 points 608 bytes 9289
+$ shasum -a 256 src/services/nl-border.ts
+1838f77ec67ce3d19088138c05c54d22fc6817edf08a3bb35b0640aac41c7cca  src/services/nl-border.ts
+
+$ npm test -- src/services/data.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/services/data.test.ts
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  07:05:04
+   Duration  156ms (transform 44%, tests 42%, import 11%, worker 3%)
+
+$ npm run build-data
+Wrote 592 tiles, 72534 locations, data of 2026-10-12T10:02:00.000Z
+(7.72 s real, 1,157,300,224 bytes max RSS; public/data 24M; git status after commit: clean, no *.json.gz, no public/data.next/)
+
+$ npm test -- test/snapshot.test.ts --silent=false
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run test/snapshot.test.ts --silent=false
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+stdout | test/snapshot.test.ts > committed snapshot in public/data > Parkstraat Nuenen: 10 locations, at least one priced entry, no errors
+Parkstraat Nuenen: 11 entries, 1 unknown (9%)
+
+stdout | test/snapshot.test.ts > committed snapshot in public/data > Klokgebouw Eindhoven: 10 locations, at least one priced entry, no errors
+Klokgebouw Eindhoven: 10 entries, 0 unknown (0%)
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  07:05:53
+   Duration  172ms (transform 39%, tests 38%, import 21%, worker 2%)
+
+$ npm test -- scripts/build-data.test.ts test/snapshot.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run scripts/build-data.test.ts test/snapshot.test.ts
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+ Test Files  2 passed (2)
+      Tests  15 passed (15)
+   Start at  07:05:55
+   Duration  190ms (transform 43%, tests 32%, import 22%, worker 3%)
+
+$ git ls-files public/data | grep -c tiles/
+592
+```
+
 ## End-Review (Slice 1)
 
 Filled once, after the LAST chunk commits. The reviewer reads the final committed diff + tests + acceptance criteria — never any worker's narrative.
