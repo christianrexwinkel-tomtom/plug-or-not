@@ -42,7 +42,12 @@ export interface ResultsMapView {
   spotCoords: string | null;
   /** The spot and every pin, to frame; null without pins. */
   bounds: Bounds | null;
-  /** Changes only with a new search or when the pins appear or go, so a stay change never reframes the map. */
+  /**
+   * The spot and the set of pinned locations. A stay change keeps it, so the results map isn't reframed under the
+   * driver; it changes when the spot or the pinned locations change, or the pins appear or go. A new search at the same
+   * spot with the same locations keeps it too: the map is framed again on a new visit because results.ts remounts and
+   * forgets the key it last framed.
+   */
   frameKey: string;
   mapMessage: string | null;
 }

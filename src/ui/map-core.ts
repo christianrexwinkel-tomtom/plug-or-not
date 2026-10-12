@@ -19,36 +19,58 @@ const TILE_PX = 512;
 /** About 1 cm of latitude. */
 const MOVE_EPSILON_DEG = 1e-7;
 
-/** What MapLibre puts on an `error` event: a tile or source failure carries `sourceId` and/or `tile`. */
-export interface MapErrorLike {
+/**
+ * What startMap reads from MapLibre's `load`, `error` and `data` events. A tile or source failure carries `sourceId`
+ * and/or `tile`; a `data` event for a tile that loaded carries `dataType: 'source'` and the `tile`.
+ */
+export interface MapEventLike {
   error?: unknown;
   sourceId?: string;
   tile?: unknown;
+  dataType?: string;
 }
 
 export interface Startable {
-  on(type: 'load' | 'error', listener: (e: MapErrorLike) => void): unknown;
+  on(type: 'load' | 'error' | 'data', listener: (e: MapEventLike) => void): unknown;
 }
+
+const isSourceError = (e: MapEventLike | undefined) => e?.sourceId !== undefined || e?.tile !== undefined;
+const isTileData = (e: MapEventLike | undefined) => e?.dataType === 'source' && e.tile !== undefined;
 
 /**
  * Creates the map and watches it start (G6-AC9, "Map can't load"). A constructor that throws (no WebGL), no `load`
  * within the timeout, or an `error` event before `load` calls `onFail`, once. After `load`, a tile or source error
- * (one tile lost on flaky mobile data) is not a failure; any other error (the style) still is. A `load` that comes
- * after any failure (the timeout, or a tile error during startup) calls `onRecover`, once: the map did start after
- * all. A style that can't load never fires `load`, so that failure stays. A throwing constructor reports
- * on a microtask, never synchronously, so a view that is still building itself isn't re-entered. Returns null then.
+ * (one tile lost on flaky mobile data) is not a failure; any other error (the style) still is.
+ *
+ * A failure before `load` can recover, once, through `onRecover`: the map did start after all. MapLibre counts an
+ * errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors; `load`
+ * alone therefore recovers only a failure without a tile or source error before it (the timeout: a slow network, a
+ * background tab). After a tile or source error, the map also needs a tile that did load (a `data` event with a
+ * tile), before or after `load`: one tile lost during startup recovers, a blocked tile server doesn't. A failure
+ * after `load` (the style) never recovers. A throwing constructor reports on a microtask, never synchronously, so a
+ * view that is still building itself isn't re-entered. Returns null then.
  */
 export function startMap<M extends Startable>(
   create: () => M, onFail: () => void, onRecover: () => void = () => undefined, timeoutMs = MAP_LOAD_TIMEOUT_MS,
 ): M | null {
   let failed = false;
+  let recoverable = false;
   let loaded = false;
+  let sourceErrored = false;
+  let tileLoaded = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const fail = () => {
     if (failed) return;
     failed = true;
+    recoverable = !loaded;
     clearTimeout(timer);
     onFail();
+  };
+  const maybeRecover = () => {
+    if (!failed || !recoverable || !loaded || (sourceErrored && !tileLoaded)) return;
+    failed = false;
+    recoverable = false;
+    onRecover();
   };
   let map: M;
   try {
@@ -62,14 +84,19 @@ export function startMap<M extends Startable>(
     if (loaded) return;
     loaded = true;
     clearTimeout(timer);
-    if (failed) {
-      failed = false;
-      onRecover();
-    }
+    maybeRecover();
   });
   map.on('error', (e) => {
-    if (loaded && (e?.sourceId !== undefined || e?.tile !== undefined)) return;
+    if (isSourceError(e)) {
+      if (loaded) return;
+      sourceErrored = true;
+    }
     fail();
+  });
+  map.on('data', (e) => {
+    if (!sourceErrored || !isTileData(e)) return;
+    tileLoaded = true;
+    maybeRecover();
   });
   return map;
 }

@@ -104,7 +104,7 @@ describe('PRD S3 scenario 1 on the map — a stay change keeps the selection (D-
 });
 
 describe('PRD S2 error — map can\'t load, on the results screen (G6-AC9)', () => {
-  it('a map that fails with the results open shows the message and no pins; the results stay in full', async () => {
+  it('a map that fails with the results open shows the message and no pins, the results stay in full, and a recovery brings the pins back under the same frame key', async () => {
     const app = await resultsApp(stubDeps(), { move: KLOKGEBOUW });
     const framedKey = view(app).frameKey;
     app.reportMapFailure();
@@ -113,7 +113,7 @@ describe('PRD S2 error — map can\'t load, on the results screen (G6-AC9)', () 
     });
     expect(app.getState()).toMatchObject({ view: 'results', search: 'results', selectedId: 'VAT:park21#VAT:t' });
     expect(entryViews(app.getState().results).map((e) => e.stripText)).toEqual(['1. Parkstraat 21', '2. Kerkstraat 6']);
-    // A map that loads after all brings the pins back and is framed again.
+    // A map that loads after all brings the pins and the map back; the frame key is the one from before the failure.
     app.reportMapRecovered();
     expect(view(app)).toMatchObject({ mapMessage: null, frameKey: framedKey });
     expect(view(app).pins).toHaveLength(2);

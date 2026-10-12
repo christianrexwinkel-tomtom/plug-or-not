@@ -1,23 +1,25 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ACCURACY_FIT_PX, FRAME_MARGIN_PX, FRAME_MIN_PX, MAP_LOAD_TIMEOUT_MS, SPOT_ZOOM, accuracyRadiusPx, boundsOf, framePadding, hasMoved,
-  isDriverMove, liveMoveCentre, metresPerPixel, spotZoom, startMap, type MapErrorLike,
+  isDriverMove, liveMoveCentre, metresPerPixel, spotZoom, startMap, type MapEventLike,
 } from './map-core.ts';
 
 /** A stand-in for maplibregl.Map: records listeners so a test can fire `load` and `error`. */
 function fakeMap() {
-  const listeners: Record<string, Array<(e: MapErrorLike) => void>> = {};
+  const listeners: Record<string, Array<(e: MapEventLike) => void>> = {};
   return {
-    on(type: 'load' | 'error', listener: (e: MapErrorLike) => void) {
+    on(type: 'load' | 'error' | 'data', listener: (e: MapEventLike) => void) {
       (listeners[type] ??= []).push(listener);
     },
-    fire(type: 'load' | 'error', e: MapErrorLike = { error: new Error('style') }) {
+    fire(type: 'load' | 'error' | 'data', e: MapEventLike = { error: new Error('style') }) {
       for (const l of listeners[type] ?? []) l(e);
     },
   };
 }
 
-const TILE_ERROR: MapErrorLike = { error: new Error('tile'), sourceId: 'openmaptiles', tile: {} };
+/** MapLibre's `data` event for a tile that did load. */
+const TILE_DATA: MapEventLike = { dataType: 'source', sourceId: 'openmaptiles', tile: {} };
+const TILE_ERROR: MapEventLike = { error: new Error('tile'), sourceId: 'openmaptiles', tile: {} };
 
 describe('startMap (G6-AC9)', () => {
   afterEach(() => {
@@ -88,16 +90,71 @@ describe('startMap (G6-AC9)', () => {
     expect(onFail).toHaveBeenCalledTimes(1);
   });
 
-  it('a load after an error before load recovers, once (a tile lost during startup)', () => {
+  it('a source or tile error before load is not recovered by load alone (OpenFreeMap unreachable)', () => {
+    vi.useFakeTimers();
     const onFail = vi.fn();
     const onRecover = vi.fn();
     const map = fakeMap();
     startMap(() => map, onFail, onRecover);
     map.fire('error', TILE_ERROR);
     expect(onFail).toHaveBeenCalledTimes(1);
+    // MapLibre counts an errored source as loaded, so `load` still fires.
     map.fire('load');
+    map.fire('data', { dataType: 'source', sourceId: 'openmaptiles' }); // metadata, no tile
+    map.fire('data', { dataType: 'style' });
+    vi.advanceTimersByTime(MAP_LOAD_TIMEOUT_MS + 1);
+    expect(onRecover).not.toHaveBeenCalled();
+    expect(onFail).toHaveBeenCalledTimes(1);
+  });
+
+  it('a tile error before load, then load, then a tile that loads, recovers once (a tile lost during startup)', () => {
+    const onFail = vi.fn();
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, onFail, onRecover);
+    map.fire('error', TILE_ERROR);
+    map.fire('load');
+    expect(onRecover).not.toHaveBeenCalled();
+    map.fire('data', TILE_DATA);
+    map.fire('data', TILE_DATA);
+    expect(onRecover).toHaveBeenCalledTimes(1);
+    expect(onFail).toHaveBeenCalledTimes(1);
+  });
+
+  it('a tile error before load, a tile that loads, then load, recovers once at load', () => {
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, vi.fn(), onRecover);
+    map.fire('error', TILE_ERROR);
+    map.fire('data', TILE_DATA);
+    expect(onRecover).not.toHaveBeenCalled();
     map.fire('load');
     expect(onRecover).toHaveBeenCalledTimes(1);
+  });
+
+  it('a timeout with a tile error before the late load needs a loaded tile too', () => {
+    vi.useFakeTimers();
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, vi.fn(), onRecover);
+    vi.advanceTimersByTime(MAP_LOAD_TIMEOUT_MS);
+    map.fire('error', TILE_ERROR);
+    map.fire('load');
+    expect(onRecover).not.toHaveBeenCalled();
+    map.fire('data', TILE_DATA);
+    expect(onRecover).toHaveBeenCalledTimes(1);
+  });
+
+  it('a style error after load is not recovered by tile data', () => {
+    const onFail = vi.fn();
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, onFail, onRecover);
+    map.fire('load');
+    map.fire('error');
+    map.fire('data', TILE_DATA);
+    expect(onFail).toHaveBeenCalledTimes(1);
+    expect(onRecover).not.toHaveBeenCalled();
   });
 
   it('a load in time reports no recovery', () => {
