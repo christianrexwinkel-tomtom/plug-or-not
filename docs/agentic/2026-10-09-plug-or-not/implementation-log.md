@@ -3,7 +3,7 @@
 - **Plan:** `docs/agentic/2026-10-09-plug-or-not/plan.md`
 - **Requirements:** `docs/agentic/2026-10-09-plug-or-not/prd.md`
 - **Started:** 2026-10-12 13:00
-- **Completed:** —
+- **Completed:** 2026-10-12 13:45
 - **Worker isolation:** normal
 - **Template version:** default/0.2.1
 - **Mode:** slice-aware — Slice 1 (plan approved by the user 2026-10-12; plan status Draft → Approved)
@@ -465,27 +465,56 @@ dist/assets/index-Dxdb_XU8.js                                     36.06 kB │ g
 
 ## End-Review (Slice 1)
 
-Filled once, after the LAST chunk commits. The reviewer reads the final committed diff + tests + acceptance criteria — never any worker's narrative.
+Range reviewed: `d71f712..HEAD` (Opus reviewer, no worker narrative, implementation-log excluded).
 
-- **Verdict:** {APPROVED | ISSUES_FOUND → fixed → re-reviewed → APPROVED | CAP_REACHED — round-2 findings fixed, not re-reviewed}
-- **Issues found:** {list, or `None`}
-- **Tests-vs-spec audit:** {do the tests verify the specified behavior, or were they shaped around the code? — explicit finding}
-- **Reviewer rounds:** {N — one per reviewer dispatch, max 2; the initial review is round 1}
-- **Cap outcome:** {`none` — the reviewer approved | round-2 findings fixed without a re-review: <findings verbatim> + <fix commit SHA(s)>, plus any finding deliberately left unfixed and disclosed}
+- **Verdict:** ISSUES_FOUND → fixed → re-reviewed → APPROVED
+- **Issues found:** Round 1:
+  - **(Important)** No test covered the PRD error and notice strings.
+  - **(Important)** The S1 scenario 3 "next answer uses new petrol price" test only asserted `not.toEqual`.
+  - Untested parts: G4-AC2 (once per location towards the 10) and G2-AC4 (Last-Modified to ISO).
+  - The battery-full path kept stale `computed` results.
+  - The unset battery slider ignored a tap at exactly 50.
+  - Bogus feed coordinates stretched the `coversAll` bounds.
+  - The focus-restore comment and selector didn't match in `results.ts`.
+  - `role=listitem` sat on a `<button>`.
+  - `Date.now()` was used in the snapshot test.
 
-<!-- hint: The 2-round cap is final — no third round and no user decision at
-     the cap. When round 2 found issues, the verdict is
-     `CAP_REACHED — round-2 findings fixed, not re-reviewed`, never a bare
-     APPROVED: those last fixes are reviewer-unverified and must stay visible
-     to later readers. -->
+  All fixed in Chunk 4 (9d9e3f5, b68e095). Round 2: APPROVED, with three optional Minor notes left open as non-blocking:
+  - `src/ui/messages.ts:33-36` `dataDateSentence` is used only by its test; `setup.ts` builds the sentence separately.
+  - `src/ui/results.ts:52` maps the "never" verdict to the "not for this stay" strip class without saying so.
+  - `src/app.test.ts:106` has an indentation slip.
+- **Tests-vs-spec audit:** Round 2 found the tests check specified behaviour against independent oracles:
+  - exact PRD figures, including the €6.80 peak/off-peak split, which tells it apart from €6.60 and €6.86
+  - a brute-force nearest-10
+  - every tie-breaker and every trust-guard cause
+  - exact message strings, pinned in `messages.test.ts`
+
+  Remaining gap, within the plan: no DOM tests, so the mapping from state to DOM is covered only by the Task 19 manual device checks. Tests that lock in details, harmless: the `entryId` format and `stripText`/`chipText`.
+- **Reviewer rounds:** 2
+- **Cap outcome:** none — the reviewer approved in round 2
 
 ### Final full verify output (verbatim)
 
-Verbatim stdout/stderr of the final full verify command over the whole change. Do NOT paraphrase.
+Command: `npm test 2>&1 | tail -6; npm run build 2>&1 | tail -6; git ls-files | grep -cE '\.json\.gz$|data\.next/'`
 
 ```
-{paste here}
+
+ Test Files  17 passed (17)
+      Tests  182 passed (182)
+   Start at  07:24:51
+   Duration  871ms (tests 44%, transform 30%, import 22%, worker 5%)
+
+dist/assets/sora-latin-600-normal-1_7fyUAY.woff                   18.85 kB
+dist/assets/sora-latin-700-normal-BKPfQAnC.woff                   18.86 kB
+dist/assets/index-Cl58uyk0.css                                    17.20 kB │ gzip:  3.96 kB
+dist/assets/index-Dxdb_XU8.js                                     36.06 kB │ gzip: 13.87 kB
+
+✓ built in 434ms
+$ git ls-files | grep -cE '\.json\.gz$|data\.next/'
+0
 ```
+
+**Task 19 steps 4–5 (post-merge Pages deployment check, manual device checks incl. the G8-AC2 stopwatch):** pending — owned by the user after merge.
 
 ---
 
@@ -493,7 +522,7 @@ Verbatim stdout/stderr of the final full verify command over the whole change. D
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
 | --- | ---------- | ----------------- | ----------- | ------------- | ------ | ---- |
-| 1   | Task 14 / Chunk 4 | change | Slice 1: build drops locations outside a NL-and-neighbours bounding box (`DATA_BOUNDS`, lat 50.0–54.0, lon 2.5–7.5, edges kept) in `scripts/build-data.ts`, so bogus feed coordinates (0,0, swapped, Asia/US) no longer reach the snapshot or stretch the `coversAll` bounds. Snapshot: 580 tiles, 72516 locations | no | pending | 2026-10-12 |
+| 1   | Task 14 / Chunk 4 | change | Slice 1: build drops locations outside a NL-and-neighbours bounding box (`DATA_BOUNDS`, lat 50.0–54.0, lon 2.5–7.5, edges kept) in `scripts/build-data.ts`, so bogus feed coordinates (0,0, swapped, Asia/US) no longer reach the snapshot or stretch the `coversAll` bounds. Snapshot: 580 tiles, 72516 locations | yes — plan §Task 14 edited 2026-10-12 | approved | 2026-10-12 |
 
 <!-- If there are no deviations, write "None." below the table and confirm verbally with the user. -->
 
