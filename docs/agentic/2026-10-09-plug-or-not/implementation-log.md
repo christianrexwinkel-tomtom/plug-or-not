@@ -362,6 +362,82 @@ $ git ls-files public/data | grep -c tiles/
 592
 ```
 
+### Chunk 3: Tasks 15–19
+
+- **Plan tasks covered:** Tasks 15–19 (controller, views, page shell/theme/fonts, GitHub Pages workflow, Slice 1 acceptance verification Steps 1–3)
+- **Tests written:** src/app.test.ts (7). Task 2's test/acceptance/flows.test.ts (13) now green. Tasks 16–18 have no unit tests by plan design (views are glue; D-17); checked by `tsc --noEmit`, the production build and a browser run. Full `npm test`: 16 files, 163 tests passed.
+- **Browser run (Task 17 Step 6, dev server, desktop preview):** first visit shows "Set up your car" with the setup notice and "Charger prices from NDW open data of 12 Oct 2026, 12:02"; charging speed `0` shows "Charging speed must be between 1 and 22 kW." with focus on that field; PRD example values (petrol `2,399`) open "Parked here now"; the preview browser denied location → "We couldn't get your location. Allow location access in your browser and try again." with "Try again" (approved Slice 1 wording); Find chargers with battery unset shows "Enter your current battery level (0–100%)."; with a stubbed Nuenen position (51.4436, 5.5519), battery 20%, stay 45 min → "#1 of 11 · best saving first", Worth it, strip of 11; tapping strip item 3 selects it ("#3 of 11"); switching emulated colour scheme to dark changed the body background to #0c1211 live; only `localhost:5173` requested; no console errors. Check 4 (drag the slider while locating) was not exercised in the automated preview — left to the manual device pass.
+- **Task 19 Steps 4 and 5:** pending — post-merge / manual device checks, owned by the user.
+- **Worker reported peak context:** ≈45k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 8d2ae39, 6d38b1a, 737d46b, 97575ef
+
+#### Verify output (verbatim)
+
+```
+$ npm test -- src/app.test.ts test/acceptance/flows.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/app.test.ts test/acceptance/flows.test.ts
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+
+ Test Files  2 passed (2)
+      Tests  20 passed (20)
+   Start at  07:07:09
+   Duration  211ms (transform 39%, tests 39%, import 20%, worker 2%)
+
+$ npx tsc --noEmit && npm test
+(tsc: no output, exit 0)
+
+ Test Files  16 passed (16)
+      Tests  163 passed (163)
+   Start at  07:07:21
+   Duration  568ms (tests 39%, transform 36%, import 22%, worker 4%)
+
+$ npm run build   (tail)
+dist/assets/index-Apbk2VQL.css                                    17.17 kB │ gzip:  3.96 kB
+dist/assets/index-Z4vtqnCX.js                                     35.69 kB │ gzip: 13.72 kB
+
+✓ built in 571ms
+$ ls dist/data/manifest.json dist/assets/*.woff2 | head -3
+dist/assets/ibm-plex-mono-cyrillic-500-normal-Bq9vWWag.woff2
+dist/assets/ibm-plex-mono-cyrillic-600-normal-CTOM6hUh.woff2
+dist/assets/ibm-plex-mono-cyrillic-ext-500-normal-BqneJy0T.woff2
+$ ls dist/data/manifest.json
+dist/data/manifest.json
+
+$ grep -cE 'npm (ci|test|run build)|path: dist|deploy-pages@v5' .github/workflows/deploy.yml
+5
+
+--- Task 19 Steps 1–3 ---
+$ npm test
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+
+ Test Files  16 passed (16)
+      Tests  163 passed (163)
+   Start at  07:08:46
+   Duration  607ms (transform 37%, tests 34%, import 24%, worker 4%)
+
+$ npm run build   (tail)
+dist/assets/index-Z4vtqnCX.js                                     35.69 kB │ gzip: 13.72 kB
+
+✓ built in 257ms
+$ git ls-files | grep -cE '\.json\.gz$|data\.next/'
+0
+
+Step 4 (gh run list on main, HTTPS on phones): pending — post-merge / manual device checks, owned by the user.
+Step 5 (device checks, stopwatch G8-AC2): pending — post-merge / manual device checks, owned by the user.
+```
+
 ## End-Review (Slice 1)
 
 Filled once, after the LAST chunk commits. The reviewer reads the final committed diff + tests + acceptance criteria — never any worker's narrative.
