@@ -1168,6 +1168,49 @@ dist/assets/map-BYN3tjSV.js                                       1,032.86 kB �
 
 ---
 
+### Chunk 5: Whole-branch review round 2 fixes
+
+- **Issues covered:** whole-branch review round 2, issues 1–4 (final fix round, not re-reviewed).
+  1. (Important, G6-AC8) Framing for `SHEET_MAX_FRACTION · H` made `framePadding` take its shrink branch on any map under ~871 px, so on phones the pins were squeezed into the `FRAME_MIN_PX` band and the map zoomed far out. `applyMap` now, only when it reframes (`v.frameKey !== framed`), builds each entry's panel off-screen in the panel's place (`position:absolute;visibility:hidden;inset:auto 0 0 0` in `.rlayer`, same width and `max-height`), `aria-hidden` and `inert`, reads `offsetHeight` and removes it at once; `framingPanelPx(measured, tallest, H)` = `max(measured, min(tallest, SHEET_MAX_FRACTION · H))`. A stay change or a selection still never reframes.
+  2. (Important, G6-AC9) `findChargers`: on the results view "Try again" always searches at `searchedSpot` when it exists (`state.view === 'results' && state.searchedSpot ? state.searchedSpot : spotFor(state)`), so a map failure that cleared `movedSpot` no longer falls back to the browser position.
+  3. (Minor) The results stay slider also clears `dragging` on `pointerup`, `pointercancel` and `blur`: a drag ending on its start value fires no `change`, which left `sync` off for the visit.
+  4. (Minor) The spot line ("Change spot") and the approximate notice (`role="status"`) are built once in the top bar and patched in place (`textContent`, `hidden`); `replaceAfter` is now used only for the panel or message.
+- **Tests written:** `src/ui/map-core.test.ts` (`framingPanelPx` rewritten for the 3-argument rule: tallest wins, capped at the CSS limit, never below measured, plus a 390×780 case leaving more than `FRAME_MIN_PX`; the first two seen failing on the old helper); `src/app.test.ts` (+1: found location, moved spot, load error, map failure, "Try again" → `findNearest` last called with the moved coordinates; seen failing on the old code). The existing denied-location test kept. Issues 3 and 4 are DOM-only (D-17), checked in the browser.
+- **Browser check:** `vite preview` (`http://localhost:4173/plug-or-not/`), headless Chromium 1217 via Playwright, SwiftShader, 390×780, geolocation 51.4436, 5.5519 (accuracy 20 m; repeated at 1500 m for the approximate notice), Story 1 settings, battery 20%:
+  1. Selecting each of the 11 strip items (panel 232–329 px; tallest 329 px): all 10 pins between the top bar (bottom 113 px) and the panel (top 451–548 px) for every selection; pins span y 144–420, a vertical spread of 271 px of the 384 px between the top bar and the panel at the default selection (Chunk 4 left the lowest pin 201 px above the panel). Smallest gaps: 34 px to the panel, 31 px to the top bar. One `.sheet` in the DOM after each update (the probes are removed). At 1500 m (notice shown, taller top bar): spread 206 px of 318 px, gaps 34/31 px. ☑
+  2. Covered by the Vitest case (no browser path to a load error). ☑
+  3. Click on the track (stay 345), press there, drag to 1440, back to 345, release: 0 `change` events; then a stale value written into the input and a pin selection (an update): the slider shows 345 again. With the `pointerup`/`blur` listeners disabled the same run left 600 (sync skipped). ☑
+  4. Focus "Change spot", Shift+Tab ×2 to the slider, ArrowRight (345 → 360, an update), Tab ×2: focus on the same "Change spot" element; still focused after a further update (a pin selection); the notice element is the same node across the stay change (shown at 1500 m, built and hidden at 20 m). ☑
+  - Hosts requested: `localhost:4173`, `tiles.openfreemap.org`.
+- **Worker reported peak context:** ≈95k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 54f614c (fix); this log entry in the following docs commit
+- **Deviations:** row 9 in the Deviations from Plan table updated to the final framing rule (issue 1)
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  25 passed (25)
+      Tests  299 passed (299)
+
+$ npm run build
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-CuyxfeAx.css                                       22.48 kB │ gzip:   4.95 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-DAbHPtKd.js                                        47.34 kB │ gzip:  17.92 kB
+dist/assets/map-BvEGz5eP.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 515ms
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+---
+
 ## Deviations from Plan
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
@@ -1180,7 +1223,7 @@ dist/assets/map-BYN3tjSV.js                                       1,032.86 kB �
 | 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 8   | Task 29 / Slice 4 Chunk 2 | change | Slice 4: changes row 7 ("any `load` after any failure recovers"). MapLibre counts an errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors, and row 7 cleared "Map couldn't load." (G6-AC9 / D-29). Now `startMap` also listens to `data`: a failure before `load` recovers, once, at `load` only if no tile or source error came before `load` (the timeout: slow network, background tab); after such an error it also needs a tile that loaded at any point (`data` with `dataType: 'source'` and a `tile`, before or after the error and before or after `load`; every loaded tile is recorded, since MapLibre usually finishes the good tiles before one bad tile errors), so one tile lost during startup still recovers and a blocked tile server, which never delivers a tile, stays failed. A failure after `load` (the style) never recovers, tile data included. Post-`load` tile/source errors are still ignored (row 6) (Slice 4 End-Review round 1, issue 1; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
-| 9   | Task 40 / Slice 4 Chunk 4 | change | Slice 4: the results map frames for the details panel at its maximum height (`SHEET_MAX_FRACTION` = 0.66 of the map, `.sheet` `max-height: 66%`), not the panel height measured at the first update, so selecting a taller entry (a "Never worth it" reason line) never hides pins under the panel; the pins sit in a smaller area above it. A stay change or a selection still never reframes (whole-branch review round 1, issue 1) | no | pending | 2026-10-12 |
+| 9   | Task 40 / Slice 4 Chunk 4 | change | Slice 4: the results map frames for the tallest details panel any entry renders, measured off-screen when it reframes and capped at the panel's CSS limit: bottom padding = `max(measured, min(tallest, SHEET_MAX_FRACTION · H))` (`SHEET_MAX_FRACTION` = 0.66, `.sheet` `max-height: 66%`), not the panel height measured at the first update. Selecting a taller entry (a "Never worth it" reason line) never hides pins under the panel, and a phone map isn't padded for a panel no entry fills. A stay change or a selection still never reframes (whole-branch review rounds 1 and 2, issue 1) | no | pending | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
