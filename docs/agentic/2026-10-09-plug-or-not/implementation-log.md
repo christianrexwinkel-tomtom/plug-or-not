@@ -12,6 +12,7 @@
 **Agent Sessions:** claude-code: 4def9f23-a51e-417b-b327-10901565e942
 **Agent Sessions:** claude-code: a23146ca-79b6-4ab5-8438-6d08d1321484
 **Agent Sessions:** claude-code: 0ef86631-d1ec-46ad-99a2-5d397c9b06ce
+**Agent Sessions:** claude-code: 4626c188-d2ad-43a5-8126-5a96dcf065de
 
 ## Pre-Flight
 
@@ -889,6 +890,128 @@ The warning is for the lazily loaded MapLibre chunk only. The entry chunk is ≈
 **Task 34 steps 3–4 (post-merge Pages deployment check, device checks 1–11, G8-AC2 stopwatch):** pending, owned by the user after merge.
 
 ---
+
+## Slice 4: Results on a map
+
+- **Started:** 2026-10-12 (session 4626c188-d2ad-43a5-8126-5a96dcf065de)
+- **Base SHA:** b98b2df
+- **Worker isolation:** normal
+- **Chunk layout:** one chunk, Tasks 35–41 (Slice 3 peaked at ≈110k over ~1,850 plan lines; Slice 4 is ~1,500 plan lines, inside one window)
+
+### Pre-Flight (Slice 4)
+
+```
+$ node --version
+v20.19.5
+$ npm --version
+11.14.0
+$ npm test
+ Test Files  22 passed (22)
+      Tests  261 passed (261)
+$ npm run build
+✓ built in 534ms
+(!) Some chunks are larger than 500 kB after minification. (lazily loaded MapLibre chunk, approved in Slice 3)
+$ npm view maplibre-gl@6.11.2 version
+6.11.2
+$ curl -sSI https://tiles.openfreemap.org/styles/liberty | head -1
+HTTP/2 200 
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account christianrexwinkel-tomtom (keyring)
+  - Active account: true
+  - Git operations protocol: https
+$ ls .pre-commit-config.yaml
+ls: .pre-commit-config.yaml: No such file or directory
+(no non-sample git hooks)
+```
+
+Result: ☑ all green
+
+<!-- Chunk-workers append `### Chunk N: Tasks A–B` entries for Slice 4 below this line. -->
+
+### Chunk 1: Tasks 35–41
+
+- **Plan tasks covered:** Tasks 35–41 (Slice 4 acceptance tests, controller `searchedSpot` and no spot moves off the parked screen, framing bounds and padding, results map view model and wording, MapLibre wrapper results mode and the shared map loader, results screen on the map, verify Slice 4 acceptance). Code follows the plan's listings as written. Task 40 step 5 dev-server checks 1–6 were run against `npm run dev` here (results below). Task 41 steps 1–2 ran here. Steps 3–4 (post-merge Pages deployment check, manual device checks 1–10 incl. the G8-AC2 stopwatch) are **pending — owned by the user after merge**
+- **Tests written:** test/acceptance/results-map.test.ts (8, new; fails to load until Task 38, all green after it), src/app.test.ts (+2, 20 total), src/ui/map-core.test.ts (+4, 23 total), src/ui/messages.test.ts (+3), src/ui/results-map-view.test.ts (5, new); test/fixtures/app-deps.ts gains coordinates on `NEAREST` and the `NEAREST_MIXED` fixture. Suite: 261 → 283 tests, 22 → 24 files, matching the plan
+- **Worker reported peak context:** ≈95k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 28592bc (Task 35), 8b2bb11 (Task 36), f2b66a0 (Task 37), a9a7f87 (Task 38), d05856a (Task 39), 891ddc3 (Task 40); this log entry in the following docs commit
+- **Deviations:** none from the plan's code. The dev-server check ran in a headless Chromium (Playwright, SwiftShader WebGL) instead of the browser pane, because the pane was hidden: with no animation frames MapLibre never fires `load`, and the 8 s start watch showed "Map couldn't load." (the Slice 3 background-tab finding). That run did confirm the G6-AC9 results layout: "Map couldn't load." in the map area above the panel, the top bar, the panel and all 11 strip items in full
+- **Open findings (not fixed, for the end-review / user):**
+  1. **Check 6 fails (G6-AC9, pre-existing from Slice 3):** with every `tiles.openfreemap.org` request blocked, "Map couldn't load." never shows, on the parked map (polled 0–12 s) or on results; the results map shows the pins on an empty map, and the attribution is empty. The style object is local (`src/ui/map-style.ts`), so MapLibre still fires `load` with the TileJSON, sprite and glyphs failing; source/tile errors are ignored after `load`, and a `load` after an earlier error recovers (deviation rows 6–7). So a blocked or unreachable tile server isn't treated as "Map can't load". Task 41 device check 8 will hit this. Not a Slice 4 regression; needs a design decision (e.g. treat a failed TileJSON for the one vector source as a style failure)
+  2. **Pins overlap in a dense area:** at Parkstraat Nuenen the 10 real pins cluster in two groups; several labelled pins overlap and one ("−€0.0…") is partly hidden behind its neighbour, so a scripted tap on pin #2 was intercepted by pin #7. The plan has no collision handling. Relevant to device check 3 ("every pin can be tapped without opening a neighbour")
+
+#### Verify output (verbatim)
+
+```
+$ npm test -- test/acceptance/results-map.test.ts                 # Task 35, at 28592bc
+Error: Cannot find module '../../src/ui/results-map-view.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/test/acceptance/results-map.test.ts
+ Test Files  1 failed (1)
+      Tests  no tests
+$ npm test -- --exclude test/acceptance/results-map.test.ts      # Task 35 step 4
+ Test Files  22 passed (22)
+      Tests  261 passed (261)
+$ npm test -- src/app.test.ts                                     # Task 36 step 2 (red)
+      Tests  2 failed | 18 passed (20)
+$ npm test -- src/app.test.ts test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts test/acceptance/spot-map.test.ts   # Task 36 verify
+ Test Files  4 passed (4)
+      Tests  51 passed (51)
+$ npm test -- src/ui/map-core.test.ts                             # Task 37 (red, then green)
+      Tests  4 failed | 19 passed (23)
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+$ npm test -- src/ui/messages.test.ts src/ui/results-map-view.test.ts   # Task 38 step 3 (red)
+Error: Cannot find module './results-map-view.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/src/ui/results-map-view.test.ts
+ Test Files  2 failed (2)
+      Tests  3 failed | 21 passed (24)
+$ npm test -- src/ui/messages.test.ts src/ui/results-map-view.test.ts src/ui/entry-view.test.ts   # Task 38 step 7
+ Test Files  3 passed (3)
+      Tests  35 passed (35)
+$ npm test -- test/acceptance/results-map.test.ts                 # Task 38 step 8
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+$ npm run build && npm test                                       # Task 38 step 9
+✓ built in 541ms
+ Test Files  24 passed (24)
+      Tests  283 passed (283)
+$ npm test -- test/acceptance/results-map.test.ts src/ui/results-map-view.test.ts src/ui/messages.test.ts   # Task 38 verify
+ Test Files  3 passed (3)
+      Tests  37 passed (37)
+$ grep -rn "from 'maplibre-gl'" src/ test/                        # Task 39 step 4
+src/ui/map.ts:4:import * as maplibregl from 'maplibre-gl';
+$ npm run build && npm test                                       # Task 39 verify, at d05856a
+✓ built in 533ms
+ Test Files  24 passed (24)
+      Tests  283 passed (283)
+$ npm test; npm run build; npx tsc --noEmit                       # Task 40 verify / Task 41 steps 1–2, at 891ddc3
+ Test Files  24 passed (24)
+      Tests  283 passed (283)
+   Start at  10:49:28
+   Duration  977ms (tests 42%, transform 28%, import 27%, worker 4%)
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-CuyxfeAx.css                                       22.48 kB │ gzip:   4.95 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-Di6xjIPT.js                                        46.38 kB │ gzip:  17.53 kB
+dist/assets/map-BdeO5bhc.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 594ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+(tsc: no output)
+```
+
+Task 40 step 5 (dev server `http://localhost:5173/plug-or-not/`, headless Chromium 390×780, geolocation 51.4436, 5.5519 ±20 m, PRD Story 1 settings, battery 20%, stay 45 min; seen at 891ddc3):
+1. The map fills the screen behind the top bar and the panel. Blue dot at the spot, 10 pins (green ✓ "€0.39"…, red "−€0.05"…, one "−€0.10 ×2", one grey dashed "?" with no amount). Every pin lies between the top bar's bottom (113 px) and the panel's top (497 px). Spot line "YOUR LOCATION · 51.4436, 5.5519" with "Change spot". The compact attribution (`maplibregl-compact`) sits at 463–487 px, just above the panel. Panel "#1 of 11 · best saving first". ☑ (pins overlap each other in places; open finding 2)
+2. Tapping pin #3 (Nuenenseweg 68) opened "#3 of 11", outlined and scaled that pin, and marked the same strip item. Tapping strip item 5 moved the outline to the Grote Heiakker 2 pin. ☑
+3. Releasing the results slider at 15 min re-labelled every pin (e.g. "€0.39" → "−€0.46"), the selected entry stayed the same id, and the blue dot's marker transform was unchanged (no reframe). ☑
+4. After panning the results map and "Change spot": the parked map was back on the spot with "Your location · 51.4436, 5.5519". Dragging the parked map, then "Find chargers": the results read "MOVED SPOT · 51.4445, 5.5542". ☑
+5. Emulating `prefers-color-scheme` light after dark switched the page and the map from Night to Day without a reload; all 10 pins stayed. ☑
+6. With `tiles.openfreemap.org` blocked and the page reloaded: **no** "Map couldn't load."; the search showed the 10 pins on an empty map and the panel and strip complete. ☒ — pre-existing Slice 3 behaviour, open finding 1. The failure layout itself was seen in the hidden browser pane (map timed out): "Map couldn't load." centred above the panel, no pins, panel and all 11 strip items in full.
+
+Privacy: the only host outside `localhost:5173` requested during checks 1–5 was `tiles.openfreemap.org`.
 
 ## Deviations from Plan
 
