@@ -688,6 +688,80 @@ Result: ☑ all green
 
 <!-- Chunk-workers append `### Chunk N: Tasks A–B` entries for Slice 3 below this line. -->
 
+### Chunk 1: Tasks 26–34
+
+- **Plan tasks covered:** Tasks 26–34 (Slice 3 acceptance tests, spot model, controller moving the spot / "My location" / map failure, map core, parked map view model and wording, Night and Day map styles, MapLibre wrapper, spot map on the parked screen, verify Slice 3 acceptance). Task 33 step 5 dev-server checks 1–4 were run here in the in-app browser pane, with geolocation stubbed in the page for the found-location checks, and all four passed. Task 34 steps 1–2 ran here. Steps 3–4 (post-merge Pages deployment check, manual device checks 1–11 incl. the G8-AC2 stopwatch) are **pending — owned by the user after merge**
+- **Tests written:** test/acceptance/spot-map.test.ts (9, new; fails to load until Task 30, all green after it), src/services/location.test.ts (+5, 18 total), src/app.test.ts (+7, 17 total; the first test reads `blocked` right after the refused tap), src/ui/map-core.test.ts (7, new), src/ui/messages.test.ts (+7, 20 total), src/ui/format.test.ts (+1, 15 total), src/ui/spot-view.test.ts (8, new), src/ui/map-style.test.ts (5, new); test/fixtures/app-deps.ts gains `KLOKGEBOUW`. Suite: 197 → 246 tests, 18 → 22 files, matching the plan
+- **Worker reported peak context:** ≈110k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** f00b834 (Task 26), eb1c71e (Task 27), 30461b6 (Task 28), 231588d (Task 29), 6e1b266 (Task 30), 5b3f0f3 (Task 31), a2fe559 (Task 32), a57c825 (Task 32 fixes found in the Task 33 dev-server check), 7196ae4 (Task 33)
+- **Deviations:** rows 2–5 in the Deviations from Plan table (acceptance-test setup timing, MapLibre import form, worker URL, gesture-only moves)
+- **Open finding (not fixed, for the end-review / user):** `startMap` fails after 8 s with no `load`. MapLibre fires `load` only after it renders frames, so a tab that is in the background while the map starts (no animation frames) can time out. "Map couldn't load." then stays until a reload. This happened once in the browser pane during the `vite preview` check and did not happen again on later loads. The plan and the design have no retry here.
+
+#### Verify output (verbatim)
+
+```
+$ npm test -- test/acceptance/spot-map.test.ts                 # Task 26, at f00b834
+Error: Cannot find module '../../src/ui/spot-view.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/test/acceptance/spot-map.test.ts
+ Test Files  1 failed (1)
+      Tests  no tests
+$ npm test -- test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts src/app.test.ts   # Task 26 step 4
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
+$ npm test -- src/services/location.test.ts                    # Task 27 (red, then green)
+      Tests  5 failed | 13 passed (18)
+      Tests  18 passed (18)
+$ npm test -- src/app.test.ts                                  # Task 28 step 2 (red)
+      Tests  7 failed | 10 passed (17)
+$ npm test -- src/app.test.ts test/acceptance/flows.test.ts test/acceptance/window-and-stay.test.ts   # Task 28 verify
+ Test Files  3 passed (3)
+      Tests  39 passed (39)
+$ npm test -- src/ui/map-core.test.ts                          # Task 29 (red, then green)
+Error: Cannot find module './map-core.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/src/ui/map-core.test.ts
+ Test Files  1 failed (1)
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+$ npm test -- src/ui/messages.test.ts src/ui/format.test.ts src/ui/spot-view.test.ts   # Task 30 (red, then green)
+ Test Files  3 failed (3)
+      Tests  9 failed | 26 passed (35)
+ Test Files  3 passed (3)
+      Tests  43 passed (43)
+$ npm test -- test/acceptance/spot-map.test.ts                 # Task 30 verify
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+$ npm run build && npm test                                    # Task 30 step 9, at 6e1b266
+✓ built in 453ms
+ Test Files  21 passed (21)
+      Tests  241 passed (241)
+$ npm test -- src/ui/map-style.test.ts; npm run build          # Task 31
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+✓ built in 409ms
+$ grep -rn "from 'maplibre-gl'" src/ test/                     # Task 32 step 3
+src/ui/map.ts:3:import * as maplibregl from 'maplibre-gl';
+$ npm run build && npm test                                    # Task 32 verify, at a2fe559
+✓ built in 388ms
+ Test Files  22 passed (22)
+      Tests  246 passed (246)
+$ npm run build && npm test                                    # Task 33 verify / Task 34 steps 1–2, at 7196ae4
+ Test Files  22 passed (22)
+      Tests  246 passed (246)
+   Start at  09:38:13
+   Duration  741ms (tests 44%, transform 26%, import 25%, worker 5%)
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-3hY0xTqg.js                                     1,060.22 kB │ gzip: 291.77 kB
+✓ built in 525ms
+(!) Some chunks are larger than 500 kB after minification. Consider:
+```
+
+Task 33 step 5 (dev server, `http://localhost:5173/plug-or-not/`, browser pane; seen after a57c825):
+1. With geolocation stubbed to 51.4436, 5.5519 and "Try again" pressed: "Finding your location…" covered the map, then the map showed the streets around the spot, the blue pin, "Your location · 51.4436, 5.5519" and "OpenFreeMap © OpenMapTiles Data from OpenStreetMap" in the bottom-right corner. ☑
+2. Dragging the map turned the chip into "Moved spot · 51.4413, 5.5632" and "My location" appeared. "My location" jumped back to "Your location · 51.4436, 5.5519" and the button was hidden again. ☑
+3. With location denied (the pane's default): the map showed the Netherlands, the grey pin, "No location yet" and the notice "We couldn't get your location. Allow location access in your browser and try again, or drag the map to your spot." with "Try again". ☑
+4. With prefers-color-scheme emulated dark, then light, the map switched between the Night and Day colours without a reload, and the chip and pin stayed. ☑
+
+Before a57c825, check 1 failed with `Error: Worker failed to load. Check that the worker URL is correct.` and "Map couldn't load.". Check 3 showed "No location yet · 52.0862, 5.2900": the coordinates came from the attach-time resize. Both are fixed in a57c825; see deviation rows 4 and 5. The `vite preview` production build was also checked after the fix: the map loaded, the attribution was spelled out, and there were no console errors.
+
 ---
 
 ## Deviations from Plan
@@ -695,6 +769,10 @@ Result: ☑ all green
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
 | --- | ---------- | ----------------- | ----------- | ------------- | ------ | ---- |
 | 1   | Task 14 / Chunk 4 | change | Slice 1: build drops locations outside a NL-and-neighbours bounding box (`DATA_BOUNDS`, lat 50.0–54.0, lon 2.5–7.5, edges kept) in `scripts/build-data.ts`, so bogus feed coordinates (0,0, swapped, Asia/US) no longer reach the snapshot or stretch the `coversAll` bounds. Snapshot: 580 tiles, 72516 locations | yes — plan §Task 14 edited 2026-10-12 | approved | 2026-10-12 |
+| 2   | Task 26 / Chunk 1 | change | Slice 3: the first acceptance test ("location still being found") sets the app up inline instead of through the async `opened()` helper. Awaiting that helper gives the stub's `locate()` enough microtask ticks to answer, so the "still locating" assertions saw a found location whatever the implementation did. The other tests and the helper are as planned | no | pending | 2026-10-12 |
+| 3   | Task 32 / Chunk 1 | change | Slice 3: `src/ui/map.ts` uses `import * as maplibregl from 'maplibre-gl'`, because maplibre-gl 6.11.2 is ESM-only with no default export (TS1192). `last` is typed `{ lat: number; lon: number }`, because `NL_CENTRE` is `as const`. The Task 32 grep still finds exactly one import, at `src/ui/map.ts:3` | no | pending | 2026-10-12 |
+| 4   | Task 32 / Chunk 1 | gap | Slice 3: with the plan's wrapper the map never loads, in dev or build ("Worker failed to load"). MapLibre 6 looks for `maplibre-gl-worker.mjs` next to its own module file, and Vite doesn't put it there. The wrapper now imports `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` and calls `maplibregl.setWorkerUrl()`. The build emits `assets/maplibre-gl-worker-*.js` (≈509 kB) | no | pending | 2026-10-12 |
+| 5   | Task 32 / Chunk 1 | gap | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | no | pending | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
