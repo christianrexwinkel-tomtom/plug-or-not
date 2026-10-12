@@ -1211,6 +1211,40 @@ dist/assets/map-BvEGz5eP.js                                       1,032.86 kB �
 
 ---
 
+### Whole-branch self-review (end of feature)
+
+Run by the `requesting-code-review` skill after the last slice. `main` already holds Slices 1–3, so the reviewer was pointed at the whole app at HEAD and the seams between slices. Opus reviewer, with the implementation log excluded.
+
+- **Verdict:** CAP_REACHED — round-2 findings fixed, not re-reviewed
+- **Round 1 (with fixes):** no Critical issues.
+  - Fixed in Chunk 4 (50e6938, e2afffd):
+    - 1 (Important): framing used the first panel height, so a taller entry hid pins.
+    - 2: the zoom was lost on return to the parked view.
+    - 3: the results slider was rebuilt on async updates.
+    - 4: "Try again" could do nothing after a map failure with location denied.
+    - 7: the loading view re-rendered on every change.
+  - Left for the user:
+    - 5: the design text contradicts itself on pins when only the tiles fail. D-29 and solution-design.md:191 say pins stay; G6-AC9 says "without pins", and the code follows G6-AC9.
+    - 6: the chunk-size warning, already approved.
+- **Round 2 (with fixes):** fixed in Chunk 5 (54f614c, 321b846), not re-reviewed:
+  1. (Important) `src/ui/map-core.ts:206` `framingPanelPx`: padding for the 66% CSS cap squeezed the pins into the 80 px `FRAME_MIN_PX` band on phones. It now pads for the tallest panel any entry renders, measured off-screen and capped by the CSS limit. At 390×780 the pins span 271 of the 384 px left free.
+  2. (Important) `src/app.ts:260-261`: "Try again" on results now always searches at `searchedSpot`.
+  3. (Minor) The stay slider clears `dragging` on `pointerup`, `pointercancel` and `blur`.
+  4. (Minor) The spot line and the approximate notice are built once and patched in place.
+  - Accepted, no action: no DOM tests for the results-view wiring (D-17); `v.centre` is checked twice in `parked.ts:103`.
+- **Reviewer rounds:** 2
+
+#### Final verify (verbatim)
+
+```
+ Test Files  25 passed (25)
+      Tests  299 passed (299)
+✓ built in 599ms
+```
+
+---
+
+
 ## Deviations from Plan
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
@@ -1223,13 +1257,13 @@ dist/assets/map-BvEGz5eP.js                                       1,032.86 kB �
 | 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 8   | Task 29 / Slice 4 Chunk 2 | change | Slice 4: changes row 7 ("any `load` after any failure recovers"). MapLibre counts an errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors, and row 7 cleared "Map couldn't load." (G6-AC9 / D-29). Now `startMap` also listens to `data`: a failure before `load` recovers, once, at `load` only if no tile or source error came before `load` (the timeout: slow network, background tab); after such an error it also needs a tile that loaded at any point (`data` with `dataType: 'source'` and a `tile`, before or after the error and before or after `load`; every loaded tile is recorded, since MapLibre usually finishes the good tiles before one bad tile errors), so one tile lost during startup still recovers and a blocked tile server, which never delivers a tile, stays failed. A failure after `load` (the style) never recovers, tile data included. Post-`load` tile/source errors are still ignored (row 6) (Slice 4 End-Review round 1, issue 1; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
-| 9   | Task 40 / Slice 4 Chunk 4 | change | Slice 4: the results map frames for the tallest details panel any entry renders, measured off-screen when it reframes and capped at the panel's CSS limit: bottom padding = `max(measured, min(tallest, SHEET_MAX_FRACTION · H))` (`SHEET_MAX_FRACTION` = 0.66, `.sheet` `max-height: 66%`), not the panel height measured at the first update. Selecting a taller entry (a "Never worth it" reason line) never hides pins under the panel, and a phone map isn't padded for a panel no entry fills. A stay change or a selection still never reframes (whole-branch review rounds 1 and 2, issue 1) | no | pending | 2026-10-12 |
+| 9   | Task 40 / Slice 4 Chunk 4 | change | Slice 4: the results map frames for the tallest details panel any entry renders, measured off-screen when it reframes and capped at the panel's CSS limit: bottom padding = `max(measured, min(tallest, SHEET_MAX_FRACTION · H))` (`SHEET_MAX_FRACTION` = 0.66, `.sheet` `max-height: 66%`), not the panel height measured at the first update. Selecting a taller entry (a "Never worth it" reason line) never hides pins under the panel, and a phone map isn't padded for a panel no entry fills. A stay change or a selection still never reframes (whole-branch review rounds 1 and 2, issue 1) | yes — plan §Task 40 edited 2026-10-12 | approved | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
 Slice 3: rows 2–7 approved by the user on 2026-10-12. Rows 4 and 5 were converted from gap to change, since both gaps were closed in code. A G6-AC9 row was also added to the plan's Deviations from Design and signed off. The user chose to leave the Vite chunk-size warning for the lazily loaded MapLibre chunk as is.
 
-Slice 4: row 8 approved by the user on 2026-10-12. Pins on a failed map stay hidden, following G6-AC9 ("without pins") over D-29's "pins on a plain background". The user will check the overlap of dense pins (device check 3) after merge.
+Slice 4: rows 8 and 9 approved by the user on 2026-10-12. Pins on a failed map stay hidden, following G6-AC9 ("without pins") over D-29's "pins on a plain background". The user will check the overlap of dense pins (device check 3) after merge.
 
 <!-- If there are no deviations, write "None." below the table and confirm verbally with the user. -->
 
