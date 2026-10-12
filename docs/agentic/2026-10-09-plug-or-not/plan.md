@@ -10,7 +10,7 @@
 **PRD:** [prd.md](prd.md)
 **References:** NDW open data `charging_point_locations_ocpi.json.gz` and `charging_point_tariffs_ocpi.json.gz` (https://opendata.ndw.nu/); Natural Earth v5.1.2 `ne_10m_admin_0_countries.geojson`; repo `christianrexwinkel-tomtom/plug-or-not`
 **Strategy:** sequential vertical slices (first only)
-**Status:** Draft
+**Status:** Approved
 **Template version:** default/0.4.0
 
 **Plugin version:** 0.5.3
@@ -44,7 +44,7 @@ Slice 1 has 19 tasks. Each title names the component or acceptance criterion it 
 
 | Slice | Name | Use case ref(s) | Status |
 |-------|------|-----------------|--------|
-| 1 | Answer for my location (no map) | S1; S2 (scenarios 1–5, battery full, outside the Netherlands, load error, approximate notice, location denied + Try again); S3 (parked-screen slider, − and +, limits) | todo |
+| 1 | Answer for my location (no map) | S1; S2 (scenarios 1–5, battery full, outside the Netherlands, load error, approximate notice, location denied + Try again); S3 (parked-screen slider, − and +, limits) | wip |
 | 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | todo (separate plan run) |
 | 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | todo (separate plan run) |
 | 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | todo (separate plan run) |
@@ -4851,4 +4851,4 @@ On iPhone Safari, Android Chrome, and desktop Chrome, Edge and Safari:
 
 | ID | Type | Status | Design updated? | Note |
 |----|------|--------|-----------------|------|
-| G3-AC1, PRD S2 error table "Location denied or unavailable" | change | pending | n/a — interim wording for Slice 1 only; the design text stays the target and Slice 3 restores it | Slice 1: Slice 1 has no map, so the denied message reads "We couldn't get your location. Allow location access in your browser and try again." without "…, or drag the map to your spot." Showing the design's sentence before the map exists would point the driver at something that isn't there. Needs your sign-off |
+| G3-AC1, PRD S2 error table "Location denied or unavailable" | change | approved | n/a — interim wording for Slice 1 only; the design text stays the target and Slice 3 restores it | Slice 1: Slice 1 has no map, so the denied message reads "We couldn't get your location. Allow location access in your browser and try again." without "…, or drag the map to your spot." Showing the design's sentence before the map exists would point the driver at something that isn't there. Signed off by the user 2026-10-12 |
