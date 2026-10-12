@@ -22,10 +22,29 @@ export const MANIFEST: Manifest = { formatVersion: FORMAT_VERSION, tileSizeDeg: 
 
 export const NEAREST: NearestResult = {
   nearby: [
-    { location: location('ALL:kerk6', [{ tariffKey: 'ALL:t', powerKw: 11 }], { operator: 'Allego', address: 'Kerkstraat 6' }), distanceM: 266 },
-    { location: location('VAT:park21', [{ tariffKey: 'VAT:t', powerKw: 11 }], { operator: 'Vattenfall', address: 'Parkstraat 21' }), distanceM: 74 },
+    { location: location('ALL:kerk6', [{ tariffKey: 'ALL:t', powerKw: 11 }], { operator: 'Allego', address: 'Kerkstraat 6', lat: 51.4458, lon: 5.5522 }), distanceM: 266 },
+    { location: location('VAT:park21', [{ tariffKey: 'VAT:t', powerKw: 11 }], { operator: 'Vattenfall', address: 'Parkstraat 21', lat: 51.4442, lon: 5.5527 }), distanceM: 74 },
   ],
   tariffs: { 'VAT:t': TARIFFS.vattenfall, 'ALL:t': TARIFFS.allego },
+};
+
+/** PRD S2 "Several prices at one pin": a priced and an unpriced connector at one location, and a location with no price at all. */
+export const NEAREST_MIXED: NearestResult = {
+  nearby: [
+    {
+      location: location('VAT:park21', [{ tariffKey: 'VAT:t', powerKw: 11 }, { tariffKey: null, powerKw: null, unknown: 'no-tariff' }], {
+        operator: 'Vattenfall', address: 'Parkstraat 21', lat: 51.4442, lon: 5.5527,
+      }),
+      distanceM: 74,
+    },
+    {
+      location: location('LMS:molen5', [{ tariffKey: null, powerKw: null, unknown: 'no-tariff' }], {
+        operator: 'Last Mile Solutions', address: 'Molenstraat 5', lat: 51.4471, lon: 5.5478,
+      }),
+      distanceM: 902,
+    },
+  ],
+  tariffs: { 'VAT:t': TARIFFS.vattenfall },
 };
 
 /** Each call to `locate` resolves with the next scripted outcome (the last one repeats). */
