@@ -1,0 +1,6 @@
+[
+  { "id": "T1", "party_id": "AAA", "currency": "EUR", "start_date_time": null, "end_date_time": null, "elements": [{ "price_components": [{ "type": "ENERGY", "price": 0.30, "vat": null, "step_size": 1 }], "restrictions": null }], "last_updated": "2026-10-08T00:00:00Z" },
+  { "id": "T1", "party_id": "BBB", "currency": "EUR", "start_date_time": null, "end_date_time": null, "elements": [{ "price_components": [{ "type": "ENERGY", "price": 0.55, "vat": null, "step_size": 1 }], "restrictions": null }], "last_updated": "2026-10-08T00:00:00Z" },
+  { "id": "T2", "party_id": "AAA", "currency": "EUR", "start_date_time": null, "end_date_time": null, "elements": [{ "price_components": [{ "type": "TIME", "price": 1.00, "vat": null, "step_size": 60 }], "restrictions": null }], "last_updated": "2026-10-08T00:00:00Z" },
+  { "id": "UNUSED", "party_id": "AAA", "currency": "EUR", "start_date_time": null, "end_date_time": null, "elements": [], "last_updated": "2026-10-08T00:00:00Z" }
+]
