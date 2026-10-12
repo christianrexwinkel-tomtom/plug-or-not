@@ -2,8 +2,10 @@ import type { App, AppState } from '../app.ts';
 import { STAY_MAX, STAY_MIN, STAY_STEP } from '../engine/compare.ts';
 import { h, icon, rangeFill } from './dom.ts';
 import { appBar, errorText, notice, storageNotice } from './chrome.ts';
-import { duration } from './format.ts';
-import { BATTERY_NOT_SET, FINDING_CHARGERS, LOCATING, LOCATION_DENIED, OUTSIDE_NL, APPROXIMATE, STAY_LIMITS, TRY_AGAIN } from './messages.ts';
+import { coords, duration } from './format.ts';
+import { sharedMap } from './map.ts';
+import { spotView, type SpotNotice, type SpotView } from './spot-view.ts';
+import { BATTERY_NOT_SET, FINDING_CHARGERS, LOCATING, MAP_HINT, MY_LOCATION, STAY_LIMITS, TRY_AGAIN } from './messages.ts';
 
 /** A range slider whose element is never replaced, so a state change can't interrupt a drag. */
 function slider(opts: {
@@ -56,31 +58,59 @@ function slider(opts: {
   };
 }
 
-function spotNotice(state: AppState, app: App): HTMLElement {
-  const hl = state.blocked === 'location' ? ' highlight' : '';
-  if (state.search === 'outside-nl') {
-    return notice('bad', 'alert', h('p', {}, OUTSIDE_NL));
-  }
-  const loc = state.location;
-  if (loc.status === 'locating') {
-    const n = notice('info', 'status', h('p', {}, LOCATING));
-    n.className += hl;
-    return n;
-  }
-  if (loc.status === 'denied') {
-    // Slice 1 has no map yet: the "or drag the map to your spot" clause arrives with Slice 3 (see Deviations).
-    const n = notice('bad', 'alert',
-      h('p', {}, LOCATION_DENIED),
-      h('div', { class: 'acts' }, h('button', { type: 'button', class: 'btn btn-secondary btn-small', onclick: () => void app.retryLocation() }, TRY_AGAIN)),
-    );
-    n.className += hl;
-    return n;
-  }
-  const { lat, lon } = loc.position;
-  return h('div', {},
-    loc.approximate ? notice('info', 'status', h('p', {}, APPROXIMATE)) : null,
-    h('p', { class: 'spotline mono' }, `YOUR LOCATION · ${lat.toFixed(4)}, ${lon.toFixed(4)}`),
+function spotNotice(n: SpotNotice, highlight: boolean, app: App): HTMLElement {
+  const el = notice(n.tone, n.role,
+    h('p', {}, n.text),
+    n.retry && h('div', { class: 'acts' },
+      h('button', { type: 'button', class: 'btn btn-secondary btn-small', onclick: () => void app.retryLocation() }, TRY_AGAIN)),
   );
+  el.classList.toggle('highlight', highlight);
+  return el;
+}
+
+/** The spot map (G3-AC1–AC4, FR-025): the shared map under a fixed pin, with its chip and overlays. Built once per visit. */
+function spotMap(app: App) {
+  const map = sharedMap({ moved: (lat, lon) => app.moveSpot(lat, lon), failed: () => app.reportMapFailure() });
+  const pin = h('span', { class: 'target' });
+  const chipLabel = h('b', {});
+  const chipCoords = h('span', {});
+  const chip = h('span', { class: 'chipx' }, chipLabel, chipCoords);
+  const recentre = h('button', { type: 'button', class: 'recenter', onclick: () => app.recentre() }, icon('pin', 12), MY_LOCATION);
+  const busy = h('div', { class: 'busy', role: 'status' }, h('span', {}, h('i', { class: 'dot' }), LOCATING));
+  const hint = h('span', { class: 'maphint' }, MAP_HINT);
+  const failed = h('div', { class: 'mapmsg', role: 'status' });
+  const box = h('div', { class: 'spotmap', role: 'application', 'aria-label': 'Map of your spot. Drag to move the spot under the pin.' },
+    pin, h('div', { class: 'mapchips' }, chip, recentre), busy, hint, failed);
+  /** The centre last applied; null while the driver's own move is showing. */
+  let applied: string | null = null;
+  // While dragging, only the coordinates follow the map; the spot is committed when the move ends (`moved`).
+  map.onLiveMove((lat, lon) => {
+    chipCoords.textContent = ` · ${coords(lat, lon)}`;
+  });
+
+  return {
+    box,
+    /** Puts the shared map into this box; call once the box is in the page, so the map can size itself. */
+    attach: () => map.attachTo(box),
+    update(v: SpotView) {
+      box.classList.toggle('hl', v.highlight);
+      pin.className = v.pin === 'none' ? 'target none' : 'target';
+      pin.hidden = v.mapMessage !== null;
+      chip.hidden = v.chipLabel === null;
+      chipLabel.textContent = v.chipLabel ?? '';
+      chipCoords.textContent = v.chipCoords ? ` · ${v.chipCoords}` : '';
+      recentre.hidden = !v.recentre;
+      busy.hidden = !v.busy;
+      hint.hidden = !v.draggable;
+      failed.hidden = v.mapMessage === null;
+      failed.textContent = v.mapMessage ?? '';
+      map.setDraggable(v.draggable);
+      map.setAccuracy(v.accuracyM);
+      const key = v.centre && `${v.centre.lat},${v.centre.lon},${v.centre.zoom}`;
+      if (v.centre && key !== applied) map.centreOn(v.centre.lat, v.centre.lon, v.centre.zoom);
+      applied = key;
+    },
+  };
 }
 
 /** Builds the parked screen once per visit and returns an updater that patches it in place. */
@@ -104,7 +134,8 @@ export function mountParked(root: HTMLElement, app: App): (state: AppState) => v
   stay.box.append(limitNote);
 
   const storage = storageNotice();
-  const spot = h('div', {});
+  const noticeSlot = h('div', {});
+  const map = spotMap(app);
   root.replaceChildren(
     appBar(app),
     h('section', { class: 'screen' },
@@ -112,10 +143,12 @@ export function mountParked(root: HTMLElement, app: App): (state: AppState) => v
       h('p', { class: 'lede' }, 'We’ll rank the 10 nearest chargers by what they save you compared with petrol.'),
       storage, battery.box, stay.box,
       h('h2', { class: 'sec' }, 'Where you parked'),
-      spot,
+      noticeSlot,
+      map.box,
       h('button', { type: 'button', class: 'btn btn-primary', onclick: () => void app.findChargers() }, icon('bolt', 18), 'Find chargers'),
     ),
   );
+  map.attach();
 
   return (state) => {
     storage.hidden = !state.storageWarning;
@@ -128,7 +161,9 @@ export function mountParked(root: HTMLElement, app: App): (state: AppState) => v
     battery.input.setAttribute('aria-describedby', 'batt_e');
     stay.sync(state.stayMin);
     limitNote.hidden = !state.stayLimitNote;
-    spot.replaceChildren(spotNotice(state, app));
+    const spot = spotView(state);
+    noticeSlot.replaceChildren(...(spot.notice ? [spotNotice(spot.notice, spot.highlight, app)] : []));
+    map.update(spot);
   };
 }
 
