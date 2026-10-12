@@ -11,6 +11,22 @@ import {
 export const LOCATIONS_URL = 'https://opendata.ndw.nu/charging_point_locations_ocpi.json.gz';
 export const TARIFFS_URL = 'https://opendata.ndw.nu/charging_point_tariffs_ocpi.json.gz';
 
+/**
+ * A generous box around the Netherlands and its neighbours. The feed carries some bogus coordinates
+ * (0,0, swapped or out-of-range values, points in Asia and the US); locations outside the box are dropped.
+ */
+export const DATA_BOUNDS = { minLat: 50.0, maxLat: 54.0, minLon: 2.5, maxLon: 7.5 } as const;
+
+export const inDataBounds = (lat: number, lon: number): boolean =>
+  lat >= DATA_BOUNDS.minLat && lat <= DATA_BOUNDS.maxLat && lon >= DATA_BOUNDS.minLon && lon <= DATA_BOUNDS.maxLon;
+
+/** The manifest's ISO dataTimestamp from the tariff feed's Last-Modified header (G2-AC4). */
+export function dataTimestampFrom(lastModified: string | null): string {
+  const t = lastModified === null ? NaN : new Date(lastModified).getTime();
+  if (Number.isNaN(t)) throw new Error(`tariff feed sent no usable Last-Modified header (${lastModified ?? 'none'})`);
+  return new Date(t).toISOString();
+}
+
 /** The subset of an NDW OCPI location this script reads. */
 export interface FeedConnector {
   power_type: 'AC_1_PHASE' | 'AC_3_PHASE' | 'DC';
@@ -98,7 +114,7 @@ export function transformFeeds(
     if (!hasAc) continue;
     const lat = Number(loc.coordinates.latitude);
     const lon = Number(loc.coordinates.longitude);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !inDataBounds(lat, lon)) continue;
     const key = tileKeyFor(lat, lon);
     const tile = tiles.get(key) ?? { formatVersion: FORMAT_VERSION, key, locations: [], tariffs: {} };
     const entries = locationEntries(loc, tariffs);
@@ -142,11 +158,10 @@ export async function writeSnapshot(outDir: string, result: { manifest: Manifest
 
 async function main(): Promise<void> {
   const [locations, tariffs] = await Promise.all([download(LOCATIONS_URL), download(TARIFFS_URL)]);
-  if (!tariffs.lastModified) throw new Error('tariff feed sent no Last-Modified header');
   const result = transformFeeds(
     locations.json as FeedLocation[],
     tariffs.json as FeedTariff[],
-    new Date(tariffs.lastModified).toISOString(),
+    dataTimestampFrom(tariffs.lastModified),
   );
   await writeSnapshot('public/data', result);
   const locs = result.tiles.reduce((n, t) => n + t.locations.length, 0);

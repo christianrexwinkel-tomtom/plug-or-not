@@ -152,7 +152,7 @@ export function createApp(deps: AppDeps): App {
       if (!result.ok) return result;
       const { persisted } = deps.store.save(result.settings);
       set({ settings: result.settings, setupNotice: false, storageWarning: !persisted });
-      if (state.returnView === 'results' && computed.length > 0) {
+      if (state.returnView === 'results' && state.search === 'results' && computed.length > 0) {
         // Settings change the curves: recompute from the loaded tiles, no refetch.
         const cached = nearestCache!.result;
         computed = computeEntries(cached.nearby, cached.tariffs, result.settings, state.battery!, deps.now());
@@ -205,6 +205,7 @@ export function createApp(deps: AppDeps): App {
         return;
       }
       if (state.battery === 100) {
+        computed = [];
         set({ view: 'results', search: 'battery-full', results: [], selectedId: null });
         return;
       }

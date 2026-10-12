@@ -61,12 +61,18 @@ describe('createApp — controller state machine (G7-AC5)', () => {
   it('changing the petrol price from the results screen recomputes without refetching (G1-AC4)', async () => {
     const { app, deps } = await searched();
     const before = app.getState().results[0]!.outcome;
+    expect(before).toMatchObject({ kind: 'priced', kwh: expect.closeTo(5.4, 9) });
     app.openSettings();
     app.saveSettings({ ...EXAMPLE_RAW, petrolPrice: '2.459' });
     const s = app.getState();
     expect(s.view).toBe('results');
     expect(s.settings).toMatchObject({ petrolPrice: 2.459, chargeKw: 3.6, cardStartFee: 0.89 });
-    expect(s.results[0]!.outcome).not.toEqual(before);
+    // PRD S1 figures: 5.4 kWh ÷ 0.25 kWh/km = 21.6 km; ÷ 12 km/L = 1.8 L; × €2.459/L = €4.4262.
+    const after = s.results[0]!.outcome;
+    if (after.kind !== 'priced' || before.kind !== 'priced') throw new Error('expected priced outcomes');
+    expect(after.petrolCost).toBeCloseTo(4.4262, 9);
+    expect(after.cost).toBeCloseTo(before.cost, 9);
+    expect(after.saving).toBeCloseTo(4.4262 - before.cost, 9);
     expect(deps.findNearest).toHaveBeenCalledTimes(1);
   });
 
@@ -83,7 +89,21 @@ describe('createApp — controller state machine (G7-AC5)', () => {
     expect(app.getState()).toMatchObject({ search: 'results', dataTimestamp: '2026-10-09T06:12:00.000Z' });
   });
 
-  it('closing the settings returns to the view it was opened from', async () => {
+  it('a Settings save after a battery-full answer leaves the results empty', async () => {
+    const { app } = await searched();
+    app.backToParked();
+    app.setBattery(100);
+    await app.findChargers();
+    expect(app.getState()).toMatchObject({ view: 'results', search: 'battery-full', results: [] });
+    app.openSettings();
+    app.saveSettings({ ...EXAMPLE_RAW, petrolPrice: '2.459' });
+    const s = app.getState();
+    expect(s.results).toEqual([]);
+    expect(s.selectedId).toBeNull();
+    expect(s.search).not.toBe('results');
+  });
+
+    it('closing the settings returns to the view it was opened from', async () => {
     const { app } = await searched();
     app.openSettings();
     app.closeSettings();

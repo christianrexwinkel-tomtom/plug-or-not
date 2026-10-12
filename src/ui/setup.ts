@@ -3,6 +3,7 @@ import { FIELDS, initialRaw, toRaw, type FieldSpec, type RawSettings, type Setti
 import { h, icon } from './dom.ts';
 import { appBar, errorText, notice, storageNotice } from './chrome.ts';
 import { dataDate } from './format.ts';
+import { DATA_DATE_PREFIX, SETUP_MISSING } from './messages.ts';
 
 const GROUPS: Array<{ group: FieldSpec['group']; title: string; hint?: string; two: boolean }> = [
   { group: 'car', title: 'Your car', two: false },
@@ -20,11 +21,11 @@ export function mountSetup(root: HTMLElement, initial: AppState, app: App): (sta
   const values: RawSettings = initial.settings ? toRaw(initial.settings) : initialRaw();
   let errors: Partial<Record<SettingKey, string>> = {};
 
-  const setupNotice = notice('info', 'status', h('p', {}, 'Set up your car first so we can calculate your costs.'));
+  const setupNotice = notice('info', 'status', h('p', {}, SETUP_MISSING));
   const storage = storageNotice();
   const dateText = h('b', {});
   const date = h('p', { class: 'datadate' }, icon('info', 14),
-    h('span', {}, 'Charger prices from NDW open data of ', dateText, '. Prices include VAT; your card fees are added.'));
+    h('span', {}, DATA_DATE_PREFIX, dateText, '. Prices include VAT; your card fees are added.'));
   const formSlot = h('div', {});
 
   const field = (f: FieldSpec) => {

@@ -79,6 +79,20 @@ describe('findNearest (G4-AC1)', () => {
     expect(res.nearby).toHaveLength(locs.filter((l) => l.id.startsWith('S:')).length);
   });
 
+  it('counts a location with several tariffs once towards the 10 (G4-AC2)', async () => {
+    const { locs, manifest, fetchJson } = fixture();
+    // Give the nearest locations three entries each, as for a location with several tariffs.
+    for (const id of bruteForce(locs, 51.45, 5.5, 20)) {
+      const l = locs.find((x) => x.id === id)!;
+      l.entries = ['A', 'B', 'C'].map((t) => ({ tariffKey: `${t}:${id}`, powerKw: 11 }));
+    }
+    const res = await findNearest(51.45, 5.5, manifest, fetchJson);
+    expect(res.nearby).toHaveLength(10);
+    expect(new Set(res.nearby.map((x) => x.location.id)).size).toBe(10);
+    expect(res.nearby.map((x) => x.location.id)).toEqual(bruteForce(locs, 51.45, 5.5));
+    expect(res.nearby.reduce((n, x) => n + x.location.entries.length, 0)).toBe(30);
+  });
+
   it('merges the tariffs of every loaded tile', async () => {
     const { manifest, fetchJson } = fixture();
     const res = await findNearest(51.45, 5.5, manifest, fetchJson);

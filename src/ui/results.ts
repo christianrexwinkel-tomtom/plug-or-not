@@ -2,6 +2,7 @@ import type { App, AppState } from '../app.ts';
 import { h, icon, type IconName } from './dom.ts';
 import { notice } from './chrome.ts';
 import { duration } from './format.ts';
+import { APPROXIMATE, APPROXIMATE_RESULTS, BATTERY_FULL, LOAD_ERROR, TRY_AGAIN } from './messages.ts';
 import { entryViews, type EntryView, type VerdictKind } from './entry-view.ts';
 
 const VERDICT_ICON: Record<VerdictKind, IconName> = {
@@ -24,11 +25,11 @@ function message(kind: 'load' | 'full', app: App): HTMLElement {
   return kind === 'load'
     ? h('div', { class: 'rmsg', role: 'alert' },
         h('div', { class: 'big bad' }, icon('wifi', 32)),
-        h('p', {}, "Couldn't load charger prices. Check your connection and try again."),
-        h('button', { type: 'button', class: 'btn btn-primary', onclick: () => void app.findChargers() }, 'Try again'))
+        h('p', {}, LOAD_ERROR),
+        h('button', { type: 'button', class: 'btn btn-primary', onclick: () => void app.findChargers() }, TRY_AGAIN))
     : h('div', { class: 'rmsg', role: 'status' },
         h('div', { class: 'big good' }, icon('full', 32)),
-        h('p', {}, "Your battery is full, so there's nothing to charge here."));
+        h('p', {}, BATTERY_FULL));
 }
 
 function panel(e: EntryView, all: EntryView[], app: App): HTMLElement {
@@ -46,16 +47,18 @@ function panel(e: EntryView, all: EntryView[], app: App): HTMLElement {
       e.reasonText && h('p', { class: 'reason' }, e.reasonText),
     ),
     h('div', { class: 'strip', role: 'list', 'aria-label': 'All chargers, best saving first' },
-      ...all.map((x) => h('button', {
-        type: 'button', role: 'listitem', 'data-id': x.id, 'aria-current': x.id === e.id ? 'true' : 'false', onclick: () => app.select(x.id),
-      }, h('b', { class: VERDICT_CLASS[x.verdict] === 'x' ? 'n' : VERDICT_CLASS[x.verdict] }, icon(VERDICT_ICON[x.verdict], 12), x.chipText), x.stripText))),
+      ...all.map((x) => h('div', { role: 'listitem', class: 'strip-item' }, h('button', {
+        type: 'button', 'data-id': x.id, 'aria-current': x.id === e.id ? 'true' : 'false', onclick: () => app.select(x.id),
+      }, h('b', { class: VERDICT_CLASS[x.verdict] === 'x' ? 'n' : VERDICT_CLASS[x.verdict] }, icon(VERDICT_ICON[x.verdict], 12), x.chipText), x.stripText)))),
   );
 }
 
 export function renderResults(root: HTMLElement, state: AppState, app: App): void {
   // A selection re-renders the panel; keep focus on the strip item (or "Also here" row) the driver used.
   const active = document.activeElement;
-  const focusedId = active instanceof HTMLElement && root.contains(active) ? active.dataset.id : undefined;
+  const focused = active instanceof HTMLElement && root.contains(active) && active.dataset.id
+    ? { id: active.dataset.id, inStrip: active.closest('.strip') !== null }
+    : undefined;
   if (state.search === 'load-error' || state.search === 'battery-full') {
     root.replaceChildren(h('div', { class: 'rwrap' }, topBar(state, app), message(state.search === 'load-error' ? 'load' : 'full', app)));
     return;
@@ -65,10 +68,15 @@ export function renderResults(root: HTMLElement, state: AppState, app: App): voi
   root.replaceChildren(
     h('div', { class: 'rwrap' },
       topBar(state, app),
-      state.approximateResults && notice('info', 'status', h('p', {}, 'Your location is approximate'), h('p', { class: 'plain' }, 'Results are for the reported spot.')),
+      state.approximateResults && notice('info', 'status', h('p', {}, APPROXIMATE), h('p', { class: 'plain' }, APPROXIMATE_RESULTS)),
       selected ? panel(selected, views, app) : null,
     ),
   );
   root.querySelector('.strip [aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  if (focusedId) root.querySelector<HTMLElement>(`.strip [data-id="${CSS.escape(focusedId)}"]`)?.focus();
+  if (focused) {
+    const id = CSS.escape(focused.id);
+    // Back where it was if that control still exists (an "Also here" row disappears once selected), else its strip item.
+    const same = root.querySelector<HTMLElement>(focused.inStrip ? `.strip [data-id="${id}"]` : `.also[data-id="${id}"]`);
+    (same ?? root.querySelector<HTMLElement>(`.strip [data-id="${id}"]`))?.focus();
+  }
 }

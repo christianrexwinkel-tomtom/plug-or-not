@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { connectorPowerKw, transformFeeds, writeSnapshot, type FeedLocation, type FeedTariff } from './build-data.ts';
+import { DATA_BOUNDS, connectorPowerKw, dataTimestampFrom, transformFeeds, writeSnapshot, type FeedLocation, type FeedTariff } from './build-data.ts';
 import { FORMAT_VERSION, type TileLocation } from '../src/shared/data-format.ts';
 
 const feed = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../test/fixtures/feeds/${name}`, import.meta.url), 'utf8')) as T;
@@ -29,6 +29,44 @@ describe('transformFeeds — which locations are kept (G2-AC2)', () => {
   it('keeps published locations with an AC connector and drops DC-only and unpublished ones', () => {
     const ids = [...byId().keys()].sort();
     expect(ids).toEqual(['AAA:AC_ONLY', 'AAA:HALF_PRICED', 'AAA:MIXED', 'AAA:NO_POWER', 'AAA:NULL_TARIFFS', 'AAA:ONE_UNRESOLVED', 'AAA:SHARED', 'BBB:COLLIDE']);
+  });
+});
+
+describe('transformFeeds — bogus coordinates', () => {
+  const at = (id: string, latitude: string, longitude: string): FeedLocation => ({
+    ...LOCATIONS.find((l) => l.id === 'AC_ONLY')!, id, coordinates: { latitude, longitude },
+  });
+
+  it('keeps the box generous around the Netherlands and its neighbours', () => {
+    expect(DATA_BOUNDS).toEqual({ minLat: 50.0, maxLat: 54.0, minLon: 2.5, maxLon: 7.5 });
+  });
+
+  it('drops locations outside DATA_BOUNDS and keeps those inside, edges included', () => {
+    const feedLocs = [
+      at('ZERO', '0', '0'),
+      at('SWAPPED', '5.5519', '51.4436'),
+      at('TOO_BIG', '90', '135'),
+      at('HANOI', '21.03', '105.85'),
+      at('DELHI', '28.61', '77.21'),
+      at('NYC', '40.71', '-74.0'),
+      at('NUENEN', '51.4436', '5.5519'),
+      at('SW_EDGE', '50.0', '2.5'),
+      at('NE_EDGE', '54.0', '7.5'),
+    ];
+    const { tiles } = transformFeeds(feedLocs, TARIFFS, STAMP);
+    const ids = tiles.flatMap((t) => t.locations.map((l) => l.id)).sort();
+    expect(ids).toEqual(['AAA:NE_EDGE', 'AAA:NUENEN', 'AAA:SW_EDGE']);
+  });
+});
+
+describe('dataTimestampFrom (G2-AC4)', () => {
+  it("turns the tariff feed's Last-Modified header into an ISO timestamp", () => {
+    expect(dataTimestampFrom('Fri, 09 Oct 2026 06:12:00 GMT')).toBe('2026-10-09T06:12:00.000Z');
+  });
+
+  it('fails without a usable header', () => {
+    expect(() => dataTimestampFrom(null)).toThrow(/Last-Modified/);
+    expect(() => dataTimestampFrom('not a date')).toThrow(/Last-Modified/);
   });
 });
 

@@ -3,6 +3,7 @@ import { STAY_MAX, STAY_MIN, STAY_STEP } from '../engine/compare.ts';
 import { h, icon } from './dom.ts';
 import { appBar, errorText, notice, storageNotice } from './chrome.ts';
 import { duration } from './format.ts';
+import { BATTERY_NOT_SET, FINDING_CHARGERS, LOCATING, LOCATION_DENIED, OUTSIDE_NL, APPROXIMATE, STAY_LIMITS, TRY_AGAIN } from './messages.ts';
 
 const fill = (v: number, min: number, max: number) => `${(((v - min) / (max - min)) * 100).toFixed(1)}%`;
 
@@ -12,6 +13,7 @@ function slider(opts: {
   format: (v: number) => string; valueText: (v: number) => string; commit: (v: number) => void;
 }) {
   let dragging = false;
+  let unset = true;
   const value = h('span', { class: 'val num' });
   const input = h('input', { type: 'range', class: 'range', id: opts.id, min: opts.min, max: opts.max, step: opts.step });
   const box = h('div', { class: 'slider' },
@@ -21,6 +23,7 @@ function slider(opts: {
   );
   const show = (v: number | null) => {
     const set = v !== null;
+    unset = !set;
     const n = v ?? (opts.min + opts.max) / 2;
     input.value = String(n);
     input.style.setProperty('--p', set ? fill(n, opts.min, opts.max) : '0%');
@@ -38,6 +41,15 @@ function slider(opts: {
     dragging = false;
     opts.commit(Number(input.value));
   });
+  // An unset slider parks its thumb mid-scale, so a tap or release exactly there fires no `change`:
+  // commit on pointer release anyway, so any tap or drag sets the value.
+  // (Keyboard input always moves the value, so it fires `change` by itself.)
+  const commitIfUnset = () => {
+    if (!unset) return;
+    dragging = false;
+    opts.commit(Number(input.value));
+  };
+  input.addEventListener('pointerup', commitIfUnset);
   return {
     box,
     input,
@@ -49,26 +61,26 @@ function slider(opts: {
 function spotNotice(state: AppState, app: App): HTMLElement {
   const hl = state.blocked === 'location' ? ' highlight' : '';
   if (state.search === 'outside-nl') {
-    return notice('bad', 'alert', h('p', {}, 'Charger prices are available for the Netherlands only for now.'));
+    return notice('bad', 'alert', h('p', {}, OUTSIDE_NL));
   }
   const loc = state.location;
   if (loc.status === 'locating') {
-    const n = notice('info', 'status', h('p', {}, 'Finding your location…'));
+    const n = notice('info', 'status', h('p', {}, LOCATING));
     n.className += hl;
     return n;
   }
   if (loc.status === 'denied') {
     // Slice 1 has no map yet: the "or drag the map to your spot" clause arrives with Slice 3 (see Deviations).
     const n = notice('bad', 'alert',
-      h('p', {}, "We couldn't get your location. Allow location access in your browser and try again."),
-      h('div', { class: 'acts' }, h('button', { type: 'button', class: 'btn btn-secondary btn-small', onclick: () => void app.retryLocation() }, 'Try again')),
+      h('p', {}, LOCATION_DENIED),
+      h('div', { class: 'acts' }, h('button', { type: 'button', class: 'btn btn-secondary btn-small', onclick: () => void app.retryLocation() }, TRY_AGAIN)),
     );
     n.className += hl;
     return n;
   }
   const { lat, lon } = loc.position;
   return h('div', {},
-    loc.approximate ? notice('info', 'status', h('p', {}, 'Your location is approximate')) : null,
+    loc.approximate ? notice('info', 'status', h('p', {}, APPROXIMATE)) : null,
     h('p', { class: 'spotline mono' }, `YOUR LOCATION · ${lat.toFixed(4)}, ${lon.toFixed(4)}`),
   );
 }
@@ -79,7 +91,7 @@ export function mountParked(root: HTMLElement, app: App): (state: AppState) => v
     id: 'batt', label: 'Battery now', min: 0, max: 100, step: 1, scale: ['0%', '25%', '50%', '75%', '100%'],
     format: (v) => `${v}%`, valueText: (v) => `${v} percent`, commit: (v) => app.setBattery(v),
   });
-  const batteryError = errorText('batt_e', 'Enter your current battery level (0–100%).');
+  const batteryError = errorText('batt_e', BATTERY_NOT_SET);
   battery.box.append(batteryError);
 
   const stay = slider({
@@ -90,7 +102,7 @@ export function mountParked(root: HTMLElement, app: App): (state: AppState) => v
   const srow = stay.box.querySelector('.srow')!;
   srow.prepend(h('button', { type: 'button', class: 'nudge', 'aria-label': '15 minutes shorter', onclick: () => app.nudgeStay(-1) }, '−'));
   srow.append(h('button', { type: 'button', class: 'nudge', 'aria-label': '15 minutes longer', onclick: () => app.nudgeStay(1) }, '+'));
-  const limitNote = h('div', { class: 'limitnote', role: 'status' }, 'Stays can be 15 minutes to 24 hours.');
+  const limitNote = h('div', { class: 'limitnote', role: 'status' }, STAY_LIMITS);
   stay.box.append(limitNote);
 
   const storage = storageNotice();
@@ -126,7 +138,7 @@ export function renderLoading(root: HTMLElement): void {
   root.replaceChildren(
     appBar(null),
     h('section', { class: 'screen' },
-      h('div', { class: 'loading', role: 'status' }, h('div', { class: 'pulse' }, icon('pin', 28)), h('p', {}, 'Finding chargers near you…')),
+      h('div', { class: 'loading', role: 'status' }, h('div', { class: 'pulse' }, icon('pin', 28)), h('p', {}, FINDING_CHARGERS)),
     ),
   );
 }

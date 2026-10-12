@@ -1,5 +1,6 @@
 import type { App } from '../app.ts';
 import { h, icon, type Child } from './dom.ts';
+import { STORAGE_NOTICE } from './messages.ts';
 
 export function appBar(app: App | null): HTMLElement {
   return h('header', { class: 'appbar' },
@@ -14,7 +15,7 @@ export function notice(kind: 'info' | 'bad', role: 'status' | 'alert', ...body: 
 
 /** G1-AC3, shown on the setup and parked screens. */
 export function storageNotice(): HTMLElement {
-  return notice('info', 'status', h('p', {}, "Your settings won't be remembered in this browser. You can still use Plug or Not now."));
+  return notice('info', 'status', h('p', {}, STORAGE_NOTICE));
 }
 
 export function errorText(id: string, message: string): HTMLElement {
