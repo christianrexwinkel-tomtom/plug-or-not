@@ -438,6 +438,31 @@ Step 4 (gh run list on main, HTTPS on phones): pending — post-merge / manual d
 Step 5 (device checks, stopwatch G8-AC2): pending — post-merge / manual device checks, owned by the user.
 ```
 
+### Chunk 4: End-Review round 1 fixes
+
+- **Issues fixed:** 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+- **Tests added or changed:** src/ui/messages.test.ts (new, 13: 12 PRD strings incl. the approved interim denied-location text, plus the data-date sentence); src/app.test.ts (1 tightened to the concrete PRD S1 petrol cost €4.4262 at €2.459/L, 1 added for battery-full → Settings Save); src/services/data.test.ts (1 added, G4-AC2 several tariffs per location count once); scripts/build-data.test.ts (4 added: DATA_BOUNDS, out-of-bounds drop, dataTimestampFrom ×2); test/snapshot.test.ts (fixed timestamp FRIDAY_1000 instead of Date.now()). Issues 6, 8 and 9 are DOM behaviour with no DOM test dependency; checked by `tsc --noEmit` and the build only.
+- **Snapshot regenerated (issue 7):** `Wrote 580 tiles, 72516 locations, data of 2026-10-12T10:02:00.000Z` (was 592 tiles, 72534 locations, same timestamp). 12 out-of-bounds tiles removed (0_0, 900_1350, 109_1068, 133_771, 396_-957, 403_-798, 469_138, 471_-17, 480_-18, 506_133, 519_76, 690_151). 121 other tiles changed by the refreshed locations feed (ordering/content). No raw feeds in git.
+- **Worker reported peak context:** ≈60k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 9d9e3f5, b68e095
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  17 passed (17)
+      Tests  182 passed (182)
+   Start at  07:20:18
+   Duration  578ms (tests 37%, transform 35%, import 24%, worker 4%)
+
+$ npm run build
+dist/assets/index-Cl58uyk0.css                                    17.20 kB │ gzip:  3.96 kB
+dist/assets/index-Dxdb_XU8.js                                     36.06 kB │ gzip: 13.87 kB
+
+✓ built in 190ms
+```
+
 ## End-Review (Slice 1)
 
 Filled once, after the LAST chunk commits. The reviewer reads the final committed diff + tests + acceptance criteria — never any worker's narrative.
@@ -468,7 +493,7 @@ Verbatim stdout/stderr of the final full verify command over the whole change. D
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
 | --- | ---------- | ----------------- | ----------- | ------------- | ------ | ---- |
-|     |            |                   |             |               |        |      |
+| 1   | Task 14 / Chunk 4 | change | Slice 1: build drops locations outside a NL-and-neighbours bounding box (`DATA_BOUNDS`, lat 50.0–54.0, lon 2.5–7.5, edges kept) in `scripts/build-data.ts`, so bogus feed coordinates (0,0, swapped, Asia/US) no longer reach the snapshot or stretch the `coversAll` bounds. Snapshot: 580 tiles, 72516 locations | no | pending | 2026-10-12 |
 
 <!-- If there are no deviations, write "None." below the table and confirm verbally with the user. -->
 
