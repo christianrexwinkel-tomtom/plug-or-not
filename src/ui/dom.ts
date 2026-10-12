@@ -13,6 +13,11 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Props = 
   return el;
 }
 
+/** The filled share of a range track, for the `--p` custom property ("37.5%"). */
+export function rangeFill(v: number, min: number, max: number): string {
+  return `${(((v - min) / (max - min)) * 100).toFixed(1)}%`;
+}
+
 const ICONS = {
   check: '<path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
   clock: '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',

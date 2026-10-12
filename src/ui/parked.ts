@@ -1,11 +1,9 @@
 import type { App, AppState } from '../app.ts';
 import { STAY_MAX, STAY_MIN, STAY_STEP } from '../engine/compare.ts';
-import { h, icon } from './dom.ts';
+import { h, icon, rangeFill } from './dom.ts';
 import { appBar, errorText, notice, storageNotice } from './chrome.ts';
 import { duration } from './format.ts';
 import { BATTERY_NOT_SET, FINDING_CHARGERS, LOCATING, LOCATION_DENIED, OUTSIDE_NL, APPROXIMATE, STAY_LIMITS, TRY_AGAIN } from './messages.ts';
-
-const fill = (v: number, min: number, max: number) => `${(((v - min) / (max - min)) * 100).toFixed(1)}%`;
 
 /** A range slider whose element is never replaced, so a state change can't interrupt a drag. */
 function slider(opts: {
@@ -26,7 +24,7 @@ function slider(opts: {
     unset = !set;
     const n = v ?? (opts.min + opts.max) / 2;
     input.value = String(n);
-    input.style.setProperty('--p', set ? fill(n, opts.min, opts.max) : '0%');
+    input.style.setProperty('--p', set ? rangeFill(n, opts.min, opts.max) : '0%');
     input.setAttribute('aria-valuetext', set ? opts.valueText(n) : 'not set');
     value.textContent = set ? opts.format(n) : 'Slide to set';
     value.className = set ? 'val num' : 'val num unset';

@@ -1,5 +1,6 @@
 import type { App, AppState } from '../app.ts';
-import { h, icon, type IconName } from './dom.ts';
+import { STAY_MAX, STAY_MIN, STAY_STEP } from '../engine/compare.ts';
+import { h, icon, rangeFill, type IconName } from './dom.ts';
 import { notice } from './chrome.ts';
 import { duration } from './format.ts';
 import { APPROXIMATE, APPROXIMATE_RESULTS, BATTERY_FULL, LOAD_ERROR, TRY_AGAIN } from './messages.ts';
@@ -9,13 +10,33 @@ const VERDICT_ICON: Record<VerdictKind, IconName> = {
   'worth-it': 'check', 'not-for-this-stay': 'clock', never: 'cross', unknown: 'question',
 };
 const VERDICT_CLASS: Record<VerdictKind, string> = { 'worth-it': 'w', 'not-for-this-stay': 'n', never: 'x', unknown: 'u' };
+/** The results slider's id; the focus restore looks it up after each re-render. */
+const STAY_SLIDER_ID = 'rstay';
+
+/** G7-AC2: the label follows the drag; the results update on release (G7-AC4). */
+function staySlider(state: AppState, app: App): HTMLElement {
+  const value = h('b', { class: 'num' });
+  const input = h('input', {
+    type: 'range', class: 'range', id: STAY_SLIDER_ID, min: STAY_MIN, max: STAY_MAX, step: STAY_STEP, value: state.stayMin,
+    'aria-label': 'Length of stay',
+  });
+  const show = (v: number) => {
+    value.textContent = duration(v);
+    input.style.setProperty('--p', rangeFill(v, STAY_MIN, STAY_MAX));
+    input.setAttribute('aria-valuetext', duration(v));
+  };
+  show(state.stayMin);
+  input.addEventListener('input', () => show(Number(input.value)));
+  input.addEventListener('change', () => app.setStay(Number(input.value)));
+  return h('label', { class: 'pill sl' }, h('span', { class: 't' }, h('small', {}, 'Stay'), value), input);
+}
 
 function topBar(state: AppState, app: App): HTMLElement {
   return h('div', { class: 'rtop' },
     h('div', { class: 'row' },
       h('button', { type: 'button', class: 'pill', 'aria-label': `Battery ${state.battery}%, change`, onclick: () => app.backToParked() },
         h('small', {}, 'Battery'), h('span', { class: 'num' }, `${state.battery}%`)),
-      h('div', { class: 'pill grow' }, h('small', {}, 'Stay'), h('b', { class: 'num' }, duration(state.stayMin))),
+      staySlider(state, app),
       h('button', { type: 'button', class: 'pill round', 'aria-label': 'Settings', onclick: () => app.openSettings() }, icon('gear', 17)),
     ),
   );
@@ -56,13 +77,16 @@ function panel(e: EntryView, all: EntryView[], app: App): HTMLElement {
 }
 
 export function renderResults(root: HTMLElement, state: AppState, app: App): void {
-  // A selection re-renders the panel; keep focus on the strip item (or "Also here" row) the driver used.
-  const active = document.activeElement;
-  const focused = active instanceof HTMLElement && root.contains(active) && active.dataset.id
+  // Every render replaces the controls; put focus back on the one the driver used:
+  // the stay slider, or the strip item / "Also here" row of a selection.
+  const active = document.activeElement instanceof HTMLElement && root.contains(document.activeElement) ? document.activeElement : null;
+  const stayFocused = active?.id === STAY_SLIDER_ID;
+  const focused = active?.dataset.id
     ? { id: active.dataset.id, inStrip: active.closest('.strip') !== null }
     : undefined;
   if (state.search === 'load-error' || state.search === 'battery-full') {
     root.replaceChildren(h('div', { class: 'rwrap' }, topBar(state, app), message(state.search === 'load-error' ? 'load' : 'full', app)));
+    if (stayFocused) document.getElementById(STAY_SLIDER_ID)?.focus();
     return;
   }
   const views = entryViews(state.results);
@@ -75,7 +99,9 @@ export function renderResults(root: HTMLElement, state: AppState, app: App): voi
     ),
   );
   root.querySelector('.strip [aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  if (focused) {
+  if (stayFocused) {
+    document.getElementById(STAY_SLIDER_ID)?.focus();
+  } else if (focused) {
     const id = CSS.escape(focused.id);
     // Back where it was if that control still exists (an "Also here" row disappears once selected), else its strip item.
     const same = root.querySelector<HTMLElement>(focused.inStrip ? `.strip [data-id="${id}"]` : `.also[data-id="${id}"]`);
