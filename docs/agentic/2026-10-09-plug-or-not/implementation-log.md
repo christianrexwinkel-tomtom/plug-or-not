@@ -797,6 +797,46 @@ dist/assets/map-RXyRFVM2.js                                       1,019.22 kB �
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
 ```
 
+### Chunk 3: End-Review round 2 fixes
+
+- **Issues fixed:** 1, 2, 3
+- **Issue 1:** `startMap` drops `timedOut`; the `load` handler recovers after any failure (`if (failed) { failed = false; onRecover(); }`). Doc comments updated in `src/ui/map-core.ts` (`startMap`), `src/ui/map.ts` (`recovered`), `src/app.ts` (`mapFailed`, `reportMapRecovered`)
+- **Issue 2:** new pure helper `liveMoveCentre(e, last, centre)` in `src/ui/map-core.ts` (calls `isDriverMove` with both centres); the `move` handler in `src/ui/map.ts` uses it, so a wheel or pinch zoom around the centre no longer flips the chip to "Moved spot"
+- **Issue 3 (option chosen):** keep the rejected promise, no retry. `loadMap()` in `src/ui/parked.ts` caches `import('./map.ts')` as is; a failed import reports `reportMapFailure` once and stays failed until a reload. Simpler than a guarded `reportMapRecovered()` on a retried success, which would also need to tell a retry apart from the cached first success so it can't clear a real `startMap` failure
+- **Tests added or changed:** src/ui/map-core.test.ts: "a load after an error does not recover, and a load in time reports no recovery" split into "a load after an error before load recovers, once (a tile lost during startup)" (flipped) and "a load in time reports no recovery"; new `liveMoveCentre` block, 3 tests (zoom-only gesture move with same centre and `originalEvent` is not a driver move; a centre change gives the new centre; jumps and event-less moves give nothing). Suite: 257 → 261 tests. Issue 3 is DOM code with no DOM test dependency; checked by `tsc --noEmit` and the build
+- **Red run:** `npx vitest run src/ui/map-core.test.ts` before the code change: 4 failed | 15 passed (19)
+- **Worker reported peak context:** ≈30k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 884de21 (fixes); this log entry in the following docs commit
+- **Deviations:** rows 6–7 in the Deviations from Plan table updated (no new row)
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  22 passed (22)
+      Tests  261 passed (261)
+   Start at  09:52:18
+   Duration  822ms (tests 44%, transform 30%, import 22%, worker 4%)
+
+$ npm run build
+dist/assets/maplibre-gl-worker-v2kpBMIs.js                          509.44 kB
+dist/assets/index-DYvrgcMw.css                                       20.25 kB │ gzip:   4.53 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-Dfjh81rR.js                                        43.09 kB │ gzip:  16.41 kB
+dist/assets/map-BCMP55Sr.js                                       1,019.25 kB │ gzip: 276.27 kB
+
+✓ built in 602ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+$ npx tsc --noEmit
+(no output)
+```
+
 ---
 
 ## Deviations from Plan
@@ -808,8 +848,8 @@ dist/assets/map-RXyRFVM2.js                                       1,019.22 kB �
 | 3   | Task 32 / Chunk 1 | change | Slice 3: `src/ui/map.ts` uses `import * as maplibregl from 'maplibre-gl'`, because maplibre-gl 6.11.2 is ESM-only with no default export (TS1192). `last` is typed `{ lat: number; lon: number }`, because `NL_CENTRE` is `as const`. The Task 32 grep still finds exactly one import, at `src/ui/map.ts:3` | no | pending | 2026-10-12 |
 | 4   | Task 32 / Chunk 1 | gap | Slice 3: with the plan's wrapper the map never loads, in dev or build ("Worker failed to load"). MapLibre 6 looks for `maplibre-gl-worker.mjs` next to its own module file, and Vite doesn't put it there. The wrapper now imports `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` and calls `maplibregl.setWorkerUrl()`. The build emits `assets/maplibre-gl-worker-*.js` (≈509 kB) | no | pending | 2026-10-12 |
 | 5   | Task 32 / Chunk 1 | gap | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | no | pending | 2026-10-12 |
-| 6   | Task 29 / Chunk 2 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails; after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | no | pending | 2026-10-12 |
-| 7   | Task 29 / Chunk 2 | change | Slice 3: the fixed 8 s timeout is no longer final. A `load` after a timeout-only failure calls a new `onRecover`; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot (End-Review round 1, issue 2) | no | pending | 2026-10-12 |
+| 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | no | pending | 2026-10-12 |
+| 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | no | pending | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
