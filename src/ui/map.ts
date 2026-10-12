@@ -6,7 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 // (dev or build). Let Vite emit the worker as its own file and point MapLibre at it.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { NL_CENTRE } from '../services/location.ts';
-import { accuracyRadiusPx, isDriverMove, startMap } from './map-core.ts';
+import { accuracyRadiusPx, isDriverMove, liveMoveCentre, startMap } from './map-core.ts';
 import { mapStyle, themeFor, type Theme } from './map-style.ts';
 
 maplibregl.setWorkerUrl(workerUrl);
@@ -16,7 +16,7 @@ export interface MapEvents {
   moved(lat: number, lon: number): void;
   /** The map can't start, or its style failed (a lost tile after `load` is not a failure). Never synchronously. */
   failed(): void;
-  /** A map that timed out has loaded after all. */
+  /** A map that failed before `load` (the timeout, a tile error during startup) has loaded after all. */
   recovered(): void;
 }
 
@@ -77,11 +77,11 @@ function createMap(events: MapEvents): MapHandle {
     map.scrollZoom.enable({ around: 'center' });
     map.touchZoomRotate.enable({ around: 'center' });
     map.touchZoomRotate.disableRotation();
-    // Only a gesture moves the spot (isDriverMove): not our jumps, not MapLibre's own resizes.
+    // Only a gesture moves the spot (isDriverMove): not our jumps, not MapLibre's own resizes, not a zoom.
     map.on('move', (e) => {
-      if (!live || !isDriverMove({ jumping, originalEvent: e.originalEvent })) return;
-      const c = map.getCenter();
-      live(c.lat, c.lng);
+      if (!live) return;
+      const now = liveMoveCentre({ jumping, originalEvent: e.originalEvent }, last, map.getCenter());
+      if (now) live(now.lat, now.lon);
     });
     map.on('moveend', (e) => {
       const c = map.getCenter();

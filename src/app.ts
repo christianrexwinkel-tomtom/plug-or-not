@@ -39,7 +39,7 @@ export interface AppState {
   selectedId: string | null;
   /** The map centre after the driver dragged the map; null = the browser position is the spot (G3-AC3). */
   movedSpot: LatLon | null;
-  /** The map couldn't start, or its style failed (G6-AC9); cleared if a timed-out map loads late. */
+  /** The map couldn't start, or its style failed (G6-AC9); cleared if the map loads after all (late, or after a tile error during startup). */
   mapFailed: boolean;
 }
 
@@ -65,7 +65,7 @@ export interface App {
   recentre(): void;
   /** The map wrapper reports that the map can't be used (G6-AC9). */
   reportMapFailure(): void;
-  /** The map wrapper reports that a map which timed out has loaded after all (G6-AC9). */
+  /** The map wrapper reports that a map which failed before `load` has loaded after all (G6-AC9). */
   reportMapRecovered(): void;
   setBattery(pct: number): void;
   setStay(min: number): void;

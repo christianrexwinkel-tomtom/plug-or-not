@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  ACCURACY_FIT_PX, MAP_LOAD_TIMEOUT_MS, SPOT_ZOOM, accuracyRadiusPx, hasMoved, isDriverMove, metresPerPixel, spotZoom,
+  ACCURACY_FIT_PX, MAP_LOAD_TIMEOUT_MS, SPOT_ZOOM, accuracyRadiusPx, hasMoved, isDriverMove, liveMoveCentre, metresPerPixel, spotZoom,
   startMap, type MapErrorLike,
 } from './map-core.ts';
 
@@ -88,13 +88,21 @@ describe('startMap (G6-AC9)', () => {
     expect(onFail).toHaveBeenCalledTimes(1);
   });
 
-  it('a load after an error does not recover, and a load in time reports no recovery', () => {
+  it('a load after an error before load recovers, once (a tile lost during startup)', () => {
+    const onFail = vi.fn();
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, onFail, onRecover);
+    map.fire('error', TILE_ERROR);
+    expect(onFail).toHaveBeenCalledTimes(1);
+    map.fire('load');
+    map.fire('load');
+    expect(onRecover).toHaveBeenCalledTimes(1);
+  });
+
+  it('a load in time reports no recovery', () => {
     vi.useFakeTimers();
     const onRecover = vi.fn();
-    const broken = fakeMap();
-    startMap(() => broken, vi.fn(), onRecover);
-    broken.fire('error');
-    broken.fire('load');
     const fine = fakeMap();
     startMap(() => fine, vi.fn(), onRecover);
     fine.fire('load');
@@ -132,6 +140,26 @@ describe('isDriverMove (G3-AC3)', () => {
 
   it('a gesture that leaves the centre where it was (a zoom) does not count', () => {
     expect(isDriverMove({ jumping: false, originalEvent: gesture }, a, { ...a })).toBe(false);
+  });
+});
+
+describe('liveMoveCentre (G3-AC3, the live chip)', () => {
+  const last = { lat: 51.4436, lon: 5.5519 };
+  const gesture = { type: 'wheel' };
+
+  it('a zoom-only gesture move (same centre, DOM event present) is not a driver move', () => {
+    expect(liveMoveCentre({ jumping: false, originalEvent: gesture }, last, { lat: last.lat, lng: last.lon })).toBeNull();
+  });
+
+  it('a gesture that moves the centre gives the new centre', () => {
+    expect(liveMoveCentre({ jumping: false, originalEvent: gesture }, last, { lat: 51.45, lng: 5.46 }))
+      .toEqual({ lat: 51.45, lon: 5.46 });
+  });
+
+  it('the wrapper\'s jumps and MapLibre\'s own moves give nothing', () => {
+    const to = { lat: 51.45, lng: 5.46 };
+    expect(liveMoveCentre({ jumping: true, originalEvent: gesture }, last, to)).toBeNull();
+    expect(liveMoveCentre({ jumping: false }, last, to)).toBeNull();
   });
 });
 

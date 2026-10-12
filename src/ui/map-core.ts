@@ -28,7 +28,8 @@ export interface Startable {
  * Creates the map and watches it start (G6-AC9, "Map can't load"). A constructor that throws (no WebGL), no `load`
  * within the timeout, or an `error` event before `load` calls `onFail`, once. After `load`, a tile or source error
  * (one tile lost on flaky mobile data) is not a failure; any other error (the style) still is. A `load` that comes
- * after a timeout-only failure calls `onRecover`, once: the map did start, just late. A throwing constructor reports
+ * after any failure (the timeout, or a tile error during startup) calls `onRecover`, once: the map did start after
+ * all. A style that can't load never fires `load`, so that failure stays. A throwing constructor reports
  * on a microtask, never synchronously, so a view that is still building itself isn't re-entered. Returns null then.
  */
 export function startMap<M extends Startable>(
@@ -36,7 +37,6 @@ export function startMap<M extends Startable>(
 ): M | null {
   let failed = false;
   let loaded = false;
-  let timedOut = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const fail = () => {
     if (failed) return;
@@ -51,22 +51,18 @@ export function startMap<M extends Startable>(
     queueMicrotask(fail);
     return null;
   }
-  timer = setTimeout(() => {
-    timedOut = true;
-    fail();
-  }, timeoutMs);
+  timer = setTimeout(fail, timeoutMs);
   map.on('load', () => {
     if (loaded) return;
     loaded = true;
     clearTimeout(timer);
-    if (failed && timedOut) {
+    if (failed) {
       failed = false;
       onRecover();
     }
   });
   map.on('error', (e) => {
     if (loaded && (e?.sourceId !== undefined || e?.tile !== undefined)) return;
-    timedOut = false;
     fail();
   });
   return map;
@@ -106,4 +102,18 @@ export function isDriverMove(
 ): boolean {
   if (e.jumping || e.originalEvent == null) return false;
   return from === undefined || to === undefined || hasMoved(from, to);
+}
+
+/**
+ * G3-AC3: the centre to show in the live chip for a `move`, or null when the move isn't the driver's. `last` is the
+ * centre at the previous `moveend`; a gesture that keeps the centre there (a wheel or pinch zoom around the centre)
+ * is not a move, matching what `moveend` reports.
+ */
+export function liveMoveCentre(
+  e: { jumping: boolean; originalEvent?: unknown },
+  last: { lat: number; lon: number },
+  centre: { lat: number; lng: number },
+): { lat: number; lon: number } | null {
+  const now = { lat: centre.lat, lon: centre.lng };
+  return isDriverMove(e, last, now) ? now : null;
 }

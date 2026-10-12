@@ -60,13 +60,13 @@ function slider(opts: {
   };
 }
 
-/** MapLibre and the wrapper, in their own chunk; loaded once, a failed load is retried on the next visit. */
+/**
+ * MapLibre and the wrapper, in their own chunk; loaded once. A failed load is not retried: it reported a map that
+ * can't load (G6-AC9), and nothing would clear that if a later visit's retry worked.
+ */
 let mapModule: Promise<typeof import('./map.ts')> | null = null;
 function loadMap(): Promise<typeof import('./map.ts')> {
-  mapModule ??= import('./map.ts').catch((e: unknown) => {
-    mapModule = null;
-    throw e;
-  });
+  mapModule ??= import('./map.ts');
   return mapModule;
 }
 
