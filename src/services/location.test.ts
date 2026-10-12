@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { isApproximate, isInNetherlands, locate } from './location.ts';
+import { NL_CENTRE, isApproximate, isInNetherlands, locate, spotOf } from './location.ts';
 
 function geo(behaviour: (ok: PositionCallback, fail: PositionErrorCallback, opts?: PositionOptions) => void): Geolocation {
   return { getCurrentPosition: vi.fn(behaviour), watchPosition: vi.fn(), clearWatch: vi.fn() } as unknown as Geolocation;
@@ -44,5 +44,30 @@ describe('isInNetherlands (G3-AC4)', () => {
     ['Texel (island)', 53.0546, 4.7977, true],
   ])('%s → %s', (_name, lat, lon, expected) => {
     expect(isInNetherlands(lat, lon)).toBe(expected);
+  });
+});
+
+describe('spotOf (G3-AC3)', () => {
+  const browser = { lat: 51.4436, lon: 5.5519, accuracyM: 20 };
+
+  it('is the browser position while the map is unmoved', () => {
+    expect(spotOf(browser, null)).toEqual({ kind: 'browser', lat: 51.4436, lon: 5.5519, accuracyM: 20, approximate: false });
+  });
+
+  it('is the moved map centre once the driver dragged the map, with or without a browser position', () => {
+    expect(spotOf(browser, { lat: 51.45, lon: 5.56 })).toEqual({ kind: 'moved', lat: 51.45, lon: 5.56 });
+    expect(spotOf(null, { lat: 51.45, lon: 5.56 })).toEqual({ kind: 'moved', lat: 51.45, lon: 5.56 });
+  });
+
+  it('is none with neither, so "Find chargers" stays blocked (G3-AC1)', () => {
+    expect(spotOf(null, null)).toEqual({ kind: 'none' });
+  });
+
+  it('marks an approximate browser position (G3-AC2)', () => {
+    expect(spotOf({ ...browser, accuracyM: 1500 }, null)).toMatchObject({ kind: 'browser', approximate: true });
+  });
+
+  it('opens the map on the centre of the Netherlands at zoom 7 without a location (G3-AC1)', () => {
+    expect(NL_CENTRE).toEqual({ lat: 52.13, lon: 5.29, zoom: 7 });
   });
 });
