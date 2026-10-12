@@ -223,4 +223,21 @@ describe('createApp — controller state machine (G7-AC5)', () => {
     expect(deps.findNearest).toHaveBeenCalledTimes(1);
     expect(app.getState()).toMatchObject({ search: 'results', movedSpot: { lat: 51.4484, lon: 5.4573 } });
   });
+
+  it('records the searched spot for the results, and keeps it when the map fails afterwards (G6-AC8, G6-AC9)', async () => {
+    const { app } = await parked();
+    app.setBattery(20);
+    app.moveSpot(51.4484, 5.4573);
+    await app.findChargers();
+    expect(app.getState().searchedSpot).toEqual({ kind: 'moved', lat: 51.4484, lon: 5.4573 });
+    app.reportMapFailure();
+    expect(app.getState()).toMatchObject({ movedSpot: null, searchedSpot: { kind: 'moved', lat: 51.4484, lon: 5.4573 } });
+  });
+
+  it('a map move off the parked screen is not a spot move: panning the results map keeps the spot', async () => {
+    const { app } = await searched();
+    app.moveSpot(51.4484, 5.4573);
+    expect(app.getState()).toMatchObject({ view: 'results', movedSpot: null });
+    expect(app.getState().searchedSpot).toMatchObject({ kind: 'browser', lat: 51.4436, lon: 5.5519 });
+  });
 });
