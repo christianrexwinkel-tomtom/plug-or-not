@@ -4,6 +4,7 @@ import { h, icon, rangeFill } from './dom.ts';
 import { appBar, errorText, notice, storageNotice } from './chrome.ts';
 import { coords, duration } from './format.ts';
 import type { MapHandle } from './map.ts';
+import { loadSharedMap } from './map-loader.ts';
 import { spotView, type SpotNotice, type SpotView } from './spot-view.ts';
 import {
   BATTERY_NOT_SET, FINDING_CHARGERS, LOCATING, MAP_HINT, MOVED_SPOT, MY_LOCATION, SPOT_MAP_LABEL, STAY_LIMITS, TRY_AGAIN,
@@ -60,16 +61,6 @@ function slider(opts: {
   };
 }
 
-/**
- * MapLibre and the wrapper, in their own chunk; loaded once. A failed load is not retried: it reported a map that
- * can't load (G6-AC9), and nothing would clear that if a later visit's retry worked.
- */
-let mapModule: Promise<typeof import('./map.ts')> | null = null;
-function loadMap(): Promise<typeof import('./map.ts')> {
-  mapModule ??= import('./map.ts');
-  return mapModule;
-}
-
 function spotNotice(n: SpotNotice, highlight: boolean, app: App): HTMLElement {
   const el = notice(n.tone, n.role,
     h('p', {}, n.text),
@@ -110,12 +101,10 @@ function spotMap(app: App) {
     applied = key;
   }
 
-  void loadMap().then((mod) => {
-    const m = mod.sharedMap({
-      moved: (lat, lon) => app.moveSpot(lat, lon),
-      failed: () => app.reportMapFailure(),
-      recovered: () => app.reportMapRecovered(),
-    });
+  // The loader reports a failed load itself (G6-AC9).
+  void loadSharedMap(app).then((m) => {
+    // Back from the results: the pins go, and the camera the driver left comes back (G6-AC8).
+    m.showSpot();
     // While dragging, the chip follows the map; the spot is committed when the move ends (`moved`).
     m.onLiveMove((lat, lon) => {
       chip.hidden = false;
@@ -125,7 +114,7 @@ function spotMap(app: App) {
     map = m;
     if (attached) m.attachTo(box);
     if (last) applyMap(m, last);
-  }, () => app.reportMapFailure());
+  }, () => undefined);
 
   return {
     box,
