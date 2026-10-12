@@ -12,7 +12,7 @@ import { locate } from './services/location.ts';
 import { createFetchJson, findNearest, loadManifest } from './services/data.ts';
 import { mountSetup } from './ui/setup.ts';
 import { mountParked, renderLoading } from './ui/parked.ts';
-import { renderResults } from './ui/results.ts';
+import { mountResults } from './ui/results.ts';
 
 const fetchJson = createFetchJson(import.meta.env.BASE_URL);
 const app = createApp({
@@ -28,7 +28,7 @@ const containers: Record<'setup' | 'parked' | 'results', HTMLElement> = {
   parked: document.getElementById('view-parked')!,
   results: document.getElementById('view-results')!,
 };
-/** Updater of the mounted setup or parked screen; both patch in place while the view stays open. */
+/** Updater of the mounted setup, parked or results screen; each patches in place while the view stays open. */
 let update: ((s: AppState) => void) | null = null;
 let lastView: View | null = null;
 
@@ -51,7 +51,8 @@ function render(): void {
   } else if (state.view === 'loading') {
     renderLoading(containers.results);
   } else {
-    renderResults(containers.results, state, app);
+    update ??= mountResults(containers.results, app);
+    update(state);
   }
 }
 
