@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { amountChip, dataDate, duration, euro, metres, priceLine, roundCents, savingPhrase, savingSentence } from './format.ts';
+import { NEVER_WORTH_IT, amountChip, dataDate, duration, euro, metres, priceLine, roundCents, savingPhrase, savingSentence, windowSentence } from './format.ts';
 
 describe('roundCents / euro', () => {
   it('rounds half up, including binary edge cases', () => {
@@ -72,5 +72,27 @@ describe('dataDate (G2-AC4)', () => {
   it('formats the snapshot time in Amsterdam time', () => {
     expect(dataDate('2026-10-09T06:12:00Z')).toBe('9 Oct 2026, 08:12');
     expect(dataDate('2026-09-01T22:05:00Z')).toBe('2 Sep 2026, 00:05');
+  });
+});
+
+describe('windowSentence (G6-AC1)', () => {
+  const w = (shortest: number, longest: number, hasGaps = false) => ({ shortest, longest, hasGaps });
+
+  it('reads the PRD Story 4 windows', () => {
+    expect(windowSentence(w(90, 450))).toBe('Worth it if you stay 1h30 to 7h30');
+    expect(windowSentence(w(40, 1440))).toBe('Worth it if you stay at least 40 min');
+    expect(windowSentence(w(70, 1440))).toBe('Worth it if you stay at least 1h10');
+    expect(windowSentence(null)).toBe(NEVER_WORTH_IT);
+    expect(NEVER_WORTH_IT).toBe('Never worth it: always more expensive than petrol for your car');
+  });
+
+  it('a window from the minimum stay reads "for any stay", which wins over "at least"', () => {
+    expect(windowSentence(w(15, 1440))).toBe('Worth it for any stay');
+    expect(windowSentence(w(15, 60))).toBe('Worth it for any stay up to 1h');
+  });
+
+  it('adds "(not for every stay in between)" to a window with gaps', () => {
+    expect(windowSentence(w(90, 450, true))).toBe('Worth it if you stay 1h30 to 7h30 (not for every stay in between)');
+    expect(windowSentence(w(15, 1440, true))).toBe('Worth it for any stay (not for every stay in between)');
   });
 });

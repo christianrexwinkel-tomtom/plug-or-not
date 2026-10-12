@@ -1,5 +1,6 @@
 import { VAT } from '../engine/tariff.ts';
 import type { StartPrices } from '../engine/curve.ts';
+import { STAY_MAX, STAY_MIN, type Window } from '../engine/compare.ts';
 
 /** Half-up to cents after adding 1e-9, so €0.605 shows as €0.61 (never toFixed directly). */
 export function roundCents(x: number): number {
@@ -42,6 +43,22 @@ export function duration(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
+}
+
+/** PRD S4 scenario 3: the window sentence when no stay is worth it. */
+export const NEVER_WORTH_IT = 'Never worth it: always more expensive than petrol for your car';
+
+/** G6-AC1: "Worth it if you stay 1h30 to 7h30", "… at least 40 min", "Worth it for any stay (up to X)". */
+export function windowSentence(w: Window | null): string {
+  if (!w) return NEVER_WORTH_IT;
+  const fromMin = w.shortest === STAY_MIN;
+  const toMax = w.longest === STAY_MAX;
+  const base = fromMin
+    ? (toMax ? 'Worth it for any stay' : `Worth it for any stay up to ${duration(w.longest)}`)
+    : toMax
+      ? `Worth it if you stay at least ${duration(w.shortest)}`
+      : `Worth it if you stay ${duration(w.shortest)} to ${duration(w.longest)}`;
+  return w.hasGaps ? `${base} (not for every stay in between)` : base;
 }
 
 export function metres(m: number): string {
