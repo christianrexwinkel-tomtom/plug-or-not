@@ -82,6 +82,171 @@ Result: ☑ all green
      remainder was re-chunked smaller (record the re-chunk in the new
      Chunk N entry's "Plan tasks covered"). -->
 
+### Chunk 1: Tasks 1–8
+
+- **Plan tasks covered:** Tasks 1–8 (toolchain + PRD-figure acceptance suite, flow acceptance suite, shared data format, Amsterdam clock, tariff matching and trust guard, cost curve, petrol comparison/verdict/window/ranking, results builder)
+- **Tests written:** test/acceptance/prd-figures.test.ts (7, red until Task 10), test/acceptance/flows.test.ts (13, red until Task 15), src/shared/data-format.test.ts (3), src/engine/clock.test.ts (3), src/engine/tariff.test.ts (16), src/engine/curve.test.ts (14), src/engine/compare.test.ts (13), src/engine/results.test.ts (4) — 53 unit tests passing; both acceptance suites fail only on the missing later modules (src/ui/entry-view.ts, src/app.ts)
+- **Worker reported peak context:** ≈60k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 483fbcb, 5eca59f, e856028, e228691, 42a7872, cafef45, d2a7c0a, b1ed16b
+
+#### Verify output (verbatim)
+
+```
+$ npm test -- test/acceptance/prd-figures.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run test/acceptance/prd-figures.test.ts
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+ ❯ test/acceptance/prd-figures.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/acceptance/prd-figures.test.ts [ test/acceptance/prd-figures.test.ts ]
+Error: Cannot find module '../../src/engine/results.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/test/acceptance/prd-figures.test.ts
+ ❯ test/acceptance/prd-figures.test.ts:4:1
+      2| // (tile data → cost curves → ranking at the stay → what the details p…
+      3| import { describe, expect, it } from 'vitest';
+      4| import { computeEntries, rankAtStay, type EngineSettings } from '../..…
+       | ^
+      5| import { entryViews } from '../../src/ui/entry-view.ts';
+      6| import type { TileLocation, TileTariff } from '../../src/shared/data-f…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  07:02:28
+   Duration  109ms (worker 97%, environment 3%)
+
+
+$ npm test -- test/acceptance/flows.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run test/acceptance/flows.test.ts
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+ ❯ test/acceptance/flows.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/acceptance/flows.test.ts [ test/acceptance/flows.test.ts ]
+Error: Cannot find module '../../src/app.ts' imported from /Users/christianrexwinkel/Repo/plug-or-not/test/acceptance/flows.test.ts
+ ❯ test/acceptance/flows.test.ts:3:1
+      1| // Acceptance: the PRD Story 1–3 flows for Slice 1, through the contro…
+      2| import { describe, expect, it } from 'vitest';
+      3| import { createApp } from '../../src/app.ts';
+       | ^
+      4| import { entryViews } from '../../src/ui/entry-view.ts';
+      5| import { BRUSSELS, EXAMPLE_RAW, NUENEN, memoryStorage, stubDeps } from…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  07:02:28
+   Duration  112ms (worker 97%, environment 3%)
+
+
+$ npm test -- src/shared/data-format.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/shared/data-format.test.ts
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  07:02:35
+   Duration  99ms (transform 58%, import 23%, tests 10%, worker 9%)
+
+
+$ npm test -- src/engine/clock.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/engine/clock.test.ts
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  07:02:42
+   Duration  147ms (import 60%, transform 22%, tests 15%, worker 3%)
+
+
+$ npm test -- src/engine/tariff.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/engine/tariff.test.ts
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  07:02:43
+   Duration  140ms (transform 55%, import 35%, tests 7%, worker 3%)
+
+
+$ npm test -- src/engine/curve.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/engine/curve.test.ts
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  07:02:44
+   Duration  160ms (transform 35%, import 33%, tests 29%, worker 3%)
+
+
+$ npm test -- src/engine/compare.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/engine/compare.test.ts
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  07:02:45
+   Duration  153ms (transform 42%, import 38%, tests 16%, worker 3%)
+
+
+$ npm test -- src/engine/results.test.ts
+
+> plug-or-not@0.1.0 test
+> TZ=America/New_York vitest run src/engine/results.test.ts
+
+
+ RUN  v5.0.3 /Users/christianrexwinkel/Repo/plug-or-not
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  07:02:46
+   Duration  183ms (transform 43%, import 28%, tests 27%, worker 3%)
+
+
+```
+
 ## End-Review (Slice 1)
 
 Filled once, after the LAST chunk commits. The reviewer reads the final committed diff + tests + acceptance criteria — never any worker's narrative.
