@@ -140,6 +140,7 @@ input.range::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; b
 .rmsg p:last-child { margin-bottom: 0; }
 .rmsg .btn { max-width: 220px; margin: 0 auto; }
 
+/* max-height: SHEET_MAX_FRACTION in map-core.ts frames the results map for it (G6-AC8); keep the two in step. */
 .sheet { margin-top: auto; max-height: 66%; display: flex; flex-direction: column; background: var(--surface); border-top: 1px solid var(--line); border-radius: 28px 28px 0 0; padding: 14px 18px; box-shadow: 0 -20px 40px -10px rgba(0, 0, 0, calc(.2 + var(--glow) * .7)); }
 .sbody { overflow-y: auto; min-height: 0; flex: 1 1 auto; margin: 0 -18px; padding: 0 18px; }
 .rk { font: 500 10.5px/1.2 var(--f-data); color: var(--muted); letter-spacing: .12em; text-transform: uppercase; display: flex; justify-content: space-between; }

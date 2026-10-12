@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  ACCURACY_FIT_PX, FRAME_MARGIN_PX, FRAME_MIN_PX, MAP_LOAD_TIMEOUT_MS, SPOT_ZOOM, accuracyRadiusPx, boundsOf, framePadding, hasMoved,
-  isDriverMove, liveMoveCentre, metresPerPixel, spotZoom, startMap, type MapEventLike,
+  ACCURACY_FIT_PX, FRAME_MARGIN_PX, FRAME_MIN_PX, MAP_LOAD_TIMEOUT_MS, SHEET_MAX_FRACTION, SPOT_ZOOM, accuracyRadiusPx, boundsOf,
+  createCentreTracker, framePadding, framingPanelPx, hasMoved, isDriverMove, liveMoveCentre, metresPerPixel, spotZoom, startMap, type MapEventLike,
 } from './map-core.ts';
 
 /** A stand-in for maplibregl.Map: records listeners so a test can fire `load` and `error`. */
@@ -279,5 +279,41 @@ describe('framePadding (G6-AC8)', () => {
     expect(p.top + p.bottom).toBeCloseTo(500 - FRAME_MIN_PX, 9);
     expect(p.top / p.bottom).toBeCloseTo((110 + FRAME_MARGIN_PX) / (360 + FRAME_MARGIN_PX), 9);
     expect(p.left + p.right).toBe(150 - FRAME_MIN_PX);
+  });
+});
+
+describe('framingPanelPx (G6-AC8)', () => {
+  it('frames for the tallest the details panel can grow, so selecting a taller entry never hides a pin', () => {
+    expect(framingPanelPx(220, 780)).toBeCloseTo(SHEET_MAX_FRACTION * 780, 9);
+  });
+
+  it('never pads less than the panel as measured', () => {
+    expect(framingPanelPx(600, 780)).toBe(600);
+  });
+});
+
+describe('createCentreTracker (G3-AC3, G6-AC8)', () => {
+  const nuenen = { lat: 51.4436, lon: 5.5519, zoom: 15 };
+
+  it('centres on a new spot, once', () => {
+    const t = createCentreTracker();
+    expect(t.shouldCentre(nuenen)).toBe(true);
+    expect(t.shouldCentre({ ...nuenen })).toBe(false);
+    expect(t.shouldCentre({ ...nuenen, lat: 51.45 })).toBe(true);
+  });
+
+  it('a remounted parked view keeps the camera the driver left for an unchanged spot, and still centres a new one', () => {
+    const t = createCentreTracker();
+    t.shouldCentre(nuenen);
+    // Back from the results (or Settings): the same tracker answers the fresh view's first update.
+    expect(t.shouldCentre(nuenen)).toBe(false);
+    expect(t.shouldCentre({ lat: 51.4484, lon: 5.4573, zoom: 16 })).toBe(true);
+  });
+
+  it("after the driver's own move (no centre), the same browser spot centres again (My location)", () => {
+    const t = createCentreTracker();
+    t.shouldCentre(nuenen);
+    expect(t.shouldCentre(null)).toBe(false);
+    expect(t.shouldCentre(nuenen)).toBe(true);
   });
 });

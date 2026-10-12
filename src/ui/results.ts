@@ -3,7 +3,7 @@ import { STAY_MAX, STAY_MIN, STAY_STEP } from '../engine/compare.ts';
 import { h, icon, rangeFill } from './dom.ts';
 import { notice } from './chrome.ts';
 import { duration } from './format.ts';
-import { SPOT_ZOOM, framePadding } from './map-core.ts';
+import { SPOT_ZOOM, framePadding, framingPanelPx } from './map-core.ts';
 import { loadSharedMap } from './map-loader.ts';
 import type { MapHandle, MapMarker } from './map.ts';
 import { VERDICT_ICON, VERDICT_TONE, resultsMapView, type PinView, type ResultsMapView } from './results-map-view.ts';
@@ -13,42 +13,72 @@ import {
 import { entryViews, type EntryView, type VerdictKind } from './entry-view.ts';
 
 const VERDICT_CLASS: Record<VerdictKind, string> = { 'worth-it': 'w', 'not-for-this-stay': 'n', never: 'x', unknown: 'u' };
-/** The results slider's id; the focus restore looks it up after each re-render. */
-const STAY_SLIDER_ID = 'rstay';
-
-/** G7-AC2: the label follows the drag; the results update on release (G7-AC4). */
-function staySlider(state: AppState, app: App): HTMLElement {
+/**
+ * G7-AC2: the label follows the drag; the results update on release (G7-AC4). The element is never replaced, so an
+ * update while dragging (a late map failure or recovery) can't cancel the drag, and it keeps its focus.
+ */
+function staySlider(app: App) {
+  let dragging = false;
   const value = h('b', { class: 'num' });
   const input = h('input', {
-    type: 'range', class: 'range', id: STAY_SLIDER_ID, min: STAY_MIN, max: STAY_MAX, step: STAY_STEP, value: state.stayMin,
-    'aria-label': 'Length of stay',
+    type: 'range', class: 'range', min: STAY_MIN, max: STAY_MAX, step: STAY_STEP, 'aria-label': 'Length of stay',
   });
   const show = (v: number) => {
+    input.value = String(v);
     value.textContent = duration(v);
     input.style.setProperty('--p', rangeFill(v, STAY_MIN, STAY_MAX));
     input.setAttribute('aria-valuetext', duration(v));
   };
-  show(state.stayMin);
-  input.addEventListener('input', () => show(Number(input.value)));
-  input.addEventListener('change', () => app.setStay(Number(input.value)));
-  return h('label', { class: 'pill sl' }, h('span', { class: 't' }, h('small', {}, 'Stay'), value), input);
+  input.addEventListener('input', () => {
+    dragging = true;
+    show(Number(input.value));
+  });
+  input.addEventListener('change', () => {
+    dragging = false;
+    app.setStay(Number(input.value));
+  });
+  return {
+    box: h('label', { class: 'pill sl' }, h('span', { class: 't' }, h('small', {}, 'Stay'), value), input),
+    /** Shows the app's value unless the driver is dragging. */
+    sync: (v: number) => { if (!dragging) show(v); },
+  };
 }
 
-/** G6-AC8: Battery, the stay slider and Settings; under them the spot the results are for, with "Change spot". */
-function topBar(state: AppState, app: App, v: ResultsMapView): HTMLElement {
-  return h('div', { class: 'rtop' },
-    h('div', { class: 'row' },
-      h('button', { type: 'button', class: 'pill', 'aria-label': `Battery ${state.battery}%, change`, onclick: () => app.backToParked() },
-        h('small', {}, 'Battery'), h('span', { class: 'num' }, `${state.battery}%`)),
-      staySlider(state, app),
-      h('button', { type: 'button', class: 'pill round', 'aria-label': 'Settings', onclick: () => app.openSettings() }, icon('gear', 17)),
-    ),
-    v.spotLabel !== null && h('div', { class: 'spot' },
-      h('span', { class: 'num' }, h('b', {}, v.spotLabel), ` · ${v.spotCoords ?? ''}`),
-      // Like the Battery pill, back to the parked view, where the spot can be moved.
-      h('button', { type: 'button', class: 'linkbtn', onclick: () => app.backToParked() }, CHANGE_SPOT)),
-    state.approximateResults && notice('info', 'status', h('p', {}, APPROXIMATE), h('p', { class: 'plain' }, APPROXIMATE_RESULTS)),
+/**
+ * G6-AC8: Battery, the stay slider and Settings, built once; under them the spot the results are for, with
+ * "Change spot", and the approximate-position notice, which `update` replaces.
+ */
+function topBar(app: App) {
+  const stay = staySlider(app);
+  const batteryNum = h('span', { class: 'num' });
+  const battery = h('button', { type: 'button', class: 'pill', onclick: () => app.backToParked() }, h('small', {}, 'Battery'), batteryNum);
+  const row = h('div', { class: 'row' },
+    battery,
+    stay.box,
+    h('button', { type: 'button', class: 'pill round', 'aria-label': 'Settings', onclick: () => app.openSettings() }, icon('gear', 17)),
   );
+  const el = h('div', { class: 'rtop' }, row);
+  return {
+    el,
+    update(state: AppState, v: ResultsMapView): void {
+      batteryNum.textContent = `${state.battery}%`;
+      battery.setAttribute('aria-label', `Battery ${state.battery}%, change`);
+      stay.sync(state.stayMin);
+      replaceAfter(row,
+        v.spotLabel !== null && h('div', { class: 'spot' },
+          h('span', { class: 'num' }, h('b', {}, v.spotLabel), ` · ${v.spotCoords ?? ''}`),
+          // Like the Battery pill, back to the parked view, where the spot can be moved.
+          h('button', { type: 'button', class: 'linkbtn', onclick: () => app.backToParked() }, CHANGE_SPOT)),
+        state.approximateResults && notice('info', 'status', h('p', {}, APPROXIMATE), h('p', { class: 'plain' }, APPROXIMATE_RESULTS)),
+      );
+    },
+  };
+}
+
+/** Replaces everything after `keep` in its parent, leaving `keep` itself (and its focus) in place. */
+function replaceAfter(keep: Element, ...nodes: Array<Node | false | null | undefined>): void {
+  while (keep.nextSibling) keep.nextSibling.remove();
+  keep.after(...nodes.filter((n): n is Node => n instanceof Node));
 }
 
 function message(kind: 'load' | 'full', app: App): HTMLElement {
@@ -85,27 +115,26 @@ function panel(e: EntryView, all: EntryView[], app: App): HTMLElement {
   );
 }
 
-/** The top bar and the message or the details panel; replaced on every update, with focus put back where it was. */
-function renderContent(content: HTMLElement, state: AppState, app: App, v: ResultsMapView): void {
-  // Every render replaces the controls; put focus back on the one the driver used:
-  // the stay slider, or the strip item / "Also here" row of a selection.
+/**
+ * The top bar (patched; its controls stay) and the message or the details panel (replaced on every update, with
+ * focus put back on the strip item / "Also here" row of a selection the driver used).
+ */
+function renderContent(content: HTMLElement, top: ReturnType<typeof topBar>, state: AppState, app: App, v: ResultsMapView): void {
   const active = document.activeElement instanceof HTMLElement && content.contains(document.activeElement) ? document.activeElement : null;
-  const stayFocused = active?.id === STAY_SLIDER_ID;
   const focused = active?.dataset.id
     ? { id: active.dataset.id, inStrip: active.closest('.strip') !== null }
     : undefined;
+  top.update(state, v);
+  if (top.el.parentNode !== content) content.replaceChildren(top.el);
   if (state.search === 'load-error' || state.search === 'battery-full') {
-    content.replaceChildren(topBar(state, app, v), message(state.search === 'load-error' ? 'load' : 'full', app));
-    if (stayFocused) document.getElementById(STAY_SLIDER_ID)?.focus();
+    replaceAfter(top.el, message(state.search === 'load-error' ? 'load' : 'full', app));
     return;
   }
   const views = entryViews(state.results);
   const selected = views.find((x) => x.id === state.selectedId) ?? views[0];
-  content.replaceChildren(topBar(state, app, v), ...(selected ? [panel(selected, views, app)] : []));
+  replaceAfter(top.el, selected && panel(selected, views, app));
   content.querySelector('.strip [aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  if (stayFocused) {
-    document.getElementById(STAY_SLIDER_ID)?.focus();
-  } else if (focused) {
+  if (focused) {
     const id = CSS.escape(focused.id);
     // Back where it was if that control still exists (an "Also here" row disappears once selected), else its strip item.
     const same = content.querySelector<HTMLElement>(focused.inStrip ? `.strip [data-id="${id}"]` : `.also[data-id="${id}"]`);
@@ -135,6 +164,7 @@ export function mountResults(root: HTMLElement, app: App): (state: AppState) => 
   const mapMessage = h('div', { class: 'mapmsg', role: 'status' });
   const layer = h('div', { class: 'rmap', role: 'application', 'aria-label': RESULTS_MAP_LABEL }, mapMessage);
   const content = h('div', { class: 'rlayer' });
+  const top = topBar(app);
   const wrap = h('div', { class: 'rwrap' }, layer, content);
   root.replaceChildren(wrap);
   let map: MapHandle | null = null;
@@ -158,7 +188,9 @@ export function mountResults(root: HTMLElement, app: App): (state: AppState) => 
     if (v.frameKey === framed) return;
     framed = v.frameKey;
     const topPx = content.querySelector<HTMLElement>('.rtop')?.offsetHeight ?? 0;
-    if (v.bounds) m.frame(v.bounds, framePadding(topPx, panelPx, layer.clientWidth, layer.clientHeight));
+    // Framed for the tallest panel: selecting another entry never reframes, and the panel grows with some (G6-AC8).
+    const layerPx = layer.clientHeight;
+    if (v.bounds) m.frame(v.bounds, framePadding(topPx, framingPanelPx(panelPx, layerPx), layer.clientWidth, layerPx));
     else if (v.spot) m.centreOn(v.spot.lat, v.spot.lon, SPOT_ZOOM);
   }
 
@@ -172,7 +204,7 @@ export function mountResults(root: HTMLElement, app: App): (state: AppState) => 
 
   return (state) => {
     const v = resultsMapView(state);
-    renderContent(content, state, app, v);
+    renderContent(content, top, state, app, v);
     // Measured once per update: the framing padding, the attribution and "Map couldn't load." all sit above the panel
     // (G6-AC8, D-22, G6-AC9).
     const panelPx = content.querySelector<HTMLElement>('.sheet')?.offsetHeight ?? 0;

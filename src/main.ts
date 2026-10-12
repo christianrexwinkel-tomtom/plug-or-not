@@ -49,7 +49,8 @@ function render(): void {
     update ??= mountParked(containers.parked, app);
     update(state);
   } else if (state.view === 'loading') {
-    renderLoading(containers.results);
+    // Once per visit: re-rendering would re-create the live region and repeat the announcement.
+    if (entered) renderLoading(containers.results);
   } else {
     update ??= mountResults(containers.results, app);
     update(state);

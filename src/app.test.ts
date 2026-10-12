@@ -234,6 +234,20 @@ describe('createApp — controller state machine (G7-AC5)', () => {
     expect(app.getState()).toMatchObject({ movedSpot: null, searchedSpot: { kind: 'moved', lat: 51.4484, lon: 5.4573 } });
   });
 
+  it('"Try again" on the results load error retries at the searched spot when the map failed after the search (G6-AC9)', async () => {
+    const { app, deps } = await parked(stubDeps({ locations: [{ kind: 'denied' }], failFind: 1 }));
+    app.setBattery(20);
+    app.moveSpot(51.4484, 5.4573);
+    await app.findChargers();
+    expect(app.getState()).toMatchObject({ view: 'results', search: 'load-error' });
+    // The map fails afterwards: the moved spot goes, and with location denied there is no spot to re-derive.
+    app.reportMapFailure();
+    expect(spotFor(app.getState()).kind).toBe('none');
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenLastCalledWith(51.4484, 5.4573, MANIFEST);
+    expect(app.getState()).toMatchObject({ view: 'results', search: 'results', blocked: null });
+  });
+
   it('a map move off the parked screen is not a spot move: panning the results map keeps the spot', async () => {
     const { app } = await searched();
     app.moveSpot(51.4484, 5.4573);

@@ -195,3 +195,31 @@ export function framePadding(topBarPx: number, panelPx: number, widthPx: number,
   }
   return { top, bottom, left: side, right: side };
 }
+
+/** The details panel's `max-height` as a share of the results map (`.sheet` in app.css): keep the two in step. */
+export const SHEET_MAX_FRACTION = 0.66;
+
+/**
+ * G6-AC8: the panel height to frame for. The panel grows with the selected entry (a "Never worth it" reason line),
+ * and a selection never reframes, so frame for the tallest it can get: the pins stay clear whichever entry is shown.
+ */
+export function framingPanelPx(measuredPx: number, heightPx: number): number {
+  return Math.max(measuredPx, SHEET_MAX_FRACTION * heightPx);
+}
+
+/**
+ * When the parked map should centre (G3-AC3): on a spot it hasn't centred on yet. Kept across visits of the parked
+ * view, since the one map (D-22) keeps its camera: back from the results or Settings, an unchanged spot keeps the
+ * camera (and zoom) the driver left. A null centre (the driver's own move is showing) forgets the last one.
+ */
+export function createCentreTracker() {
+  let applied: string | null = null;
+  return {
+    shouldCentre(centre: { lat: number; lon: number; zoom: number } | null): boolean {
+      const key = centre && `${centre.lat},${centre.lon},${centre.zoom}`;
+      const go = key !== null && key !== applied;
+      applied = key;
+      return go;
+    },
+  };
+}

@@ -5,6 +5,7 @@ import { appBar, errorText, notice, storageNotice } from './chrome.ts';
 import { coords, duration } from './format.ts';
 import type { MapHandle } from './map.ts';
 import { loadSharedMap } from './map-loader.ts';
+import { createCentreTracker } from './map-core.ts';
 import { spotView, type SpotNotice, type SpotView } from './spot-view.ts';
 import {
   BATTERY_NOT_SET, FINDING_CHARGERS, LOCATING, MAP_HINT, MOVED_SPOT, MY_LOCATION, SPOT_MAP_LABEL, STAY_LIMITS, TRY_AGAIN,
@@ -72,6 +73,12 @@ function spotNotice(n: SpotNotice, highlight: boolean, app: App): HTMLElement {
 }
 
 /**
+ * The centre the one map (D-22) was last given, kept across visits: back from the results or Settings, showSpot puts
+ * the driver's camera back, and an unchanged spot leaves it (and its zoom) there; a new spot still centres (G3-AC3).
+ */
+const centring = createCentreTracker();
+
+/**
  * The spot map (G3-AC1–AC4, FR-025): the shared map under a fixed pin, with its chip and overlays. Built once per
  * visit. MapLibre is loaded on first use, in its own chunk, so the setup screen doesn't wait for it; a failed load
  * counts as a map that can't load (G6-AC9). The overlays work without it.
@@ -90,15 +97,10 @@ function spotMap(app: App) {
   const failed = h('div', { class: 'mapmsg', role: 'status' });
   const box = h('div', { class: 'spotmap', role: 'application', 'aria-label': SPOT_MAP_LABEL },
     pin, h('div', { class: 'mapchips' }, chip, recentre), busy, hint, failed);
-  /** The centre last applied; null while the driver's own move is showing. */
-  let applied: string | null = null;
-
   function applyMap(m: MapHandle, v: SpotView): void {
     m.setDraggable(v.draggable);
     m.setAccuracy(v.accuracyM);
-    const key = v.centre && `${v.centre.lat},${v.centre.lon},${v.centre.zoom}`;
-    if (v.centre && key !== applied) m.centreOn(v.centre.lat, v.centre.lon, v.centre.zoom);
-    applied = key;
+    if (centring.shouldCentre(v.centre) && v.centre) m.centreOn(v.centre.lat, v.centre.lon, v.centre.zoom);
   }
 
   // The loader reports a failed load itself (G6-AC9).
