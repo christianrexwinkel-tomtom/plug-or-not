@@ -1013,6 +1013,40 @@ Task 40 step 5 (dev server `http://localhost:5173/plug-or-not/`, headless Chromi
 
 Privacy: the only host outside `localhost:5173` requested during checks 1–5 was `tiles.openfreemap.org`.
 
+### Chunk 2: End-Review round 1 fixes
+
+- **Issues covered:** 1 (blocking, G6-AC9 / D-29: a blocked tile server recovered on the late `load`), 2 (`frameKey` doc comment), 3 (recovery test claimed a reframe it didn't check), 4 (D-22: `loadSharedMap` unit tests)
+- **Tests written:** src/ui/map-core.test.ts (the stub-shaped "a load after an error before load recovers" replaced by 5: a source/tile error then `load` (plus metadata/style `data`, past the timeout) stays failed with no `onRecover`; error, `load`, tile `data` recovers once; error, tile `data`, `load` recovers once at `load`; timeout, tile error, `load` needs a loaded tile too; a style error after `load` is not recovered by tile `data`. The fake map gains `data`. The existing "a load after the timeout recovers, once" is kept; 23 → 27 in the file, net +4); src/ui/map-loader.test.ts (2, new: two calls give the same handle from one import, bound to the app; a failed import reports one failure and isn't retried. Uses `vi.resetModules` + `vi.doMock('./map.ts')`; both tests were seen failing against a loader that resets or re-imports). test/acceptance/results-map.test.ts: name and comment only. Suite: 283 → 289 tests, 24 → 25 files
+- **Change (issue 1):** `startMap` also listens to `data`. A failure before `load` stays recoverable; `load` alone recovers it unless a tile or source error came before `load`, in which case a `data` event with `dataType: 'source'` and a `tile` (before or after `load`) is also needed. A failure after `load` never recovers. No change in `src/ui/map.ts`: it passes the `maplibregl.Map` itself to `startMap`. Deviation row 8
+- **Blocked-tiles dev check (headless Chromium 1217 via Playwright, SwiftShader, 390×780, geolocation 51.4436, 5.5519 ±20 m, Story 1 settings, battery 20%):** with `tiles.openfreemap.org` aborted, "Map couldn't load." shows on the parked map from the 3 s poll through 12 s, and on results right after "Find chargers" and 6 s later, with 0 pins and the panel in full. ☑ Unblocked: no message on the parked map (0–12 s), results show the map with 10 pins and the OpenFreeMap attribution. ☑ Hosts requested: `localhost:5173`, `tiles.openfreemap.org`. Closes Chunk 1 open finding 1 / check 6
+- **Worker reported peak context:** ≈75k tokens
+- **Worker status:** clear
+- **Commit SHA(s):** 9156d48 (fixes); this log entry in the following docs commit
+- **Deviations:** row 8 in the Deviations from Plan table
+
+#### Verify output (verbatim)
+
+```
+$ npm test
+ Test Files  25 passed (25)
+      Tests  289 passed (289)
+   Start at  11:01:31
+   Duration  1.12s (tests 45%, transform 26%, import 25%, worker 4%)
+
+$ npm run build
+dist/assets/index-CuyxfeAx.css                                       22.48 kB │ gzip:   4.95 kB
+dist/assets/map-B8-mEBLf.css                                         82.96 kB │ gzip:  10.72 kB
+dist/assets/index-DQrlMfdJ.js                                        46.54 kB │ gzip:  17.59 kB
+dist/assets/map-m67kxXKT.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 632ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
 ## Deviations from Plan
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
@@ -1024,6 +1058,7 @@ Privacy: the only host outside `localhost:5173` requested during checks 1–5 wa
 | 5   | Task 32 / Chunk 1 | change | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
 | 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
+| 8   | Task 29 / Slice 4 Chunk 2 | change | Slice 4: changes row 7 ("any `load` after any failure recovers"). MapLibre counts an errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors, and row 7 cleared "Map couldn't load." (G6-AC9 / D-29). Now `startMap` also listens to `data`: a failure before `load` recovers, once, at `load` only if no tile or source error came before `load` (the timeout: slow network, background tab); after such an error it also needs a tile that loaded (`data` with `dataType: 'source'` and a `tile`, before or after `load`), so one tile lost during startup still recovers and a blocked tile server doesn't. A failure after `load` (the style) never recovers. Post-`load` tile/source errors are still ignored (row 6) (Slice 4 End-Review round 1, issue 1) | no | pending | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
