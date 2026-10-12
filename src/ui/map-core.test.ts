@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  ACCURACY_FIT_PX, MAP_LOAD_TIMEOUT_MS, SPOT_ZOOM, accuracyRadiusPx, hasMoved, isDriverMove, liveMoveCentre, metresPerPixel, spotZoom,
-  startMap, type MapErrorLike,
+  ACCURACY_FIT_PX, FRAME_MARGIN_PX, FRAME_MIN_PX, MAP_LOAD_TIMEOUT_MS, SPOT_ZOOM, accuracyRadiusPx, boundsOf, framePadding, hasMoved,
+  isDriverMove, liveMoveCentre, metresPerPixel, spotZoom, startMap, type MapErrorLike,
 } from './map-core.ts';
 
 /** A stand-in for maplibregl.Map: records listeners so a test can fire `load` and `error`. */
@@ -181,5 +181,31 @@ describe('accuracy circle and zoom (G3-AC2)', () => {
     expect(hasMoved(a, { ...a })).toBe(false);
     expect(hasMoved(a, { lat: a.lat + 1e-9, lon: a.lon })).toBe(false);
     expect(hasMoved(a, { lat: a.lat, lon: a.lon + 1e-5 })).toBe(true);
+  });
+});
+
+describe('boundsOf (G6-AC8)', () => {
+  it('is null without points', () => {
+    expect(boundsOf([])).toBeNull();
+  });
+
+  it('is [[west, south], [east, north]] around the spot and every location', () => {
+    expect(boundsOf([{ lat: 51.4436, lon: 5.5519 }, { lat: 51.4458, lon: 5.5522 }, { lat: 51.4442, lon: 5.5527 }]))
+      .toEqual([[5.5519, 51.4436], [5.5527, 51.4458]]);
+  });
+});
+
+describe('framePadding (G6-AC8)', () => {
+  it('keeps the pins clear of the top bar and the details panel, with a margin on every side', () => {
+    expect(framePadding(110, 360, 390, 780)).toEqual({
+      top: 110 + FRAME_MARGIN_PX, bottom: 360 + FRAME_MARGIN_PX, left: FRAME_MARGIN_PX, right: FRAME_MARGIN_PX,
+    });
+  });
+
+  it('on a short or narrow map, shrinks the padding so FRAME_MIN_PX stays free and fitBounds can still frame', () => {
+    const p = framePadding(110, 360, 150, 500);
+    expect(p.top + p.bottom).toBeCloseTo(500 - FRAME_MIN_PX, 9);
+    expect(p.top / p.bottom).toBeCloseTo((110 + FRAME_MARGIN_PX) / (360 + FRAME_MARGIN_PX), 9);
+    expect(p.left + p.right).toBe(150 - FRAME_MIN_PX);
   });
 });

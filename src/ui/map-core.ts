@@ -6,6 +6,12 @@ export const MAP_LOAD_TIMEOUT_MS = 8_000;
 export const SPOT_ZOOM = 15;
 /** G3-AC2: an approximate position zooms out until its accuracy circle has this radius (the spot map is 230 px high). */
 export const ACCURACY_FIT_PX = 90;
+/** G6-AC8: room around the framed pins, in CSS pixels — half a labelled pin plus a margin. */
+export const FRAME_MARGIN_PX = 48;
+/** The least free map, in CSS pixels, left between the paddings so fitBounds can still frame. */
+export const FRAME_MIN_PX = 80;
+/** G6-AC8: framing never zooms in past this, so a lone nearby charger doesn't fill the screen. */
+export const FRAME_MAX_ZOOM = 16;
 
 const EARTH_CIRCUMFERENCE_M = 40_075_016.686;
 /** MapLibre's tile size in CSS pixels. */
@@ -116,4 +122,47 @@ export function liveMoveCentre(
 ): { lat: number; lon: number } | null {
   const now = { lat: centre.lat, lon: centre.lng };
   return isDriverMove(e, last, now) ? now : null;
+}
+
+/** [[west, south], [east, north]], the shape MapLibre's fitBounds takes. */
+export type Bounds = [[number, number], [number, number]];
+
+export interface Padding {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+/** G6-AC8: the box around the spot and every result location; null for no points. */
+export function boundsOf(points: Array<{ lat: number; lon: number }>): Bounds | null {
+  if (points.length === 0) return null;
+  let west = Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  for (const p of points) {
+    west = Math.min(west, p.lon);
+    east = Math.max(east, p.lon);
+    south = Math.min(south, p.lat);
+    north = Math.max(north, p.lat);
+  }
+  return [[west, south], [east, north]];
+}
+
+/**
+ * G6-AC8: fitBounds padding that keeps every pin clear of the top bar and the details panel. On a map too short for
+ * both, the top and bottom shrink in proportion until FRAME_MIN_PX stays free; on a narrow one, the sides do.
+ */
+export function framePadding(topBarPx: number, panelPx: number, widthPx: number, heightPx: number): Padding {
+  const side = Math.max(0, Math.min(FRAME_MARGIN_PX, (widthPx - FRAME_MIN_PX) / 2));
+  let top = topBarPx + FRAME_MARGIN_PX;
+  let bottom = panelPx + FRAME_MARGIN_PX;
+  const room = Math.max(0, heightPx - FRAME_MIN_PX);
+  if (top + bottom > room) {
+    const k = room / (top + bottom);
+    top *= k;
+    bottom *= k;
+  }
+  return { top, bottom, left: side, right: side };
 }
