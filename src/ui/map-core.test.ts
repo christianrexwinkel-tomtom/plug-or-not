@@ -132,6 +132,21 @@ describe('startMap (G6-AC9)', () => {
     expect(onRecover).toHaveBeenCalledTimes(1);
   });
 
+  it('a tile that loaded before the first tile error counts: tile, error, load recovers once (MapLibre\'s order)', () => {
+    const onFail = vi.fn();
+    const onRecover = vi.fn();
+    const map = fakeMap();
+    startMap(() => map, onFail, onRecover);
+    map.fire('data', TILE_DATA);
+    map.fire('error', TILE_ERROR);
+    expect(onFail).toHaveBeenCalledTimes(1);
+    map.fire('load');
+    expect(onRecover).toHaveBeenCalledTimes(1);
+    map.fire('load');
+    map.fire('data', TILE_DATA);
+    expect(onRecover).toHaveBeenCalledTimes(1);
+  });
+
   it('a timeout with a tile error before the late load needs a loaded tile too', () => {
     vi.useFakeTimers();
     const onRecover = vi.fn();

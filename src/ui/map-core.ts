@@ -46,7 +46,9 @@ const isTileData = (e: MapEventLike | undefined) => e?.dataType === 'source' && 
  * errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors; `load`
  * alone therefore recovers only a failure without a tile or source error before it (the timeout: a slow network, a
  * background tab). After a tile or source error, the map also needs a tile that did load (a `data` event with a
- * tile), before or after `load`: one tile lost during startup recovers, a blocked tile server doesn't. A failure
+ * tile) at any point, before or after the error and before or after `load`: MapLibre usually finishes the good tiles
+ * before one bad tile errors, and no new tile `data` arrives after `load` until the camera moves. So one tile lost
+ * during startup recovers; a blocked tile server, which never delivers a tile, stays failed. A failure
  * after `load` (the style) never recovers. A throwing constructor reports on a microtask, never synchronously, so a
  * view that is still building itself isn't re-entered. Returns null then.
  */
@@ -94,7 +96,7 @@ export function startMap<M extends Startable>(
     fail();
   });
   map.on('data', (e) => {
-    if (!sourceErrored || !isTileData(e)) return;
+    if (!isTileData(e)) return;
     tileLoaded = true;
     maybeRecover();
   });
