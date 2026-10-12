@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createApp } from './app.ts';
-import { EXAMPLE_RAW, stubDeps } from '../test/fixtures/app-deps.ts';
+import { createApp, spotFor } from './app.ts';
+import { BRUSSELS, EXAMPLE_RAW, MANIFEST, NUENEN, stubDeps } from '../test/fixtures/app-deps.ts';
 
 async function searched(deps = stubDeps()) {
   const app = createApp(deps);
@@ -12,6 +12,14 @@ async function searched(deps = stubDeps()) {
   return { app, deps };
 }
 
+async function parked(deps = stubDeps()) {
+  const app = createApp(deps);
+  await app.start();
+  app.saveSettings(EXAMPLE_RAW);
+  await deps.locate.mock.results.at(-1)!.value;
+  return { app, deps };
+}
+
 describe('createApp — controller state machine (G7-AC5)', () => {
   it('asks for the location when the parked view opens, with "locating" until it answers', async () => {
     const deps = stubDeps();
@@ -20,8 +28,9 @@ describe('createApp — controller state machine (G7-AC5)', () => {
     app.saveSettings(EXAMPLE_RAW);
     expect(app.getState().location).toEqual({ status: 'locating' });
     app.setBattery(20);
-    await app.findChargers();
+    const tap = app.findChargers();
     expect(app.getState().blocked).toBe('location');
+    await tap;
   });
 
   it('shows the loading view while tiles and curves are resolved, and results complete at once', async () => {
@@ -126,5 +135,82 @@ describe('createApp — controller state machine (G7-AC5)', () => {
     expect(app.getState().search).toBe('load-error');
     app.setStay(45);
     expect(app.getState()).toMatchObject({ search: 'load-error', results: [], selectedId: null, stayMin: 45 });
+  });
+
+  it('ignores a map move while the location is being found, so the answer never moves a chosen spot (G3-AC1)', async () => {
+    const deps = stubDeps();
+    const app = createApp(deps);
+    await app.start();
+    app.saveSettings(EXAMPLE_RAW);
+    app.moveSpot(51.4484, 5.4573);
+    expect(app.getState().movedSpot).toBeNull();
+    await deps.locate.mock.results.at(-1)!.value;
+    expect(spotFor(app.getState())).toMatchObject({ kind: 'browser', lat: 51.4436, lon: 5.5519 });
+  });
+
+  it('a found location clears a "Find chargers" block made while locating', async () => {
+    const deps = stubDeps();
+    const app = createApp(deps);
+    await app.start();
+    app.saveSettings(EXAMPLE_RAW);
+    app.setBattery(20);
+    void app.findChargers();
+    expect(app.getState().blocked).toBe('location');
+    await deps.locate.mock.results.at(-1)!.value;
+    expect(app.getState().blocked).toBeNull();
+  });
+
+  it('"Try again" after a denial drops a moved spot and asks again', async () => {
+    const { app } = await parked(stubDeps({ locations: [{ kind: 'denied' }, { kind: 'found', position: NUENEN }] }));
+    app.moveSpot(51.4484, 5.4573);
+    expect(app.getState().movedSpot).toEqual({ lat: 51.4484, lon: 5.4573 });
+    await app.retryLocation();
+    expect(app.getState().movedSpot).toBeNull();
+    expect(spotFor(app.getState())).toMatchObject({ kind: 'browser', lat: 51.4436, lon: 5.5519 });
+  });
+
+  it('a map move clears an outside-the-Netherlands answer', async () => {
+    const { app } = await parked(stubDeps({ locations: [{ kind: 'found', position: BRUSSELS }] }));
+    app.setBattery(20);
+    await app.findChargers();
+    expect(app.getState().search).toBe('outside-nl');
+    app.moveSpot(51.4436, 5.5519);
+    expect(app.getState()).toMatchObject({ search: 'idle', movedSpot: { lat: 51.4436, lon: 5.5519 } });
+  });
+
+  it('"My location" drops the moved spot only when there is a browser position', async () => {
+    const { app } = await parked();
+    app.moveSpot(51.4484, 5.4573);
+    app.recentre();
+    expect(app.getState().movedSpot).toBeNull();
+    const { app: denied } = await parked(stubDeps({ locations: [{ kind: 'denied' }] }));
+    denied.moveSpot(51.4484, 5.4573);
+    denied.recentre();
+    expect(denied.getState().movedSpot).toEqual({ lat: 51.4484, lon: 5.4573 });
+  });
+
+  it('a map failure drops a moved spot, stops map moves and clears an outside-the-Netherlands answer (G6-AC9)', async () => {
+    const { app } = await parked();
+    app.setBattery(20);
+    app.moveSpot(BRUSSELS.lat, BRUSSELS.lon);
+    await app.findChargers();
+    expect(app.getState().search).toBe('outside-nl');
+    app.reportMapFailure();
+    expect(app.getState()).toMatchObject({ mapFailed: true, movedSpot: null, search: 'idle' });
+    app.moveSpot(51.4484, 5.4573);
+    expect(app.getState().movedSpot).toBeNull();
+  });
+
+  it('a search at a moved spot loads the tiles for that spot; a battery change there reuses them', async () => {
+    const { app, deps } = await parked();
+    app.setBattery(20);
+    app.moveSpot(51.4484, 5.4573);
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenLastCalledWith(51.4484, 5.4573, MANIFEST);
+    app.backToParked();
+    app.setBattery(70);
+    await app.findChargers();
+    expect(deps.findNearest).toHaveBeenCalledTimes(1);
+    expect(app.getState()).toMatchObject({ search: 'results', movedSpot: { lat: 51.4484, lon: 5.4573 } });
   });
 });
