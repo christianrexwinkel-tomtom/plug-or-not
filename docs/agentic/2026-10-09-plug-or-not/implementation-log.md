@@ -896,6 +896,7 @@ The warning is for the lazily loaded MapLibre chunk only. The entry chunk is ≈
 - **Started:** 2026-10-12 (session 4626c188-d2ad-43a5-8126-5a96dcf065de)
 - **Base SHA:** b98b2df
 - **Worker isolation:** normal
+- **Completed:** 2026-10-12
 - **Chunk layout:** one chunk, Tasks 35–41 (Slice 3 peaked at ≈110k over ~1,850 plan lines; Slice 4 is ~1,500 plan lines, inside one window)
 
 ### Pre-Flight (Slice 4)
@@ -1079,6 +1080,52 @@ dist/assets/map-BjQkpDPz.js                                       1,032.86 kB �
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
 ```
 
+### End-Review (Slice 4)
+
+Range reviewed: `b98b2df..HEAD`. Opus reviewer, given no worker narrative and with the implementation log excluded.
+
+- **Verdict:** CAP_REACHED — round-2 findings fixed, not re-reviewed
+- **Issues found:**
+  - Round 1 (ISSUES_FOUND), all fixed in Chunk 2 (9156d48, e111dbc):
+    1. (Misunderstanding, G6-AC9 / D-29) `src/ui/map-core.ts:61-73`: with OpenFreeMap unreachable, MapLibre fires `error{sourceId}` before `load` and then still fires `load`, because an errored source counts as loaded. The late `load` cleared `mapFailed`, so "Map couldn't load." flashed and disappeared, and results showed pins on a blank background. `map-core.test.ts:91` locked this in with the stub's order.
+    2. (Minor) The `frameKey` doc comment in `src/ui/results-map-view.ts:45-46` claimed it changes only with a new search.
+    3. (Test shaped around code) `test/acceptance/results-map.test.ts:116` said "framed again" but asserted `frameKey` unchanged.
+    4. (Coverage, D-22) `loadSharedMap` had no test. `src/ui/map-loader.test.ts` was added.
+    - Accepted, no action: marker DOM rebuilt on each update (churn only). The design's "pins on a plain background when only the tiles fail" contradicts G6-AC9's "without pins". The code follows G6-AC9 (no pins).
+  - Round 2 (ISSUES_FOUND), fixed in Chunk 3 (ebf26bf, 40edaf2) and not re-reviewed:
+    1. (Important, G6-AC9) `src/ui/map-core.ts:96-100`: the `data` listener ignored tiles that loaded before the first startup tile error. In MapLibre's real order (good tiles first, one bad tile errors, then `load`; no further tile `data` until the camera moves), one lost tile left "Map couldn't load." up for good. Fixed: every loaded tile is recorded. New test: tile `data` → tile `error` → `load` recovers once. The blocked-server test is unchanged.
+    - Accepted, no action: a selected "Price unknown" pin loses its dashed outline (`app.css:122-123`); the panel height is measured on every update.
+- **Tests-vs-spec audit:** round 2 found that the pins (label, tone, icon, order, "×N", the icon-only unknown pin, "<€0.01"), the framing bounds, the D-30 selection kept after a stay change, G6-AC9 on results, the parked-only spot moves and the map loader are all pinned by tests that check the specified behaviour. The `startMap` tests had followed the code rather than MapLibre's event order. The missing order was added in Chunk 3. The remaining gaps are within D-17: the padding wiring to the measured top bar and panel, the "Change spot" button action, the pin click wiring, the G7-AC6 theme swap and the compact attribution. The Task 41 manual device checks cover these.
+- **Reviewer rounds:** 2
+- **Cap outcome:** cap reached. The round-2 finding was fixed in ebf26bf and not re-reviewed.
+
+#### Final full verify output (verbatim)
+
+Command: `npm test 2>&1 | tail -8; npm run build 2>&1 | tail -8`
+
+```
+ Test Files  25 passed (25)
+      Tests  290 passed (290)
+   Start at  11:08:17
+   Duration  886ms (tests 47%, transform 25%, import 24%, worker 3%)
+
+dist/assets/map-BjQkpDPz.js                                       1,032.86 kB │ gzip: 280.20 kB
+
+✓ built in 557ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+```
+
+The warning is for the lazily loaded MapLibre chunk only, as approved for Slice 3. The plan expected 283 tests. The 7 extra come from the review fixes: map-core +5 net, map-loader +2.
+
+**Task 41 steps 3–4 (post-merge Pages deployment check, device checks 1–10, G8-AC2 stopwatch):** pending, owned by the user after merge.
+
+---
+
+
 ## Deviations from Plan
 
 | #   | Task/Chunk | Type (change/gap) | Description | Plan updated? | Status | Date |
@@ -1090,11 +1137,13 @@ dist/assets/map-BjQkpDPz.js                                       1,032.86 kB �
 | 5   | Task 32 / Chunk 1 | change | Slice 3: in the plan's wrapper, MapLibre's own moves (the resize on `attachTo`, window resizes) set the coordinates chip, which then read "No location yet · 52.0862, 5.2900", and a `moveend` after locating could report a resize as a moved spot. The `move` and `moveend` handlers now act only on events that carry `originalEvent`, i.e. gestures, inertia included | yes — plan §Task 32 edited 2026-10-12 | approved | 2026-10-12 |
 | 6   | Task 29 / Chunks 2–3 | change | Slice 3: `startMap` no longer fails on every `error`. Before `load` any error fails (until a `load` recovers it, row 7); after `load`, an error carrying `sourceId` or `tile` (one tile lost on flaky mobile data) is ignored, and other errors (the style) still fail. The plan's Task 29 test "fails on error … also after load" is replaced accordingly (End-Review round 1, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 | 7   | Task 29 / Chunks 2–3 | change | Slice 3: the fixed 8 s timeout is no longer final, and neither is an error before `load`. Any `load` after any failure (the timeout, or a tile error during startup) calls a new `onRecover`, once; the wrapper reports `recovered()` and the controller's new `reportMapRecovered()` clears `mapFailed`, keeping the browser position as the spot. A style that can't load never fires `load`, so that failure stays (End-Review round 1, issue 2; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
-| 8   | Task 29 / Slice 4 Chunk 2 | change | Slice 4: changes row 7 ("any `load` after any failure recovers"). MapLibre counts an errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors, and row 7 cleared "Map couldn't load." (G6-AC9 / D-29). Now `startMap` also listens to `data`: a failure before `load` recovers, once, at `load` only if no tile or source error came before `load` (the timeout: slow network, background tab); after such an error it also needs a tile that loaded at any point (`data` with `dataType: 'source'` and a `tile`, before or after the error and before or after `load`; every loaded tile is recorded, since MapLibre usually finishes the good tiles before one bad tile errors), so one tile lost during startup still recovers and a blocked tile server, which never delivers a tile, stays failed. A failure after `load` (the style) never recovers, tile data included. Post-`load` tile/source errors are still ignored (row 6) (Slice 4 End-Review round 1, issue 1; round 2, issue 1) | no | pending | 2026-10-12 |
+| 8   | Task 29 / Slice 4 Chunk 2 | change | Slice 4: changes row 7 ("any `load` after any failure recovers"). MapLibre counts an errored source as loaded, so with the tile server unreachable `load` still fires after the tile errors, and row 7 cleared "Map couldn't load." (G6-AC9 / D-29). Now `startMap` also listens to `data`: a failure before `load` recovers, once, at `load` only if no tile or source error came before `load` (the timeout: slow network, background tab); after such an error it also needs a tile that loaded at any point (`data` with `dataType: 'source'` and a `tile`, before or after the error and before or after `load`; every loaded tile is recorded, since MapLibre usually finishes the good tiles before one bad tile errors), so one tile lost during startup still recovers and a blocked tile server, which never delivers a tile, stays failed. A failure after `load` (the style) never recovers, tile data included. Post-`load` tile/source errors are still ignored (row 6) (Slice 4 End-Review round 1, issue 1; round 2, issue 1) | yes — plan §Task 29 edited 2026-10-12 | approved | 2026-10-12 |
 
 Slice 2: None. The user confirmed there were no deviations on 2026-10-12.
 
 Slice 3: rows 2–7 approved by the user on 2026-10-12. Rows 4 and 5 were converted from gap to change, since both gaps were closed in code. A G6-AC9 row was also added to the plan's Deviations from Design and signed off. The user chose to leave the Vite chunk-size warning for the lazily loaded MapLibre chunk as is.
+
+Slice 4: row 8 approved by the user on 2026-10-12. Pins on a failed map stay hidden, following G6-AC9 ("without pins") over D-29's "pins on a plain background". The user will check the overlap of dense pins (device check 3) after merge.
 
 <!-- If there are no deviations, write "None." below the table and confirm verbally with the user. -->
 

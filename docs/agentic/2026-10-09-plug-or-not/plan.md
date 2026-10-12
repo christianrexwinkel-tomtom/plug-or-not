@@ -62,7 +62,7 @@ Slice 1 has 19 tasks, Slice 2 has 6 (Tasks 20–25), Slice 3 has 9 (Tasks 26–3
 | 1 | Answer for my location (no map) | S1; S2 (scenarios 1–5, battery full, outside the Netherlands, load error, approximate notice, location denied + Try again); S3 (parked-screen slider, − and +, limits) | done |
 | 2 | Worth-it window and live stay changes | S4; S3 (results-screen slider, scenario 1 "keeps the selected charger") | done |
 | 3 | Spot on a map | S2 edge cases (location denied → drag, approximate circle, location still being found); FR-025 | done |
-| 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | todo |
+| 4 | Results on a map | S2 scenario 1 (pins); FR-024; S2 "Map can't load" on results | done |
 
 _All four slices are authored in this plan: Slice 1 by the first plan-skill run, and Slices 2, 3 and 4 by a second, third and fourth run on 2026-10-12, one per PR._
 
@@ -6289,7 +6289,7 @@ git commit -m "feat: controller moves the spot with the map, recentres, and fall
 
 ### Task 29: Map core: start watch, accuracy circle and zoom
 
-> **Implemented with deviations (2026-10-12):** after `load`, tile and source errors (events carrying `sourceId` or `tile`) are not a map failure. Any `load` after a failure (the 8 s timeout or an error during startup) recovers once through `onRecover`, and the controller's `reportMapRecovered()` clears `mapFailed`. A style that never loads stays failed. See implementation-log Deviations rows 6–7.
+> **Implemented with deviations (2026-10-12):** after `load`, tile and source errors (events carrying `sourceId` or `tile`) are not a map failure. A failure before `load` recovers once through `onRecover`, and the controller's `reportMapRecovered()` clears `mapFailed`: after the 8 s timeout alone, at the late `load`; after a tile or source error during startup, only once a tile has actually loaded (a `data` event with `dataType: 'source'` and a `tile`, at any point), because MapLibre still fires `load` when the tile server is unreachable. A blocked tile server and a style that never loads stay failed. See implementation-log Deviations rows 6–8 (row 8: Slice 4 End-Review).
 
 The parts of the map wrapper that don't need MapLibre or a DOM, so Vitest can run them (G6-AC9 verify: "a map wrapper stub that throws on construction and one that emits an error"):
 
