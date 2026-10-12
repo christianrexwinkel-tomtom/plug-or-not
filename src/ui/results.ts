@@ -44,6 +44,8 @@ function panel(e: EntryView, all: EntryView[], app: App): HTMLElement {
       h('p', { class: 'addr' }, e.address),
       ...e.alsoHere.map((o) => h('button', { type: 'button', class: 'also', 'data-id': o.id, onclick: () => app.select(o.id) },
         h('span', {}, o.text), h('span', { class: 'go2' }, 'Show'))),
+      e.windowText && h('p', { class: e.hasWindow ? 'window-line ok' : 'window-line' },
+        icon(e.hasWindow ? 'win' : 'cross', 16), h('span', {}, e.windowText)),
       e.reasonText && h('p', { class: 'reason' }, e.reasonText),
     ),
     h('div', { class: 'strip', role: 'list', 'aria-label': 'All chargers, best saving first' },

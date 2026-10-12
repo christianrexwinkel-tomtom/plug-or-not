@@ -114,6 +114,9 @@ input.range::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; b
 .also { display: flex; align-items: center; gap: 8px; width: 100%; margin: 10px 0 0; background: var(--raised); border: 1px dashed var(--faint); border-radius: 12px; padding: 8px 10px; text-align: left; font-size: 12.5px; color: var(--soft); }
 .also .go2 { margin-left: auto; color: var(--focus); font-weight: 600; white-space: nowrap; }
 .reason { margin: 12px 0 0; font-size: 15px; color: var(--soft); }
+.window-line { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; font-size: 13.5px; color: var(--soft); font-weight: 600; }
+.window-line svg { color: var(--no-text); margin-top: 1px; }
+.window-line.ok svg { color: var(--go); }
 .strip { display: flex; gap: 8px; overflow-x: auto; margin: 14px -18px 0; padding: 0 18px 2px; scrollbar-width: none; }
 .strip::-webkit-scrollbar { display: none; }
 .strip-item { flex: none; display: flex; }
