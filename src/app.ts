@@ -181,6 +181,9 @@ export function createApp(deps: AppDeps): App {
 
     setStay(min) {
       set({ stayMin: clampStay(min), stayLimitNote: false });
+      // Results screen: read the cached curves at the new stay; no fetch, no engine run (G7-AC4).
+      // rerank() keeps the selected entry while the ranking around it changes (D-30).
+      if (state.view === 'results' && state.search === 'results' && computed.length > 0) rerank();
     },
 
     nudgeStay(direction) {

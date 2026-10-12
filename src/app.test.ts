@@ -109,4 +109,22 @@ describe('createApp — controller state machine (G7-AC5)', () => {
     app.closeSettings();
     expect(app.getState().view).toBe('results');
   });
+
+  it('a stay change on the results screen re-reads the cached curves at the new stay (G7-AC4)', async () => {
+    const { app, deps } = await searched();
+    const before = app.getState().results;
+    expect(before[0]!.outcome).toMatchObject({ kind: 'priced', kwh: expect.closeTo(5.4, 9) });
+    app.setStay(45);
+    const after = app.getState().results;
+    expect(after[0]!.outcome).toMatchObject({ kind: 'priced', kwh: expect.closeTo(2.7, 9) });
+    expect(after[0]!.entry).toBe(before[0]!.entry);
+    expect(deps.findNearest).toHaveBeenCalledTimes(1);
+  });
+
+  it('a stay change after a load error stores the stay and leaves the results empty', async () => {
+    const { app } = await searched(stubDeps({ failFind: 1 }));
+    expect(app.getState().search).toBe('load-error');
+    app.setStay(45);
+    expect(app.getState()).toMatchObject({ search: 'load-error', results: [], selectedId: null, stayMin: 45 });
+  });
 });
